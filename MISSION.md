@@ -21,6 +21,7 @@ where it must be.
 - [ ] Persistent memory writing back automatically at session end
 - [x] ZAISEN AI chat app: streaming, memory, mobile UI, Dockerfile
 - [x] Relay: ZAISEN chat → mailbox → Arena session → back to the browser
+- [x] Wake protocol: `bin/check` triage + phone notification workflow
 - [ ] Docker sandbox image for `yolo` mode
 - [ ] Scheduled/unattended runs (cron + local model)
 
@@ -31,6 +32,10 @@ where it must be.
 - Guardrails are declarative (`policy.json`), not scattered through code.
 
 ## Next
+
+Trigger options are exhausted and documented in `docs/TRIGGERS.md`: no inbound
+path to a session exists, so the design wakes the human instead. The notification
+workflow is untested against a real webhook (no secrets in the sandbox).
 
 Relay v1 works with both the file and GitHub backends; GitHub was verified only
 up to the 403 from a read-only token, so a run with a real PAT is still untested.

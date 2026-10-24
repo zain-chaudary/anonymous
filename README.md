@@ -86,6 +86,23 @@ python3 zaisen/server.py
 
 Full setup, deployment, and security notes: **[docs/ZAISEN.md](docs/ZAISEN.md)**.
 
+### Wake protocol
+
+Nothing outside a session can start one — not GitHub, not a webhook, not a cron
+job. Verified against every mechanism in **[docs/TRIGGERS.md](docs/TRIGGERS.md)**.
+So the trigger is a human sending one line:
+
+> **CHECK AND ANSWER**
+
+and the repo does the rest: `bin/check` triages mail, tree state, and nothing else
+needs remembering. `.github/workflows/mailbox-notify.yml` pings your phone when a
+question lands, so you know when to send it.
+
+```bash
+bin/check                  # everything awaiting attention
+bin/check --json           # same, machine-readable
+```
+
 ### Relay — routing chat messages to an Arena session
 
 ```bash

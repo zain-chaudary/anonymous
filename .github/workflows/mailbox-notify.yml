@@ -1,0 +1,45 @@
+name: mailbox notify
+
+# Pings you when a question lands in the ZAISEN mailbox on GitHub.
+#
+# It cannot wake the agent — Arena sessions have no inbound endpoint, so nothing
+# outside can start one. What it can do is wake a human, who opens the session
+# and says "CHECK AND ANSWER". That is the whole trick.
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions: {}
+
+jobs:
+  ping:
+    if: contains(github.event.comment.body, 'zaisen:')
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: relay
+          sparse-checkout-cone-mode: false
+
+      - name: Notify
+        env:
+          BODY: ${{ github.event.comment.body }}
+          NOTIFY_URL: ${{ secrets.NOTIFY_URL }}
+          NOTIFY_FORMAT: ${{ vars.NOTIFY_FORMAT || 'ntfy' }}
+          NOTIFY_TOKEN: ${{ secrets.NOTIFY_TOKEN }}
+        run: |
+          printf '%s' "$BODY" > "$RUNNER_TEMP/comment.txt"
+          python3 relay/notify.py --body-file "$RUNNER_TEMP/comment.txt"
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Mailbox activity"
+            echo ""
+            echo "- comment: ${{ github.event.comment.html_url }}"
+            echo "- If no notification arrived, \`NOTIFY_URL\` is unset."
+            echo "- Answer it from an Arena session with \`bin/check\`."
+          } >> "$GITHUB_STEP_SUMMARY"

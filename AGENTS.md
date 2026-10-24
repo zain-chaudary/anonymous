@@ -6,6 +6,11 @@ cannot rewrite its own rules.
 
 ## On every session
 
+0. **If the message is "CHECK AND ANSWER" (or asks to check mail), run
+   `bin/check` first and answer every pending message before anything else.**
+   That phrase is the agreed wake word — there is no way for anything to start a
+   session, so a one-line message from the owner is the trigger. See
+   `docs/TRIGGERS.md`.
 1. Read `MISSION.md`. That is the current goal and state.
 2. Read the newest 1–2 files in `journal/`. That is what happened last time.
 3. Check `tasks/`. If something is queued, do that first unless told otherwise.
