@@ -20,6 +20,7 @@ where it must be.
 - [x] Test suite (`tests/`, 21 tests, stdlib `unittest`)
 - [ ] Persistent memory writing back automatically at session end
 - [x] ZAISEN AI chat app: streaming, memory, mobile UI, Dockerfile
+- [x] Relay: ZAISEN chat → mailbox → Arena session → back to the browser
 - [ ] Docker sandbox image for `yolo` mode
 - [ ] Scheduled/unattended runs (cron + local model)
 
@@ -30,6 +31,9 @@ where it must be.
 - Guardrails are declarative (`policy.json`), not scattered through code.
 
 ## Next
+
+Relay v1 works with both the file and GitHub backends; GitHub was verified only
+up to the 403 from a read-only token, so a run with a real PAT is still untested.
 
 ZAISEN v1 is shippable. The gap between it and a public product is auth and
 persistent sessions — both deliberately omitted until there are real users.

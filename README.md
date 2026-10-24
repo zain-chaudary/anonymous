@@ -86,6 +86,21 @@ python3 zaisen/server.py
 
 Full setup, deployment, and security notes: **[docs/ZAISEN.md](docs/ZAISEN.md)**.
 
+### Relay — routing chat messages to an Arena session
+
+```bash
+python3 relay/mailbox.py doctor       # which mailbox backend is live
+python3 relay/mailbox.py pending      # unanswered questions from the chat
+python3 relay/mailbox.py reply <id> "answer"
+```
+
+With `ZAISEN_PROVIDER=relay`, chat messages queue in a mailbox (local JSONL, or
+comments on a GitHub issue if you set `GITHUB_TOKEN`) and the browser polls for
+answers every 8 seconds. Works end to end — [docs/RELAY.md](docs/RELAY.md)
+covers the setup, and the one limitation that matters: **nothing can wake the
+agent up**, so replies arrive when a session next checks the mailbox, not on
+demand.
+
 > **Why it doesn't relay to Arena.** There is no API that accepts messages for
 > me — I exist only inside a session you open. ZAISEN talks to the model directly
 > from your server, and the footer names which model, because most model licences

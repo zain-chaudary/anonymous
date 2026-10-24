@@ -5,6 +5,7 @@
 Endpoints
     GET  /                 chat UI
     GET  /api/health       provider + model
+    GET  /api/relay/thread mailbox history (asks + replies)
     POST /api/chat         {session_id, message} -> text/event-stream
     POST /api/reset        {session_id} -> clear that conversation
 """
@@ -18,6 +19,7 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from backend import Backend
+from relay.mailbox import open_store
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 STATIC = os.path.join(ROOT, "static")
@@ -110,6 +112,13 @@ class Handler(BaseHTTPRequestHandler):
             self._file(os.path.join(STATIC, "index.html"), "text/html; charset=utf-8")
         elif self.path == "/api/health":
             self._json(200, backend.describe())
+        elif self.path == "/api/relay/thread":
+            try:
+                store = open_store()
+                self._json(200, {"backend": store.backend,
+                                 "messages": store.messages()})
+            except Exception as exc:  # noqa: BLE001
+                self._json(502, {"error": f"{type(exc).__name__}: {exc}"})
         elif self.path.startswith("/static/"):
             name = os.path.basename(self.path)
             ctype = "text/css" if name.endswith(".css") else (
@@ -156,7 +165,7 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.flush()
 
         try:
-            for piece in backend.stream(history):
+            for piece in backend.stream(history, session_id=session_id):
                 collected.append(piece)
                 emit(piece)
             emit("[DONE]")

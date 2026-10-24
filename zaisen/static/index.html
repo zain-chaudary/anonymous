@@ -260,6 +260,8 @@
   let threads = [];          // {id, title, messages:[{role,text}]}
   let current = null;
   let controller = null;
+  const seenRelay = new Set();
+  let relayTimer = null;
 
   const uid = () => Math.random().toString(36).slice(2, 10);
   const escapeHTML = (s) => s.replace(/[&<>"']/g, (c) =>
@@ -451,6 +453,33 @@
     }
   }
 
+  // ---- relay: pull answers posted by an agent session ----
+  async function pollRelay(){
+    if (!current) return;
+    try {
+      const res = await fetch("/api/relay/thread");
+      if (!res.ok) return;
+      const data = await res.json();
+      for (const m of data.messages || []) {
+        if (m.kind !== "reply") continue;
+        if (seenRelay.has(m.id)) continue;
+        seenRelay.add(m.id);
+        if (m.session && current.id && m.session !== current.id) continue;
+        if (current.messages.some((x) => x.text === m.text)) continue;
+        current.messages.push({ role: "assistant", text: m.text });
+        bubble("assistant", m.text, false);
+        save();
+        scrollBottom();
+      }
+    } catch {}
+  }
+
+  function startRelayWatch(){
+    if (relayTimer) return;
+    pollRelay();
+    relayTimer = setInterval(pollRelay, 8000);
+  }
+
   // ---- boot ----
   async function boot(){
     load();
@@ -477,7 +506,14 @@
     $("statusText").textContent = ok
       ? `brain: ${health.mode}`
       : "demo mode — no model connected";
-    if (!ok) {
+    if (health.relay) {
+      startRelayWatch();
+      $("banner").classList.add("show");
+      $("banner").innerHTML =
+        "Relay mode: messages queue in the mailbox and are answered by an Arena " +
+        "agent session. Replies appear here within ~8s of being posted. " +
+        "No automatic wake-up — someone has to open a session and check.";
+    } else if (!ok) {
       $("banner").classList.add("show");
       $("banner").textContent =
         "Demo mode: the app works, but no model is connected. Start Ollama or set ZAISEN_PROVIDER / ZAISEN_BASE_URL / ZAISEN_MODEL.";
@@ -485,8 +521,10 @@
     $("providerLink").onclick = (e) => {
       e.preventDefault();
       alert(`ZAISEN AI\\n\\nprovider: ${health.mode}\\nmodel: ${health.model}\\n\\n` +
-            "This app calls the model provider directly from your own server. " +
-            "It does not relay messages through any third-party hosted agent.");
+            (health.relay
+              ? "Relay mode: messages are posted to a mailbox that an Arena agent " +
+                "session reads when it is open. Replies are not real-time."
+              : "This app calls the model provider directly from your own server."));
     };
   }
 

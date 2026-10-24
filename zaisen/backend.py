@@ -3,6 +3,7 @@
 Providers:
   ollama  - local, free, unmetered
   openai  - any OpenAI-compatible endpoint (Groq, OpenRouter, LM Studio, vLLM)
+  relay   - forwards to the mailbox; an Arena session answers (docs/RELAY.md)
   demo    - no model configured; answers with setup instructions
 """
 
@@ -10,9 +11,14 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import urllib.error
 import urllib.request
+from pathlib import Path
 from typing import Iterator
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from relay.mailbox import open_store  # noqa: E402
 
 SYSTEM_PROMPT = """You are ZAISEN AI, a helpful assistant in a web chat.
 
@@ -85,24 +91,60 @@ class Backend:
         return self.provider
 
     def describe(self) -> dict:
+        model = self.model or (
+            "qwen2.5:7b" if self.effective == "ollama"
+            else "arena session via relay" if self.effective == "relay"
+            else "not configured"
+        )
         return {
             "mode": self.effective,
-            "model": self.model or (
-                "qwen2.5:7b" if self.effective == "ollama" else "not configured"
-            ),
+            "model": model,
             "configured": self.effective != "demo",
+            "relay": self.effective == "relay",
         }
 
     # ---------- streaming ----------
 
-    def stream(self, history: list[dict]) -> Iterator[str]:
+    def stream(self, history: list[dict], session_id: str = "") -> Iterator[str]:
         messages = [{"role": "system", "content": SYSTEM_PROMPT}] + history
         if self.effective == "ollama":
             yield from self._stream_ollama(messages)
         elif self.effective == "openai":
             yield from self._stream_openai(messages)
+        elif self.effective == "relay":
+            yield from self._stream_relay(history, session_id)
         else:
             yield from self._stream_demo()
+
+    def _stream_relay(self, history: list[dict],
+                      session_id: str = "zaisen-web") -> Iterator[str]:
+        """Post the question to the mailbox and acknowledge it by id.
+
+        We do not block waiting for the answer. The browser polls
+        /api/relay/thread and drops the reply into the same conversation the
+        moment an agent session posts it.
+        """
+        question = next(
+            (m["content"] for m in reversed(history) if m.get("role") == "user"),
+            "",
+        )
+        try:
+            store = open_store()
+            record = store.post_ask(question, session=session_id or "zaisen-web")
+            where = ("GitHub issue" if store.backend == "github"
+                     else f"`{store.path}`")
+            yield (
+                f"⏳ **Queued as `{record['id']}`.**\n\n"
+                f"This message is sitting in the relay mailbox ({where}). "
+                "An Arena agent session picks it up the next time one is open "
+                "and told to check the mailbox — there is no automatic wake-up, "
+                "so this can take minutes or hours depending on when you next "
+                "open the session.\n\n"
+                "**Keep this tab open.** It checks every eight seconds and the "
+                "reply will appear right here in the conversation."
+            )
+        except Exception as exc:  # noqa: BLE001 - surface to the user
+            yield f"\n\n**Relay failed:** `{type(exc).__name__}: {exc}`"
 
     def _stream_ollama(self, messages: list[dict]) -> Iterator[str]:
         payload = {
