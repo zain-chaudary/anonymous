@@ -1,0 +1,16 @@
+{
+  "mode": "careful",
+  "workspace_only": true,
+  "allow_commands": ["ls", "cat", "grep", "find", "wc", "head", "tail", "python3", "pytest", "git", "diff"],
+  "deny_patterns": ["| sh", "| bash", "curl -s | ", "chmod 777", "sudo "],
+  "protected_paths": [".git", ".env", "policy.json", "AGENTS.md", "*.pem", "*.key"],
+  "allow_hosts": [
+    "github.com",
+    "*.github.com",
+    "raw.githubusercontent.com",
+    "pypi.org",
+    "files.pythonhosted.org",
+    "registry.npmjs.org"
+  ],
+  "max_steps": 25
+}
