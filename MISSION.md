@@ -19,6 +19,7 @@ where it must be.
 - [x] Offline smoke test via mock provider
 - [x] Test suite (`tests/`, 21 tests, stdlib `unittest`)
 - [ ] Persistent memory writing back automatically at session end
+- [x] ZAISEN AI chat app: streaming, memory, mobile UI, Dockerfile
 - [ ] Docker sandbox image for `yolo` mode
 - [ ] Scheduled/unattended runs (cron + local model)
 
@@ -30,5 +31,7 @@ where it must be.
 
 ## Next
 
-Decide whether unattended runs are worth it. If yes, the cheapest path is a
-cron job driving `agent.py` against Ollama with `mode: allowlist`.
+ZAISEN v1 is shippable. The gap between it and a public product is auth and
+persistent sessions — both deliberately omitted until there are real users.
+Unattended `agent.py` runs remain unbuilt; the honest question is whether a local
+model is good enough to be trusted with them.

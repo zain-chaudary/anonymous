@@ -62,6 +62,37 @@ Flags: `--yes` (auto-approve; sandbox only) · `--max-steps N` ·
 
 ---
 
+## ZAISEN AI — the chat app
+
+`zaisen/` is a complete, deployable chat product: streaming replies, conversation
+memory, mobile layout, one HTML file, zero dependencies.
+
+```bash
+python3 zaisen/server.py        # http://localhost:8000
+```
+
+Runs in **demo mode** until you point it at a brain:
+
+```bash
+# free + local
+ollama serve && ollama pull qwen2.5:7b
+ZAISEN_PROVIDER=ollama ZAISEN_MODEL=qwen2.5:7b python3 zaisen/server.py
+
+# or any OpenAI-compatible endpoint
+ZAISEN_PROVIDER=openai ZAISEN_BASE_URL=https://api.groq.com/openai/v1 \
+ZAISEN_MODEL=llama-3.3-70b-versatile ZAISEN_API_KEY=gsk_... \
+python3 zaisen/server.py
+```
+
+Full setup, deployment, and security notes: **[docs/ZAISEN.md](docs/ZAISEN.md)**.
+
+> **Why it doesn't relay to Arena.** There is no API that accepts messages for
+> me — I exist only inside a session you open. ZAISEN talks to the model directly
+> from your server, and the footer names which model, because most model licences
+> require attribution and hiding the origin is how "AI wrappers" get shut down.
+
+---
+
 ## Architecture
 
 ```
