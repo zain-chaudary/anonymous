@@ -130,16 +130,32 @@ There is no third option.
 
 ### Publishing it on a real URL
 
-A sandbox preview (`…e2b.app`) only lives as long as the session, so it is useless for sending
-to someone. Two ways to get a permanent link:
+The sandbox preview (`…e2b.app`) dies with the session, so it is useless for sending to anyone.
+`public/system-check.html` is completely self-contained, so any static host works:
 
-1. **Drag and drop** `public/system-check.html` onto [Netlify Drop](https://app.netlify.com/drop).
-   No account, ~20 seconds, you get `https://something.netlify.app/system-check.html`.
-2. **GitHub Pages from this repo:** `node scripts/build-pages.js` copies the standalone page into
-   `docs/`, then enable Pages with source = this branch, folder = `/docs`. The page is then at
-   `https://<user>.github.io/<repo>/system-check.html`.
+**Option A — GitHub Pages (permanent, no extra account).**
+`docs/` already contains the built copy. In the repo: **Settings → Pages → Source: _Deploy from a
+branch_ → Branch: `arena/cad57155-anonymous`, Folder: `/docs` → Save.** After a minute the page is
+live at:
 
-There are no build steps, no dependencies and no assets to upload — the HTML is the whole thing.
+```
+https://zain-chaudary.github.io/anonymous/system-check.html
+```
+
+Run `node scripts/build-pages.js` again after editing the page, then commit — Pages redeploys on
+push. Delete `docs/` and turn Pages off in the same settings screen to take it down.
+
+**Option B — drag and drop.** Put `public/system-check.html` on
+[Netlify Drop](https://app.netlify.com/drop) or Cloudflare Pages. No build, no assets, one file.
+
+**Option C — instant, no settings.** `raw.githack.com` serves a single file from a public repo
+with the right content type:
+
+```
+https://raw.githack.com/zain-chaudary/anonymous/arena/cad57155-anonymous/docs/system-check.html
+```
+
+It is a third-party proxy, so use it for a quick test, not for something permanent.
 
 ### Using it responsibly
 
