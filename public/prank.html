@@ -522,6 +522,22 @@
     text-transform: uppercase;
     color: #3f5064;
   }
+  .hud-btns { display: inline-flex; gap: 7px; align-items: center; flex: none; }
+  #mute {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 5px 11px;
+    border-radius: 6px;
+    background: transparent;
+    border: 1px solid #22303f;
+    color: #7d90a6;
+    font-weight: 500;
+  }
+  #mute:hover { color: #fff; border-color: #3a4c60; }
+  #mute.off { color: var(--amber); border-color: #4a3416; }
+
   #panic {
     font-family: var(--mono);
     font-size: 9.5px;
@@ -651,7 +667,7 @@
     </ul>
     <div class="gate-row">
       <button class="go" id="btnStart">START THE DEMO</button>
-      <label class="gate-check"><input type="checkbox" id="chkSound" /> play sound</label>
+      <label class="gate-check"><input type="checkbox" id="chkSound" checked /> play sound</label>
     </div>
     <p class="fineprint">
       Not for people who are anxious about losing their data, and never on a work laptop you
@@ -790,7 +806,10 @@
 
   <footer class="hud-foot">
     <span>simulated · this device is untouched</span>
-    <button id="panic">end demo (esc)</button>
+    <span class="hud-btns">
+      <button id="mute" title="Mute (M)">sound: on</button>
+      <button id="panic">end demo (esc)</button>
+    </span>
   </footer>
 </div>
 
@@ -822,7 +841,7 @@
     </div>
 
     <div class="reveal-actions">
-      <a href="/"><button>Open the real lab</button></a>
+      <a href="/" id="labLink" hidden><button>Open the real lab</button></a>
       <button class="quiet" id="btnReplay">Replay</button>
       <button class="quiet" id="btnCopy">Copy this link</button>
     </div>
@@ -843,10 +862,8 @@
   const scenes = new Map([...document.querySelectorAll('.scene')].map((s) => [s.dataset.scene, s]));
 
   let cancelled = false;
-  let soundOn = false;
   let startedAt = 0;
   let clockTimer = null;
-  let audio = null;
 
   // ---------------------------------------------------------------- helpers
   const sleep = (ms) => new Promise((r) => setTimeout(r, Math.max(0, ms / SPEED)));
@@ -872,54 +889,297 @@
     return 'UNKNOWN';
   }
 
-  // --------------------------------------------------------------- audio --
-  function initAudio() {
-    if (!soundOn) return;
-    try {
-      const Ctx = window.AudioContext || window.webkitAudioContext;
-      if (!Ctx) return;
-      audio = new Ctx();
-    } catch { audio = null; }
-  }
+  // ----------------------------------------------------------------- audio
+  // Everything is synthesised with WebAudio: no audio files, so the page stays
+  // a single self-contained file and still makes zero network requests.
+  const SFX = (() => {
+    const MASTER_LEVEL = 0.6; // deliberately conservative peak
+    let ctx = null;
+    let master = null;
+    let noiseBuf = null;
+    let muted = false;
+    let klaxonTimer = null;
+    let klaxonLive = false;
+    let shredTimer = null;
+    let shredLive = false;
+    let droneNodes = null;
 
-  function beep(freq = 880, dur = 0.07, type = 'square', gain = 0.035) {
-    if (!audio) return;
-    const o = audio.createOscillator();
-    const g = audio.createGain();
-    o.type = type;
-    o.frequency.value = freq;
-    g.gain.value = gain;
-    g.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + dur);
-    o.connect(g).connect(audio.destination);
-    o.start();
-    o.stop(audio.currentTime + dur);
-  }
+    function init() {
+      if (ctx) return ctx;
+      try {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!Ctx) return null;
+        ctx = new Ctx();
 
-  let sirenGain = null;
-  function sirenOn() {
-    if (!audio || sirenGain) return;
-    const o = audio.createOscillator();
-    const lfo = audio.createOscillator();
-    const lfoGain = audio.createGain();
-    sirenGain = audio.createGain();
-    o.type = 'sawtooth';
-    o.frequency.value = 520;
-    lfo.type = 'sine';
-    lfo.frequency.value = 0.55;
-    lfoGain.gain.value = 190;
-    sirenGain.gain.value = 0.018;
-    lfo.connect(lfoGain).connect(o.frequency);
-    o.connect(sirenGain).connect(audio.destination);
-    o.start();
-    lfo.start();
-  }
-  function sirenOff() {
-    if (!sirenGain) return;
-    try {
-      sirenGain.gain.value = 0;
-      setTimeout(() => { sirenGain = null; }, 400);
-    } catch { sirenGain = null; }
-  }
+        const comp = ctx.createDynamicsCompressor();
+        comp.threshold.value = -20;
+        comp.knee.value = 22;
+        comp.ratio.value = 9;
+        comp.attack.value = 0.003;
+        comp.release.value = 0.25;
+
+        master = ctx.createGain();
+        // Start silent and fade in: a hard start on a loud graph clicks, and
+        // this is going into someone's headphones.
+        master.gain.setValueAtTime(0.0001, ctx.currentTime);
+        master.gain.exponentialRampToValueAtTime(MASTER_LEVEL, ctx.currentTime + 0.45);
+        master.connect(comp);
+        comp.connect(ctx.destination);
+
+        // 2 seconds of pink-ish noise, reused for every texture.
+        const len = Math.floor(ctx.sampleRate * 2);
+        noiseBuf = ctx.createBuffer(1, len, ctx.sampleRate);
+        const data = noiseBuf.getChannelData(0);
+        let last = 0;
+        for (let i = 0; i < len; i++) {
+          const white = Math.random() * 2 - 1;
+          last = (last + 0.02 * white) / 1.02;
+          data[i] = last * 3.2;
+        }
+        return ctx;
+      } catch {
+        ctx = null;
+        return null;
+      }
+    }
+
+    const live = () => ctx && !muted;
+
+    /** Single oscillator with an optional pitch sweep. */
+    function tone(o = {}) {
+      if (!live()) return;
+      const { freq = 440, to = null, dur = 0.15, type = 'sine', gain = 0.2, when = 0, attack = 0.004 } = o;
+      const t0 = ctx.currentTime + when;
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(Math.max(20, freq), t0);
+      if (to) osc.frequency.exponentialRampToValueAtTime(Math.max(20, to), t0 + dur);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(Math.max(0.0002, gain), t0 + Math.min(attack, dur * 0.5));
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      osc.connect(g);
+      g.connect(master);
+      osc.start(t0);
+      osc.stop(t0 + dur + 0.03);
+    }
+
+    /** Filtered noise: clicks, cuts, hiss, shredding, impacts. */
+    function noise(o = {}) {
+      if (!live()) return;
+      const { dur = 0.2, gain = 0.2, type = 'bandpass', freq = 1200, q = 0.8, to = null, when = 0, attack = 0.005 } = o;
+      const t0 = ctx.currentTime + when;
+      const src = ctx.createBufferSource();
+      src.buffer = noiseBuf;
+      src.loop = true;
+      const flt = ctx.createBiquadFilter();
+      flt.type = type;
+      flt.frequency.setValueAtTime(Math.max(30, freq), t0);
+      flt.Q.value = q;
+      if (to) flt.frequency.exponentialRampToValueAtTime(Math.max(30, to), t0 + dur);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(Math.max(0.0002, gain), t0 + Math.min(attack, dur * 0.5));
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      src.connect(flt);
+      flt.connect(g);
+      g.connect(master);
+      src.start(t0);
+      src.stop(t0 + dur + 0.03);
+    }
+
+    // ---------------------------------------------------------- one-shots --
+    const api = {
+      init,
+
+      get muted() { return muted; },
+
+      setMuted(v) {
+        muted = !!v;
+        if (master) master.gain.value = muted ? 0 : MASTER_LEVEL;
+        if (muted) api.stopLoops();
+      },
+
+      toggleMute() {
+        api.setMuted(!muted);
+        return muted;
+      },
+
+      resume() {
+        if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
+      },
+
+      tick(soft = false) {
+        tone({ freq: soft ? 900 : 1450, dur: 0.028, type: 'square', gain: soft ? 0.016 : 0.03 });
+      },
+
+      click() {
+        noise({ dur: 0.035, freq: 2800, q: 2.6, gain: 0.05 });
+      },
+
+      /** Power-on whoosh: rising filtered noise + low thump. */
+      powerOn() {
+        noise({ dur: 1.1, freq: 90, to: 2200, type: 'bandpass', q: 0.7, gain: 0.13, attack: 0.25 });
+        tone({ freq: 55, to: 110, dur: 0.7, type: 'sine', gain: 0.22 });
+        tone({ freq: 1200, to: 1800, dur: 0.28, type: 'triangle', gain: 0.05, when: 0.35 });
+      },
+
+      /** Hard-drive spin-up chatter. */
+      diskSpin() {
+        for (let i = 0; i < 12; i++) {
+          noise({ dur: 0.05, freq: 900 + i * 90, q: 1.6, gain: 0.045, when: i * 0.055 });
+        }
+      },
+
+      /** Sonar ping with a decaying echo. */
+      ping() {
+        tone({ freq: 1180, to: 760, dur: 0.55, type: 'sine', gain: 0.14 });
+        tone({ freq: 1180, to: 760, dur: 0.45, type: 'sine', gain: 0.05, when: 0.19 });
+        tone({ freq: 1180, to: 760, dur: 0.35, type: 'sine', gain: 0.02, when: 0.36 });
+      },
+
+      /** Deep impact: the "you are breached" hit. */
+      impact() {
+        tone({ freq: 96, to: 30, dur: 1.1, type: 'sine', gain: 0.4 });
+        tone({ freq: 190, to: 60, dur: 0.5, type: 'triangle', gain: 0.18 });
+        noise({ dur: 0.9, freq: 900, to: 60, type: 'lowpass', gain: 0.28, attack: 0.01 });
+      },
+
+      /** A connection being severed. */
+      cut() {
+        noise({ dur: 0.11, freq: 2400, to: 220, q: 1.5, gain: 0.22 });
+        tone({ freq: 620, to: 120, dur: 0.12, type: 'square', gain: 0.07 });
+      },
+
+      /** Something heavy being switched off. */
+      clunk() {
+        noise({ dur: 0.22, freq: 340, to: 70, type: 'lowpass', gain: 0.32 });
+        tone({ freq: 74, to: 44, dur: 0.3, type: 'triangle', gain: 0.3 });
+        tone({ freq: 300, to: 180, dur: 0.12, type: 'square', gain: 0.05, when: 0.02 });
+      },
+
+      /** Data-corruption stutter for the wipe. */
+      glitch() {
+        const base = 220 + Math.random() * 900;
+        tone({ freq: base, dur: 0.035, type: 'square', gain: 0.05 });
+        noise({ dur: 0.03, freq: base * 2, q: 3, gain: 0.06, when: 0.02 });
+      },
+
+      /** Countdown tick; urgency ramps up. */
+      countdown(secondsLeft) {
+        const urgent = secondsLeft <= 3;
+        tone({ freq: urgent ? 1150 : 780, dur: 0.07, type: 'square', gain: urgent ? 0.12 : 0.08 });
+        if (urgent) tone({ freq: urgent ? 1150 : 780, dur: 0.05, type: 'square', gain: 0.1, when: 0.14 });
+      },
+
+      /** Screen going dark: sawtooth sweep down + fan winding down. */
+      powerDown() {
+        tone({ freq: 460, to: 34, dur: 1.5, type: 'sawtooth', gain: 0.15 });
+        noise({ dur: 1.6, freq: 2600, to: 90, type: 'lowpass', gain: 0.16, attack: 0.05 });
+        tone({ freq: 120, to: 40, dur: 1.2, type: 'sine', gain: 0.12, when: 0.15 });
+      },
+
+      /** Kind resolution: it was a joke. */
+      relief() {
+        [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+          tone({ freq: f, dur: 1.1, type: 'triangle', gain: 0.085, when: i * 0.09, attack: 0.02 });
+        });
+        tone({ freq: 2093, dur: 0.5, type: 'sine', gain: 0.03, when: 0.42 });
+        noise({ dur: 0.6, freq: 6000, type: 'highpass', gain: 0.02, when: 0.1 });
+      },
+
+      // ------------------------------------------------------------- loops --
+      klaxonStart() {
+        if (!live() || klaxonLive) return;
+        klaxonLive = true;
+        let hi = true;
+        const step = () => {
+          if (!klaxonLive) return;
+          tone({ freq: hi ? 900 : 640, dur: 0.3, type: 'sawtooth', gain: 0.07 });
+          tone({ freq: hi ? 902 : 642, dur: 0.3, type: 'square', gain: 0.025 });
+          hi = !hi;
+          klaxonTimer = setTimeout(step, 330);
+        };
+        step();
+      },
+
+      klaxonStop() {
+        klaxonLive = false;
+        clearTimeout(klaxonTimer);
+        klaxonTimer = null;
+      },
+
+      /** Continuous shredding: rhythmic filtered noise, pitch creeping up. */
+      shredStart() {
+        if (!live() || shredLive) return;
+        shredLive = true;
+        let i = 0;
+        const step = () => {
+          if (!shredLive) return;
+          const t = Math.min(1, i / 22);
+          noise({ dur: 0.09, freq: 700 + t * 2200, q: 1.1, gain: 0.055 + t * 0.05 });
+          if (i % 3 === 0) tone({ freq: 130 + Math.random() * 90, dur: 0.05, type: 'square', gain: 0.04 });
+          i += 1;
+          shredTimer = setTimeout(step, 105 - t * 35);
+        };
+        step();
+      },
+
+      shredStop() {
+        shredLive = false;
+        clearTimeout(shredTimer);
+        shredTimer = null;
+      },
+
+      /** Low hovering tension bed. */
+      droneStart(baseFreq = 58) {
+        if (!live() || droneNodes) return;
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.055, ctx.currentTime + 1.4);
+        const a = ctx.createOscillator();
+        const b = ctx.createOscillator();
+        const lfo = ctx.createOscillator();
+        const lfoGain = ctx.createGain();
+        a.type = 'sawtooth';
+        a.frequency.value = baseFreq;
+        b.type = 'sine';
+        b.frequency.value = baseFreq * 1.5;
+        lfo.type = 'sine';
+        lfo.frequency.value = 0.18;
+        lfoGain.gain.value = 1.6;
+        lfo.connect(lfoGain);
+        lfoGain.connect(a.frequency);
+        a.connect(g);
+        b.connect(g);
+        g.connect(master);
+        a.start();
+        b.start();
+        lfo.start();
+        droneNodes = { g, a, b, lfo };
+      },
+
+      droneStop() {
+        if (!droneNodes) return;
+        const { g, a, b, lfo } = droneNodes;
+        droneNodes = null;
+        try {
+          g.gain.cancelScheduledValues(ctx.currentTime);
+          g.gain.setValueAtTime(g.gain.value, ctx.currentTime);
+          g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.35);
+          [a, b, lfo].forEach((o) => o.stop(ctx.currentTime + 0.4));
+        } catch { /* already stopped */ }
+      },
+
+      stopLoops() {
+        api.klaxonStop();
+        api.shredStop();
+        api.droneStop();
+      },
+    };
+
+    return api;
+  })();
 
   // ----------------------------------------------------------------- clock
   function startClock() {
@@ -953,6 +1213,7 @@
 
   async function runBoot() {
     showScene('boot');
+    SFX.powerOn();
     const term = $('#term');
     term.innerHTML = '';
     for (const [text, kind] of BOOT_LINES) {
@@ -961,13 +1222,15 @@
       line.className = kind;
       line.textContent = text;
       term.appendChild(line);
-      if (kind === 'err') beep(220, 0.05, 'square', 0.05);
+      if (kind === 'err') SFX.tone({ freq: 220, dur: 0.06, type: 'square', gain: 0.06 });
+      else SFX.tick(line);
       await sleep(rand(90, 190));
     }
     if (cancelled) return;
     const cursorLine = document.createElement('div');
     cursorLine.innerHTML = '<span class="hl">root@localhost</span>:~# payload --execute --force <span class="cursor"></span>';
     term.appendChild(cursorLine);
+    SFX.diskSpin();
     await sleep(700);
   }
 
@@ -975,13 +1238,15 @@
   async function runAlert() {
     showScene('alert');
     setAlertFx(true);
-    sirenOn();
-    beep(120, 0.5, 'sawtooth', 0.06);
+    SFX.impact();
+    SFX.droneStart(56);
+    setTimeout(() => { if (!cancelled) SFX.klaxonStart(); }, 420);
     const flashes = ['incoming connection accepted', 'privilege escalated', 'shadow copy deleted', 'recovery disabled', 'payload delivered'];
     for (let i = 0; i < flashes.length; i++) {
       if (cancelled) return;
       $('#flashLine').textContent = flashes[i];
-      beep(660, 0.04, 'square', 0.03);
+      if (i > 0) SFX.impact();
+      SFX.tone({ freq: 700, dur: 0.05, type: 'square', gain: 0.03 });
       await sleep(560);
     }
   }
@@ -989,7 +1254,8 @@
   // ----------------------------------------------------------- 3. trace ----
   async function runTrace() {
     showScene('trace');
-    sirenOff();
+    SFX.klaxonStop();
+    SFX.droneStop();
     setAlertFx(false);
 
     const HOSTS = ['GUEST-PC', 'DESKTOP-7K2QX', 'LAPTOP-4M1Z9', 'WORKSTATION-02'];
@@ -1003,7 +1269,7 @@
     for (const ch of ip) {
       if (cancelled) return;
       ipNode.textContent += ch;
-      if (Math.random() > 0.6) beep(1200, 0.02, 'square', 0.012);
+      if (Math.random() > 0.6) SFX.tick(true);
       await sleep(55);
     }
     $('#kvRegion').textContent = 'FRA · Frankfurt am Main';
@@ -1025,7 +1291,8 @@
       row.innerHTML = `<span class="n">${i + 1}</span><span class="ip">${addr}</span><span class="ms">${Math.floor(rand(8, 240))} ms</span>`;
       list.appendChild(row);
       requestAnimationFrame(() => row.classList.add('in'));
-      beep(hot ? 300 : 900, 0.04, 'square', 0.025);
+      if (hot) SFX.impact();
+      else SFX.ping();
       await sleep(520);
     }
     await sleep(900);
@@ -1044,6 +1311,7 @@
 
   async function runConnections() {
     showScene('conn');
+    SFX.droneStart(48);
     const rows = $('#connRows');
     rows.innerHTML = '';
     $('#connTotal').textContent = CONNECTIONS.length;
@@ -1062,7 +1330,7 @@
       row.querySelector('.ico').textContent = '✕';
       killed += 1;
       $('#connCount').textContent = killed;
-      beep(180, 0.05, 'square', 0.04);
+      SFX.cut();
       await sleep(150);
     }
     await sleep(520);
@@ -1103,7 +1371,7 @@
       row.querySelector('.ico').textContent = '✕';
       n += 1;
       $('#secCount').textContent = n;
-      beep(150, 0.06, 'square', 0.045);
+      SFX.clunk();
       await sleep(170);
     }
     await sleep(600);
@@ -1136,6 +1404,7 @@
     const totalMb = Math.floor(rand(2400, 9800));
     $('#fileTotal').textContent = totalMb;
 
+    SFX.shredStart();
     const entries = FILE_NAMES.map((name) => ({
       name,
       size: `${Math.floor(rand(2, 900))} ${Math.random() > 0.85 ? 'GB' : 'MB'}`,
@@ -1162,9 +1431,10 @@
       done += 1;
       $('#fileCount').textContent = Math.floor((done / nodes.length) * totalMb);
       bar.style.width = `${(done / nodes.length) * 100}%`;
-      beep(rand(140, 220), 0.03, 'square', 0.03);
+      SFX.glitch();
       await sleep(rand(40, 110));
     }
+    SFX.shredStop();
     await sleep(420);
   }
 
@@ -1174,7 +1444,7 @@
   async function runReset() {
     showScene('reset');
     setAlertFx(true);
-    sirenOn();
+    SFX.klaxonStart();
     const num = $('#ringNum');
     const prog = $('#ringProg');
     prog.style.strokeDasharray = String(RING_LEN);
@@ -1183,23 +1453,25 @@
       if (cancelled) return;
       num.textContent = String(n);
       prog.style.strokeDashoffset = String(RING_LEN * (1 - (10 - n) / 10));
-      beep(n <= 3 ? 660 : 440, 0.07, 'square', 0.05);
+      SFX.countdown(n);
       if (n <= 3) {
         prank.style.transform = `translate(${rand(-3, 3)}px, ${rand(-2, 2)}px)`;
         setTimeout(() => { if (prank) prank.style.transform = ''; }, 90);
       }
       await sleep(1000);
     }
+    SFX.klaxonStop();
+    SFX.impact();
     await sleep(600);
   }
 
   // -------------------------------------------------- 8. blackout --------
   async function runBlackout() {
-    sirenOff();
+    SFX.stopLoops();
     setAlertFx(false);
     prank.classList.add('dark');
     showScene('blackout');
-    beep(90, 0.9, 'sine', 0.03);
+    SFX.powerDown();
     await sleep(2200);
     prank.classList.remove('dark');
   }
@@ -1229,7 +1501,7 @@
   function endDemo(byUser) {
     if (cancelled) return;
     cancelled = true;
-    sirenOff();
+    SFX.stopLoops();
     setAlertFx(false);
     clearInterval(clockTimer);
     if (document.fullscreenElement && document.exitFullscreen) {
@@ -1242,21 +1514,28 @@
     $('#reveal').querySelector('.reveal-tag').textContent = byUser
       ? '✓ Simulation ended · nothing happened'
       : '✓ Simulation complete · nothing happened';
-    if (audio && byUser) beep(520, 0.12, 'sine', 0.04);
+    SFX.relief();
   }
 
   // ---------------------------------------------------------------- start --
   async function start() {
     cancelled = false;
-    soundOn = $('#chkSound').checked;
+    const wantSound = $('#chkSound').checked;
     gate.classList.add('hidden');
     prank.hidden = false;
     reveal.hidden = true;
 
     $('#hudHost').textContent = `HOST-UNKNOWN · ${platform()}`;
 
-    initAudio();
-    if (audio && audio.state === 'suspended') audio.resume().catch(() => {});
+    // Must happen inside the click handler or the browser suspends the context.
+    SFX.init();
+    SFX.setMuted(!wantSound);
+    SFX.resume();
+    const mb = $('#mute');
+    if (mb) {
+      mb.textContent = SFX.muted ? 'sound: off' : 'sound: on';
+      mb.classList.toggle('off', SFX.muted);
+    }
 
     // Fullscreen needs the click we just got. If the browser refuses (iframe,
     // iOS Safari), the fixed overlay already covers the viewport.
@@ -1270,9 +1549,36 @@
     runSequence();
   }
 
+  // The "back to the lab" button only makes sense when this page is served by
+  // the lab. A shared copy has no server behind it, so keep it hidden there.
+  if (params.get('lab') === '1') {
+    const labLink = $('#labLink');
+    if (labLink) labLink.hidden = false;
+  }
+
   // ----------------------------------------------------------------- wire --
   $('#btnStart').addEventListener('click', start);
   $('#panic').addEventListener('click', () => endDemo(true));
+
+  const muteBtn = $('#mute');
+  const paintMute = () => {
+    muteBtn.textContent = SFX.muted ? 'sound: off' : 'sound: on';
+    muteBtn.classList.toggle('off', SFX.muted);
+  };
+  muteBtn.addEventListener('click', () => {
+    SFX.toggleMute();
+    paintMute();
+  });
+
+  // M for mute, ESC for the exit.
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'm' || e.key === 'M') {
+      if (!prank.hidden) {
+        SFX.toggleMute();
+        paintMute();
+      }
+    }
+  });
   $('#btnReplay').addEventListener('click', () => {
     reveal.hidden = true;
     gate.classList.remove('hidden');
@@ -1282,7 +1588,9 @@
   $('#btnCopy').addEventListener('click', async (e) => {
     const btn = e.currentTarget;
     try {
-      await navigator.clipboard.writeText(location.href);
+      const shareUrl = new URL(location.href);
+      shareUrl.searchParams.delete('lab');
+      await navigator.clipboard.writeText(shareUrl.toString());
       btn.textContent = 'Copied ✓';
     } catch {
       btn.textContent = 'Copy failed';

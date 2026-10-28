@@ -20,7 +20,82 @@ function assert(cond, msg) {
   if (!cond) throw new Error(msg);
 }
 
-async function boot({ speed = 4, watchNetwork } = {}) {
+
+/**
+ * Minimal WebAudio stand-in. Real browsers are not available to this test, but
+ * the synth is the part most likely to throw at runtime (bad exponential ramp,
+ * connect to a param, missing node) — so we execute every code path against a
+ * strict fake that fails the way a real implementation would.
+ */
+function makeFakeAudio() {
+  const stats = { oscillators: 0, noiseSources: 0, filters: 0, gains: 0, buffers: 0, ramps: 0, badRamps: 0 };
+
+  class Param {
+    constructor(v) { this.value = v; }
+    setValueAtTime(v) { if (!Number.isFinite(v)) throw new Error('setValueAtTime(NaN)'); this.value = v; return this; }
+    exponentialRampToValueAtTime(v) {
+      stats.ramps += 1;
+      if (!Number.isFinite(v) || v <= 0) {
+        stats.badRamps += 1;
+        throw new Error(`exponentialRampToValueAtTime(${v}) — must be finite and > 0 in WebAudio`);
+      }
+      this.value = v;
+      return this;
+    }
+    linearRampToValueAtTime(v) { this.value = v; return this; }
+    cancelScheduledValues() { return this; }
+  }
+
+  class Node {
+    constructor() {
+      this.gain = new Param(1);
+      this.frequency = new Param(440);
+      this.Q = new Param(1);
+      this.threshold = new Param(-24);
+      this.knee = new Param(30);
+      this.ratio = new Param(12);
+      this.attack = new Param(0.003);
+      this.release = new Param(0.25);
+      this.type = 'sine';
+      this.buffer = null;
+      this.loop = false;
+      this.started = false;
+      this.stopped = false;
+    }
+    connect(next) {
+      if (!next) throw new Error('connect(undefined)');
+      return next;
+    }
+    disconnect() {}
+    start() { this.started = true; }
+    stop() { this.stopped = true; }
+  }
+
+  class FakeCtx {
+    constructor() {
+      this.currentTime = 0;
+      this.sampleRate = 48000;
+      this.state = 'running';
+      this.destination = new Node();
+    }
+    createGain() { stats.gains += 1; return new Node(); }
+    createOscillator() { stats.oscillators += 1; return new Node(); }
+    createBiquadFilter() { stats.filters += 1; return new Node(); }
+    createDynamicsCompressor() { return new Node(); }
+    createBufferSource() { stats.noiseSources += 1; return new Node(); }
+    createBuffer(channels, len, rate) {
+      stats.buffers += 1;
+      const data = new Float32Array(len);
+      return { length: len, sampleRate: rate, numberOfChannels: channels, getChannelData: () => data };
+    }
+    resume() { this.state = 'running'; return Promise.resolve(); }
+    suspend() { return Promise.resolve(); }
+  }
+
+  return { Ctx: FakeCtx, stats };
+}
+
+async function boot({ speed = 4, watchNetwork, audio } = {}) {
   const virtualConsole = new VirtualConsole();
   const pageErrors = [];
   virtualConsole.on('jsdomError', (e) => pageErrors.push(e.message));
@@ -30,6 +105,12 @@ async function boot({ speed = 4, watchNetwork } = {}) {
     resources: 'usable',
     pretendToBeVisual: true,
     virtualConsole,
+    beforeParse(window) {
+      if (audio) {
+        window.AudioContext = audio.Ctx;
+        window.webkitAudioContext = audio.Ctx;
+      }
+    },
   });
 
   const requests = [];
@@ -132,6 +213,45 @@ async function boot({ speed = 4, watchNetwork } = {}) {
     await sleep(1200);
     const after = doc.querySelector('.scene.on')?.dataset.scene;
     assert(before === after, 'timeline kept running after ESC');
+
+    window.close();
+  }
+
+  // -------------------------------------------------- sound synthesis -----
+  {
+    const audio = makeFakeAudio();
+    const { dom, pageErrors } = await boot({ speed: 4, audio });
+
+    const { window } = dom;
+    const doc = window.document;
+    assert(doc.querySelector('#chkSound').checked, 'sound should be on by default');
+    assert(doc.querySelector('#mute'), 'mute button missing from the HUD');
+
+    doc.querySelector('#btnStart').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+
+    const deadline = Date.now() + 25000;
+    while (doc.querySelector('#reveal').hidden && Date.now() < deadline) await sleep(200);
+    assert(!doc.querySelector('#reveal').hidden, 'sound run never finished');
+    assert(pageErrors.length === 0, `page threw with audio active: ${pageErrors.join(' | ')}`);
+
+    assert(audio.stats.badRamps === 0, `invalid exponential ramps: ${audio.stats.badRamps}`);
+    assert(audio.stats.oscillators > 40, `too few tones scheduled (${audio.stats.oscillators}) — synth may not have run`);
+    assert(audio.stats.noiseSources > 20, `too few noise events (${audio.stats.noiseSources}) — textures missing`);
+    assert(audio.stats.buffers === 1, 'the shared noise buffer should be built exactly once');
+    assert(audio.stats.filters > 10, 'filters are what make the sounds distinct — none were used');
+
+    // Mute has to actually silence the graph and stop the loops.
+    const before = audio.stats.oscillators;
+    doc.querySelector('#btnReplay').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    await sleep(100);
+    doc.querySelector('#btnStart').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    await sleep(400);
+    doc.querySelector('#mute').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    await sleep(120);
+    const mutedAt = audio.stats.oscillators;
+    assert(/sound: off/i.test(doc.querySelector('#mute').textContent), 'mute button label did not update');
+    await sleep(900);
+    assert(audio.stats.oscillators === mutedAt, 'tones kept firing after mute');
 
     window.close();
   }

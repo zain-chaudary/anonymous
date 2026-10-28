@@ -9,6 +9,10 @@ node server.js      →  http://localhost:3000        the lab
 node --test         →  6/6 passing (containment + full infection/cleanup cycle)
 ```
 
+**`public/prank.html` is fully self-contained** — one file, no assets, no network calls. Drop it
+on any static host (Netlify Drop, GitHub Pages, Cloudflare Pages) and the `/prank` link works
+anywhere. Nothing else from this repo needs to be deployed with it.
+
 ---
 
 ## First, the honest answer to "what is the best virus we can create?"
@@ -74,6 +78,27 @@ that admits every single thing was fake.** `ESC` exits at any moment, and leavin
 ends it too.
 
 Tap **Copy this link** on the reveal screen or just send `/prank?speed=2`.
+
+### Sound
+
+Every noise is **synthesised with WebAudio** — there are no audio files, so the page stays one
+self-contained HTML file and still makes zero network requests. Roughly:
+
+| Moment | Sound |
+|---|---|
+| Start | power-on whoosh, low thump, disk spin-up chatter |
+| Boot log | keystroke ticks, error blips, a rising tension bed |
+| Compromise | sub-bass impact + two-tone klaxon + siren bed |
+| Trace | sonar pings, per-hop blips, a hard hit on the command server |
+| Connections | filter-swept "cut" for each kill, then a power-down |
+| Security | mechanical clunks, descending as each service dies |
+| File wipe | continuous shredding noise that rises in pitch and speeds up |
+| Countdown | ticks that get higher and double-beep in the last three |
+| Blackout | sawtooth sweep down + fan winding out |
+| Reveal | a warm major chord — the joke lands kind, not cruel |
+
+Peak level is deliberately capped and faded in: this plays in someone's ears. **`M` mutes**,
+and there's a mute button in the footer. Test it at low volume first.
 
 ### What is fake (all of it)
 
@@ -165,7 +190,7 @@ node --test                              # 6 tests: containment, infection, dete
 npm i --no-save jsdom
 node server.js &                         # in another shell
 node scripts/ui-smoke.js                 # drives the lab: clicks all five steps, asserts the DOM
-node scripts/prank-smoke.js              # runs the scare end to end, checks ESC and zero network I/O
+node scripts/prank-smoke.js              # runs the scare end to end, checks ESC, sound graph, zero network I/O
 ```
 
 The UI smoke test exists because a screenshot-free review of a browser app is guesswork.
