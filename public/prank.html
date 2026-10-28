@@ -1,0 +1,1313 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="robots" content="noindex" />
+<title>SYSTEM ALERT</title>
+<script>
+  // Set before paint so the reveal never flashes by accident.
+  document.documentElement.className = 'js';
+</script>
+<style>
+  :root {
+    --bg: #04060a;
+    --ink: #c9d6e4;
+    --dim: #5b6c80;
+    --red: #ff2f45;
+    --red-soft: #ff6b7a;
+    --amber: #ffb454;
+    --green: #39e08a;
+    --cyan: #3ad6de;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--mono);
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  body { position: fixed; inset: 0; }
+
+  /* ============================================================ the gate */
+  #gate {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background:
+      radial-gradient(900px 520px at 50% -10%, rgba(58, 214, 222, 0.10), transparent 65%),
+      radial-gradient(700px 400px at 100% 110%, rgba(255, 47, 69, 0.08), transparent 60%),
+      var(--bg);
+  }
+  #gate.hidden { display: none; }
+
+  .gate-card {
+    width: min(560px, 100%);
+    border: 1px solid #1b2634;
+    border-radius: 16px;
+    background: linear-gradient(180deg, #0c1219, #080c11);
+    padding: 26px 24px 22px;
+    box-shadow: 0 40px 90px rgba(0, 0, 0, 0.7);
+  }
+  .gate-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--amber);
+    border: 1px solid #4a3416;
+    background: #1a1308;
+    padding: 4px 9px;
+    border-radius: 999px;
+    margin-bottom: 16px;
+  }
+  .gate-card h1 {
+    font-family: var(--sans);
+    font-size: 21px;
+    line-height: 1.25;
+    margin: 0 0 10px;
+    letter-spacing: -0.2px;
+    color: #eaf2fb;
+  }
+  .gate-card p {
+    font-family: var(--sans);
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--dim);
+    margin: 0 0 14px;
+  }
+  .gate-card p strong { color: #b9c9da; }
+  .gate-list {
+    font-family: var(--sans);
+    font-size: 12.5px;
+    color: #92a5b8;
+    margin: 0 0 18px;
+    padding-left: 18px;
+    line-height: 1.85;
+  }
+  .gate-list li::marker { color: var(--cyan); }
+  .gate-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .gate-check {
+    display: flex; align-items: center; gap: 7px;
+    font-family: var(--sans); font-size: 12px; color: var(--dim);
+    cursor: pointer; user-select: none;
+  }
+  .gate-check input { accent-color: var(--cyan); width: 14px; height: 14px; }
+
+  button {
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 11px 18px;
+    border-radius: 10px;
+    border: 1px solid #24303f;
+    background: #151d28;
+    color: #dce6f2;
+    cursor: pointer;
+    transition: transform .08s ease, background .15s ease, border-color .15s;
+  }
+  button:hover { background: #1b2532; border-color: #2f3d4f; }
+  button:active { transform: translateY(1px); }
+  button.go {
+    background: linear-gradient(180deg, #6d1a24, #43101a);
+    border-color: #8d2634;
+    color: #ffc9ce;
+    letter-spacing: 0.03em;
+  }
+  button.go:hover { background: linear-gradient(180deg, #85202c, #521320); }
+  button.quiet { background: transparent; color: var(--dim); border-color: #1e2937; font-weight: 500; }
+  button.quiet:hover { color: #dce6f2; }
+
+  .fineprint {
+    font-family: var(--sans);
+    font-size: 11px;
+    line-height: 1.6;
+    color: #43546a;
+    margin: 16px 0 0;
+  }
+
+  /* =========================================================== prank root */
+  #prank {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    background: #05080c;
+    overflow: hidden;
+  }
+  #prank[hidden] { display: none; }
+
+  /* CRT texture */
+  .fx {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 30;
+  }
+  .fx-lines {
+    background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 3px);
+    mix-blend-mode: overlay;
+    opacity: 0.5;
+  }
+  .fx-vignette {
+    background: radial-gradient(ellipse at center, transparent 45%, rgba(0, 0, 0, 0.72) 100%);
+  }
+  .fx-flicker { animation: flicker 5.5s infinite steps(1); background: rgba(120, 200, 255, 0.016); }
+  @keyframes flicker {
+    0%, 96%, 100% { opacity: 0.4; }
+    97% { opacity: 0.9; }
+    98% { opacity: 0.2; }
+  }
+  .fx-alert { background: radial-gradient(ellipse at center, transparent 35%, rgba(255, 47, 69, 0.20) 100%); opacity: 0; transition: opacity .5s; }
+  .fx-alert.on { opacity: 1; animation: alertpulse 1.1s infinite; }
+  @keyframes alertpulse { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.9; } }
+
+  /* HUD */
+  .hud {
+    position: relative;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: max(12px, env(safe-area-inset-top)) 18px 10px;
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--dim);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    flex: none;
+  }
+  .hud-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid #4a3416;
+    background: #1a1308;
+    color: var(--amber);
+    font-size: 9.5px;
+    flex: none;
+  }
+  .badge .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--amber); animation: blink 1.6s infinite; }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.15; } }
+  .hud-host { color: #64788e; letter-spacing: 0.08em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hud-right { display: flex; align-items: center; gap: 10px; color: #7d90a6; flex: none; }
+  .hud-clock { font-variant-numeric: tabular-nums; color: var(--red-soft); }
+
+  /* scenes */
+  #scenes {
+    position: relative;
+    z-index: 10;
+    flex: 1;
+    min-height: 0;
+    display: block;
+  }
+  .scene {
+    position: absolute;
+    inset: 0;
+    padding: 22px clamp(16px, 4vw, 46px) 10px;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .scene.on { display: flex; animation: scenein .35s ease both; }
+  @keyframes scenein { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* ---- boot terminal ---- */
+  #term {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    font-size: clamp(10px, 1.05vw, 12.5px);
+    line-height: 1.7;
+    color: #7d90a6;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  #term .ok { color: var(--green); }
+  #term .warn { color: var(--amber); }
+  #term .err { color: var(--red); }
+  #term .hl { color: var(--cyan); }
+  .cursor {
+    display: inline-block;
+    width: 8px;
+    height: 1em;
+    margin-left: 2px;
+    background: #8fd9ff;
+    vertical-align: -2px;
+    animation: caret 1s steps(1) infinite;
+  }
+  @keyframes caret { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+
+  /* ---- big alert ---- */
+  .alert-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    text-align: center;
+  }
+  .alert-icon {
+    width: clamp(64px, 10vw, 104px);
+    height: clamp(64px, 10vw, 104px);
+    border-radius: 50%;
+    border: 3px solid var(--red);
+    display: grid;
+    place-items: center;
+    font-family: var(--sans);
+    font-size: clamp(34px, 5vw, 52px);
+    font-weight: 800;
+    color: var(--red);
+    box-shadow: 0 0 60px rgba(255, 47, 69, 0.35), inset 0 0 40px rgba(255, 47, 69, 0.12);
+    animation: alertpop 1s infinite;
+  }
+  @keyframes alertpop {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 60px rgba(255, 47, 69, 0.35), inset 0 0 40px rgba(255, 47, 69, 0.12); }
+    50% { transform: scale(1.035); box-shadow: 0 0 90px rgba(255, 47, 69, 0.55), inset 0 0 50px rgba(255, 47, 69, 0.2); }
+  }
+  h2.alert-title {
+    margin: 0;
+    font-family: var(--sans);
+    font-size: clamp(21px, 3.6vw, 40px);
+    letter-spacing: -0.4px;
+    color: #fff;
+    text-shadow: 0 0 26px rgba(255, 47, 69, 0.6);
+  }
+  .glitch { position: relative; display: inline-block; }
+  .glitch::before, .glitch::after {
+    content: attr(data-t);
+    position: absolute;
+    inset: 0;
+    text-shadow: 0 0 26px rgba(255, 47, 69, 0.6);
+  }
+  .glitch::before { color: #26e0ff; transform: translate(-2px, 0); clip-path: inset(0 0 55% 0); animation: gl1 2.6s infinite steps(2); opacity: .75; }
+  .glitch::after { color: #ff2f45; transform: translate(2px, 0); clip-path: inset(55% 0 0 0); animation: gl2 3.1s infinite steps(2); opacity: .75; }
+  @keyframes gl1 { 0%, 92%, 100% { transform: translate(-2px, 0); } 94% { transform: translate(3px, -2px); } 96% { transform: translate(-5px, 1px); } }
+  @keyframes gl2 { 0%, 90%, 100% { transform: translate(2px, 0); } 93% { transform: translate(-4px, 2px); } 97% { transform: translate(5px, -1px); } }
+
+  .alert-sub {
+    font-size: clamp(11px, 1.3vw, 13.5px);
+    color: #93a6ba;
+    line-height: 1.8;
+    max-width: 640px;
+    margin: 0;
+  }
+  .alert-sub b { color: var(--red-soft); font-weight: 600; }
+  .flashline {
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--red-soft);
+    border: 1px solid #5c1f24;
+    background: rgba(255, 47, 69, 0.07);
+    padding: 5px 12px;
+    border-radius: 4px;
+  }
+
+  /* ---- trace / radar ---- */
+  .split {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: clamp(14px, 3vw, 36px);
+    align-items: center;
+  }
+  @media (max-width: 760px) { .split { grid-template-columns: 1fr; align-content: center; } .radar-wrap { display: none; } }
+
+  .sec-label {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #60748c;
+    margin: 0 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+  }
+  .sec-label::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, #1d2a39, transparent); }
+
+  .kv { display: grid; grid-template-columns: 116px 1fr; gap: 7px 14px; font-size: clamp(10.5px, 1.15vw, 12.5px); align-items: baseline; }
+  .kv dt { color: #5d7085; letter-spacing: 0.06em; text-transform: uppercase; font-size: 10px; }
+  .kv dd { margin: 0; color: #cfe0f0; word-break: break-all; }
+  .kv dd.hot { color: var(--red-soft); }
+  .kv dd.ok { color: var(--green); }
+
+  .hoplist { margin-top: 18px; display: flex; flex-direction: column; gap: 6px; font-size: clamp(10px, 1.05vw, 12px); }
+  .hop {
+    display: grid;
+    grid-template-columns: 18px 1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 6px 9px;
+    border: 1px solid #141d28;
+    background: #080d13;
+    border-radius: 6px;
+    opacity: 0;
+    transform: translateX(-6px);
+    transition: opacity .3s, transform .3s, border-color .3s;
+    color: #8fa3b8;
+  }
+  .hop.in { opacity: 1; transform: none; }
+  .hop .n { color: #3f5163; font-size: 9.5px; }
+  .hop .ip { color: #cfdff0; }
+  .hop .ms { color: #5d7085; font-size: 10px; }
+  .hop.hot { border-color: #5c1f24; background: rgba(255, 47, 69, 0.06); }
+  .hop.hot .ip { color: var(--red-soft); }
+
+  .radar-wrap { position: relative; aspect-ratio: 1; max-height: min(46vh, 380px); margin: 0 auto; width: 100%; max-width: 380px; }
+  .radar { width: 100%; height: 100%; display: block; overflow: visible; }
+  .radar .ring { fill: none; stroke: #16212d; stroke-width: 1; }
+  .radar .grid { stroke: #121b25; stroke-width: 1; }
+  .radar .sweep { transform-origin: 50% 50%; animation: sweep 3.6s linear infinite; }
+  @keyframes sweep { to { transform: rotate(360deg); } }
+  .radar .arc { fill: none; stroke: var(--red); stroke-width: 1.6; stroke-dasharray: 4 6; opacity: .8; animation: dash 1.4s linear infinite; }
+  @keyframes dash { to { stroke-dashoffset: -20; } }
+  .radar .blip { fill: var(--red); filter: drop-shadow(0 0 6px rgba(255, 47, 69, 0.9)); }
+  .radar .home { fill: var(--cyan); filter: drop-shadow(0 0 6px rgba(58, 214, 222, 0.8)); }
+  .radar .cross { stroke: #1d2a39; stroke-width: 1; }
+
+  /* ---- generic list panels ---- */
+  .panel-scene { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
+  .rows { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 5px; justify-content: center; }
+  .lrow {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    padding: 7px 11px;
+    border: 1px solid #131c26;
+    background: #070c12;
+    border-radius: 6px;
+    font-size: clamp(10px, 1.05vw, 12.5px);
+    color: #8ba0b6;
+    transition: all .25s;
+  }
+  .lrow .l { display: flex; align-items: center; gap: 9px; min-width: 0; }
+  .lrow .l span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lrow .st { font-size: 9.5px; letter-spacing: 0.1em; color: #55697f; text-transform: uppercase; flex: none; }
+  .lrow .ico { width: 14px; text-align: center; flex: none; opacity: .8; }
+
+  .lrow.killed { border-color: #5c1f24; background: rgba(255, 47, 69, 0.07); color: #ffb3ba; }
+  .lrow.killed .st { color: var(--red); }
+  .lrow.killed .ico { opacity: 1; }
+  .lrow.dead { border-color: #5c1f24; background: rgba(255, 47, 69, 0.04); color: #7c4a51; text-decoration: line-through; text-decoration-color: rgba(255,47,69,.6); }
+  .lrow.dead .st { color: #7c4a51; }
+
+  .counter-strip {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    font-size: clamp(11px, 1.2vw, 13px);
+    color: #6c8095;
+    flex: none;
+    padding-top: 4px;
+  }
+  .counter-strip b { color: var(--red-soft); font-size: clamp(17px, 2.2vw, 24px); font-variant-numeric: tabular-nums; letter-spacing: -0.5px; }
+
+  /* ---- file destruction ---- */
+  #fileRows { justify-content: flex-start; overflow: hidden; }
+  .frow {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    font-size: clamp(9.5px, 1vw, 11.5px);
+    padding: 3px 8px;
+    border-radius: 4px;
+    color: #7f93a8;
+    transition: color .2s, background .2s;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .frow .fp { overflow: hidden; text-overflow: ellipsis; }
+  .frow .fs { color: #4e6076; font-variant-numeric: tabular-nums; flex: none; }
+  .frow.wiping { color: var(--red-soft); background: rgba(255, 47, 69, 0.07); }
+  .frow.gone { color: #3c4a59; }
+  .frow.gone .fp { text-decoration: line-through; text-decoration-color: rgba(255, 47, 69, 0.45); }
+  .frow.gone .fs { color: var(--red); }
+
+  .wipe-bar {
+    height: 4px;
+    border-radius: 2px;
+    background: #101923;
+    overflow: hidden;
+    flex: none;
+    margin-top: 8px;
+  }
+  .wipe-bar > i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #ff2f45, #ff8a5c); transition: width .3s linear; box-shadow: 0 0 12px rgba(255,47,69,.7); }
+
+  /* ---- countdown ---- */
+  .count-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(14px, 2.4vh, 26px);
+    text-align: center;
+  }
+  .ring-box { position: relative; width: clamp(190px, 30vh, 300px); aspect-ratio: 1; }
+  .ring-box svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .ring-track { fill: none; stroke: #141e29; stroke-width: 7; }
+  .ring-prog { fill: none; stroke: var(--red); stroke-width: 7; stroke-linecap: round; filter: drop-shadow(0 0 10px rgba(255, 47, 69, 0.8)); transition: stroke-dashoffset .2s linear; }
+  .ring-num {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font-family: var(--sans);
+    font-size: clamp(56px, 9vh, 96px);
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -3px;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 40px rgba(255, 47, 69, 0.7);
+  }
+  .count-title {
+    font-family: var(--sans);
+    font-size: clamp(15px, 2vw, 22px);
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    color: #fff;
+    margin: 0;
+  }
+  .count-sub { font-size: clamp(10px, 1.1vw, 12px); color: #7b8ea3; margin: 0; letter-spacing: 0.06em; }
+  .count-sub b { color: var(--red-soft); }
+
+  /* ---- blackout ---- */
+  .scene[data-scene="blackout"] { background: #000; padding: 0; }
+  .blackout { flex: 1; display: grid; place-items: center; }
+  .blackout-dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: #2a3a4a;
+    animation: blackoutpulse 1.3s ease-in-out infinite;
+  }
+  @keyframes blackoutpulse { 0%, 100% { opacity: 0.15; } 50% { opacity: 0.9; } }
+
+  /* chrome disappears for the fake power-off */
+  #prank.dark .hud, #prank.dark .hud-foot { opacity: 0; transition: opacity .6s; pointer-events: none; }
+  #prank.dark .fx { opacity: 0; transition: opacity .6s; }
+
+  /* ---- footer ---- */
+  .hud-foot {
+    position: relative;
+    z-index: 20;
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 18px max(11px, env(safe-area-inset-bottom));
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 9.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #3f5064;
+  }
+  #panic {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 5px 11px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid #22303f;
+    color: #7d90a6;
+    font-weight: 500;
+    flex: none;
+  }
+  #panic:hover { color: #fff; border-color: #3a4c60; background: rgba(255, 255, 255, 0.07); }
+
+  /* ============================================================== reveal */
+  #reveal {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: grid;
+    place-items: center;
+    padding: 22px;
+    overflow: auto;
+    background:
+      radial-gradient(900px 520px at 50% -10%, rgba(58, 214, 222, 0.10), transparent 62%),
+      radial-gradient(700px 460px at 50% 120%, rgba(57, 224, 138, 0.07), transparent 60%),
+      var(--bg);
+    animation: scenein .4s ease both;
+  }
+  #reveal[hidden] { display: none; }
+
+  .reveal-card {
+    width: min(620px, 100%);
+    border: 1px solid #1b2634;
+    border-radius: 16px;
+    background: linear-gradient(180deg, #0b1118, #070b10);
+    padding: 26px 24px;
+    box-shadow: 0 40px 100px rgba(0, 0, 0, 0.75);
+  }
+  .reveal-tag {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--green); border: 1px solid #1d4437; background: #0c1a15;
+    padding: 4px 9px; border-radius: 999px; margin-bottom: 15px;
+  }
+  .reveal-card h1 {
+    font-family: var(--sans);
+    font-size: clamp(24px, 4vw, 33px);
+    margin: 0 0 8px;
+    letter-spacing: -0.6px;
+    color: #f2f8ff;
+    line-height: 1.1;
+  }
+  .reveal-card > p.lede {
+    font-family: var(--sans);
+    font-size: 13.5px;
+    line-height: 1.7;
+    color: #90a4b8;
+    margin: 0 0 18px;
+  }
+  .fake-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 8px;
+    margin: 0 0 18px;
+  }
+  .fake-item {
+    border: 1px solid #16202c;
+    background: #080d13;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 10.5px;
+    line-height: 1.5;
+    color: #6f8399;
+  }
+  .fake-item b { display: block; color: #b6c8da; font-size: 11px; margin-bottom: 2px; font-family: var(--sans); }
+  .real {
+    border-top: 1px solid #16202c;
+    padding-top: 16px;
+    margin-bottom: 18px;
+  }
+  .real h2 {
+    font-family: var(--sans);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #6f8399;
+    margin: 0 0 9px;
+  }
+  .real ul {
+    font-family: var(--sans);
+    font-size: 12.5px;
+    line-height: 1.75;
+    color: #8fa3b8;
+    margin: 0;
+    padding-left: 18px;
+  }
+  .real li { margin-bottom: 5px; }
+  .real li::marker { color: var(--red); }
+  .reveal-actions { display: flex; gap: 9px; flex-wrap: wrap; }
+  .reveal-actions a { text-decoration: none; }
+  .reveal-actions a button { width: 100%; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.001s !important; animation-iteration-count: 1 !important; }
+    .radar .sweep { animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ================================================================ GATE -->
+<section id="gate">
+  <div class="gate-card">
+    <div class="gate-tag">⚠ Simulation · nothing real</div>
+    <h1>Fake virus scare — a 45-second bit of theatre</h1>
+    <p>
+      Fullscreen takeover, fake IP trace, fake “factory reset” countdown. <strong>Nothing on this
+      device will be changed:</strong> no files touched, no reset, no connections closed, no
+      address looked up. It is a web page pretending.
+    </p>
+    <ul class="gate-list">
+      <li>Press <strong>ESC</strong> at any time to end it instantly</li>
+      <li>Works on any device; sound is optional</li>
+      <li>Play it on your own screen, or with someone who is in on the joke</li>
+    </ul>
+    <div class="gate-row">
+      <button class="go" id="btnStart">START THE DEMO</button>
+      <label class="gate-check"><input type="checkbox" id="chkSound" /> play sound</label>
+    </div>
+    <p class="fineprint">
+      Not for people who are anxious about losing their data, and never on a work laptop you
+      do not own. The scariest part of a real incident is that you cannot press ESC.
+    </p>
+  </div>
+</section>
+
+<!-- =============================================================== PRANK -->
+<div id="prank" hidden>
+  <div class="fx fx-lines"></div>
+  <div class="fx fx-flicker"></div>
+  <div class="fx fx-alert" id="alertFx"></div>
+  <div class="fx fx-vignette"></div>
+
+  <header class="hud">
+    <div class="hud-left">
+      <span class="badge"><span class="dot"></span>Prank mode · simulation</span>
+      <span class="hud-host" id="hudHost">HOST-UNKNOWN</span>
+    </div>
+    <div class="hud-right">
+      <span id="hudPhase">boot</span>
+      <span class="hud-clock" id="hudClock">00:00:00</span>
+    </div>
+  </header>
+
+  <main id="scenes">
+
+    <!-- 1. boot -->
+    <section class="scene" data-scene="boot">
+      <div id="term"></div>
+    </section>
+
+    <!-- 2. compromise -->
+    <section class="scene" data-scene="alert">
+      <div class="alert-wrap">
+        <div class="alert-icon">!</div>
+        <h2 class="alert-title"><span class="glitch" data-t="SYSTEM COMPROMISED" id="alertTitle">SYSTEM COMPROMISED</span></h2>
+        <p class="alert-sub">
+          An unauthorised process has taken control of this device.<br />
+          Remote session established · <b>privilege level: SYSTEM</b>
+        </p>
+        <div class="flashline" id="flashLine">incoming connection accepted</div>
+      </div>
+    </section>
+
+    <!-- 3. trace -->
+    <section class="scene" data-scene="trace">
+      <div class="split">
+        <div>
+          <p class="sec-label">origin trace</p>
+          <dl class="kv">
+            <dt>target host</dt><dd id="kvHost">—</dd>
+            <dt>public ip</dt><dd class="hot" id="kvIp">resolving…</dd>
+            <dt>region</dt><dd id="kvRegion">—</dd>
+            <dt>isp</dt><dd id="kvIsp">—</dd>
+            <dt>encryption</dt><dd class="ok" id="kvEnc">AES-256 · session key exchanged</dd>
+          </dl>
+          <div class="hoplist" id="hoplist"></div>
+        </div>
+        <div class="radar-wrap">
+          <svg class="radar" viewBox="0 0 200 200" aria-hidden="true">
+            <circle class="ring" cx="100" cy="100" r="92" />
+            <circle class="ring" cx="100" cy="100" r="70" />
+            <circle class="ring" cx="100" cy="100" r="48" />
+            <circle class="ring" cx="100" cy="100" r="26" />
+            <line class="grid" x1="8" y1="100" x2="192" y2="100" />
+            <line class="grid" x1="100" y1="8" x2="100" y2="192" />
+            <line class="cross" x1="35" y1="35" x2="165" y2="165" />
+            <line class="cross" x1="165" y1="35" x2="35" y2="165" />
+            <g class="sweep">
+              <path d="M100 100 L100 8 A92 92 0 0 1 165 35 Z" fill="rgba(255,47,69,0.10)" />
+              <line x1="100" y1="100" x2="100" y2="8" stroke="rgba(255,47,69,0.5)" stroke-width="1" />
+            </g>
+            <circle class="home" cx="100" cy="100" r="3.5" />
+            <path class="arc" d="M100 100 Q 148 62 168 96" />
+            <circle class="blip" cx="168" cy="96" r="4" />
+            <circle class="blip" cx="42" cy="72" r="3" opacity=".55" />
+            <circle class="blip" cx="76" cy="152" r="2.5" opacity=".4" />
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. connections -->
+    <section class="scene" data-scene="conn">
+      <div class="panel-scene">
+        <p class="sec-label">terminating network connections</p>
+        <div class="rows" id="connRows"></div>
+        <div class="counter-strip">connections cut <b id="connCount">0</b> <span>/ <span id="connTotal">0</span></span></div>
+      </div>
+    </section>
+
+    <!-- 5. security -->
+    <section class="scene" data-scene="security">
+      <div class="panel-scene">
+        <p class="sec-label">disabling security services</p>
+        <div class="rows" id="secRows"></div>
+        <div class="counter-strip">services disabled <b id="secCount">0</b> <span>/ <span id="secTotal">0</span></span></div>
+      </div>
+    </section>
+
+    <!-- 6. files -->
+    <section class="scene" data-scene="files">
+      <div class="panel-scene">
+        <p class="sec-label">overwriting local storage</p>
+        <div class="rows" id="fileRows"></div>
+        <div class="wipe-bar"><i id="wipeBar"></i></div>
+        <div class="counter-strip">files destroyed <b id="fileCount">0</b> <span>· <span id="fileTotal">0</span> mb written</span></div>
+      </div>
+    </section>
+
+    <!-- 7b. blackout -->
+    <section class="scene" data-scene="blackout">
+      <div class="blackout">
+        <span class="blackout-dot"></span>
+      </div>
+    </section>
+
+    <!-- 7. factory reset -->
+    <section class="scene" data-scene="reset">
+      <div class="count-wrap">
+        <p class="count-title">FACTORY RESET IN PROGRESS</p>
+        <div class="ring-box">
+          <svg viewBox="0 0 120 120">
+            <circle class="ring-track" cx="60" cy="60" r="52" />
+            <circle class="ring-prog" id="ringProg" cx="60" cy="60" r="52" stroke-dasharray="326.7" stroke-dashoffset="0" />
+          </svg>
+          <div class="ring-num" id="ringNum">10</div>
+        </div>
+        <p class="count-sub">drive 0 partition table <b>being recreated</b> · do not power off</p>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="hud-foot">
+    <span>simulated · this device is untouched</span>
+    <button id="panic">end demo (esc)</button>
+  </footer>
+</div>
+
+<!-- ============================================================== REVEAL -->
+<section id="reveal" hidden>
+  <div class="reveal-card">
+    <div class="reveal-tag">✓ Simulation ended · nothing happened</div>
+    <h1>That was fake. All of it.</h1>
+    <p class="lede">
+      No files were deleted, nothing was reset, no connection was closed, and no address was
+      looked up — a web page cannot do any of that. Every number on that screen was generated
+      locally in your browser.
+    </p>
+
+    <div class="fake-list">
+      <div class="fake-item"><b>“Public IP”</b>203.0.113.47 is a reserved documentation address. It is guaranteed not to belong to anyone.</div>
+      <div class="fake-item"><b>“Factory reset”</b>There was no countdown loop underneath. It was a CSS ring and a number.</div>
+      <div class="fake-item"><b>“Files destroyed”</b>Filenames were invented. A browser cannot read your disk.</div>
+      <div class="fake-item"><b>“Connections cut”</b>A page cannot close your network. Nothing was disconnected.</div>
+    </div>
+
+    <div class="real">
+      <h2>Why the real thing feels different</h2>
+      <ul>
+        <li><b>No countdown.</b> Real ransomware encrypts quietly in seconds and leaves a text file. You find out afterwards.</li>
+        <li><b>No theatrics.</b> The dangerous ones show you nothing at all — that is why they spread.</li>
+        <li><b>You cannot press ESC.</b> Recovery means a clean image and a backup, not closing a tab.</li>
+      </ul>
+    </div>
+
+    <div class="reveal-actions">
+      <a href="/"><button>Open the real lab</button></a>
+      <button class="quiet" id="btnReplay">Replay</button>
+      <button class="quiet" id="btnCopy">Copy this link</button>
+    </div>
+  </div>
+</section>
+
+<script>
+(() => {
+  'use strict';
+
+  const params = new URLSearchParams(location.search);
+  const SPEED = Math.min(4, Math.max(0.25, parseFloat(params.get('speed')) || 1));
+  const $ = (s) => document.querySelector(s);
+
+  const gate = $('#gate');
+  const prank = $('#prank');
+  const reveal = $('#reveal');
+  const scenes = new Map([...document.querySelectorAll('.scene')].map((s) => [s.dataset.scene, s]));
+
+  let cancelled = false;
+  let soundOn = false;
+  let startedAt = 0;
+  let clockTimer = null;
+  let audio = null;
+
+  // ---------------------------------------------------------------- helpers
+  const sleep = (ms) => new Promise((r) => setTimeout(r, Math.max(0, ms / SPEED)));
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+  function showScene(name) {
+    for (const [key, node] of scenes) node.classList.toggle('on', key === name);
+    $('#hudPhase').textContent = name;
+  }
+
+  function setAlertFx(on) {
+    $('#alertFx').classList.toggle('on', on);
+  }
+
+  function platform() {
+    const ua = navigator.userAgent;
+    if (/Windows/i.test(ua)) return 'WINDOWS';
+    if (/Mac OS X|Macintosh/i.test(ua)) return 'MACOS';
+    if (/Android/i.test(ua)) return 'ANDROID';
+    if (/iPhone|iPad|iPod/i.test(ua)) return 'IOS';
+    if (/Linux/i.test(ua)) return 'LINUX';
+    return 'UNKNOWN';
+  }
+
+  // --------------------------------------------------------------- audio --
+  function initAudio() {
+    if (!soundOn) return;
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      audio = new Ctx();
+    } catch { audio = null; }
+  }
+
+  function beep(freq = 880, dur = 0.07, type = 'square', gain = 0.035) {
+    if (!audio) return;
+    const o = audio.createOscillator();
+    const g = audio.createGain();
+    o.type = type;
+    o.frequency.value = freq;
+    g.gain.value = gain;
+    g.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + dur);
+    o.connect(g).connect(audio.destination);
+    o.start();
+    o.stop(audio.currentTime + dur);
+  }
+
+  let sirenGain = null;
+  function sirenOn() {
+    if (!audio || sirenGain) return;
+    const o = audio.createOscillator();
+    const lfo = audio.createOscillator();
+    const lfoGain = audio.createGain();
+    sirenGain = audio.createGain();
+    o.type = 'sawtooth';
+    o.frequency.value = 520;
+    lfo.type = 'sine';
+    lfo.frequency.value = 0.55;
+    lfoGain.gain.value = 190;
+    sirenGain.gain.value = 0.018;
+    lfo.connect(lfoGain).connect(o.frequency);
+    o.connect(sirenGain).connect(audio.destination);
+    o.start();
+    lfo.start();
+  }
+  function sirenOff() {
+    if (!sirenGain) return;
+    try {
+      sirenGain.gain.value = 0;
+      setTimeout(() => { sirenGain = null; }, 400);
+    } catch { sirenGain = null; }
+  }
+
+  // ----------------------------------------------------------------- clock
+  function startClock() {
+    startedAt = Date.now();
+    clockTimer = setInterval(() => {
+      const t = Math.floor((Date.now() - startedAt) / 1000);
+      const hh = String(Math.floor(t / 3600)).padStart(2, '0');
+      const mm = String(Math.floor((t % 3600) / 60)).padStart(2, '0');
+      const ss = String(t % 60).padStart(2, '0');
+      $('#hudClock').textContent = `${hh}:${mm}:${ss}`;
+    }, 250);
+  }
+
+  // ------------------------------------------------------------ 1. boot ----
+  const BOOT_LINES = [
+    ['[ 0.0000] initialising kernel handoff', ''],
+    ['[ 0.0142] cpu: 8 logical cores · microcode unverified', 'warn'],
+    ['[ 0.0387] memory: 16.0 GiB · integrity check SKIPPED', 'warn'],
+    ['[ 0.0611] storage: drive 0 detected · encryption: none', ''],
+    ['[ 0.0924] network: interface up · dhcp lease acquired', ''],
+    ['[ 0.1210] remote session handshake …', ''],
+    ['[ 0.1211] remote session ESTABLISHED (peer verified: NO)', 'err'],
+    ['[ 0.1688] token escalation → SYSTEM', 'err'],
+    ['[ 0.2013] mounting registry hive: HKLM\\SAM', 'warn'],
+    ['[ 0.2450] enumerating user profiles …', ''],
+    ['[ 0.3117] credentials cache exported (0x0000000c)', 'err'],
+    ['[ 0.3622] disabling security services …', 'warn'],
+    ['[ 0.4180] scheduling destructive payload …', 'err'],
+    ['[ 0.4501] payload armed · awaiting trigger', 'err'],
+  ];
+
+  async function runBoot() {
+    showScene('boot');
+    const term = $('#term');
+    term.innerHTML = '';
+    for (const [text, kind] of BOOT_LINES) {
+      if (cancelled) return;
+      const line = document.createElement('div');
+      line.className = kind;
+      line.textContent = text;
+      term.appendChild(line);
+      if (kind === 'err') beep(220, 0.05, 'square', 0.05);
+      await sleep(rand(90, 190));
+    }
+    if (cancelled) return;
+    const cursorLine = document.createElement('div');
+    cursorLine.innerHTML = '<span class="hl">root@localhost</span>:~# payload --execute --force <span class="cursor"></span>';
+    term.appendChild(cursorLine);
+    await sleep(700);
+  }
+
+  // ----------------------------------------------------------- 2. alert ----
+  async function runAlert() {
+    showScene('alert');
+    setAlertFx(true);
+    sirenOn();
+    beep(120, 0.5, 'sawtooth', 0.06);
+    const flashes = ['incoming connection accepted', 'privilege escalated', 'shadow copy deleted', 'recovery disabled', 'payload delivered'];
+    for (let i = 0; i < flashes.length; i++) {
+      if (cancelled) return;
+      $('#flashLine').textContent = flashes[i];
+      beep(660, 0.04, 'square', 0.03);
+      await sleep(560);
+    }
+  }
+
+  // ----------------------------------------------------------- 3. trace ----
+  async function runTrace() {
+    showScene('trace');
+    sirenOff();
+    setAlertFx(false);
+
+    const HOSTS = ['GUEST-PC', 'DESKTOP-7K2QX', 'LAPTOP-4M1Z9', 'WORKSTATION-02'];
+    $('#hudHost').textContent = `${pick(HOSTS)} · ${platform()}`;
+    $('#kvHost').textContent = `${pick(HOSTS)} (${platform()})`;
+
+    // Typed-out fake IP. Reserved documentation range on purpose.
+    const ip = '203.0.113.47';
+    const ipNode = $('#kvIp');
+    ipNode.textContent = '';
+    for (const ch of ip) {
+      if (cancelled) return;
+      ipNode.textContent += ch;
+      if (Math.random() > 0.6) beep(1200, 0.02, 'square', 0.012);
+      await sleep(55);
+    }
+    $('#kvRegion').textContent = 'FRA · Frankfurt am Main';
+    $('#kvIsp').textContent = 'TRANSIT-ROUTE-7 (proxy chain)';
+
+    const HOPS = [
+      ['203.0.113.47', 'gateway · hop 1', false],
+      ['198.51.100.23', 'tor exit relay', false],
+      ['192.0.2.88', 'vpn endpoint', false],
+      ['203.0.113.99', 'command server', true],
+    ];
+    const list = $('#hoplist');
+    list.innerHTML = '';
+    for (let i = 0; i < HOPS.length; i++) {
+      if (cancelled) return;
+      const [addr, label, hot] = HOPS[i];
+      const row = document.createElement('div');
+      row.className = `hop${hot ? ' hot' : ''}`;
+      row.innerHTML = `<span class="n">${i + 1}</span><span class="ip">${addr}</span><span class="ms">${Math.floor(rand(8, 240))} ms</span>`;
+      list.appendChild(row);
+      requestAnimationFrame(() => row.classList.add('in'));
+      beep(hot ? 300 : 900, 0.04, 'square', 0.025);
+      await sleep(520);
+    }
+    await sleep(900);
+  }
+
+  // ----------------------------------------------------- 4. connections ----
+  const CONNECTIONS = [
+    ['◈', 'Wi-Fi · home network', 'connected'],
+    ['◈', 'VPN tunnel · 10.8.0.6', 'connected'],
+    ['◈', 'cloud backup · syncing', 'connected'],
+    ['◈', 'antivirus update channel', 'connected'],
+    ['◈', 'work drive · SMB', 'connected'],
+    ['◈', 'printer · 192.168.1.24', 'idle'],
+    ['◈', 'phone hotspot bridge', 'idle'],
+  ];
+
+  async function runConnections() {
+    showScene('conn');
+    const rows = $('#connRows');
+    rows.innerHTML = '';
+    $('#connTotal').textContent = CONNECTIONS.length;
+    $('#connCount').textContent = '0';
+    let killed = 0;
+
+    for (const [ico, name, status] of CONNECTIONS) {
+      if (cancelled) return;
+      const row = document.createElement('div');
+      row.className = 'lrow';
+      row.innerHTML = `<span class="l"><span class="ico">${ico}</span><span>${name}</span></span><span class="st">${status}</span>`;
+      rows.appendChild(row);
+      await sleep(240);
+      row.classList.add('killed');
+      row.querySelector('.st').textContent = 'terminated';
+      row.querySelector('.ico').textContent = '✕';
+      killed += 1;
+      $('#connCount').textContent = killed;
+      beep(180, 0.05, 'square', 0.04);
+      await sleep(150);
+    }
+    await sleep(520);
+    for (const row of rows.children) {
+      row.classList.remove('killed');
+      row.classList.add('dead');
+    }
+    await sleep(700);
+  }
+
+  // -------------------------------------------------------- 5. security ----
+  const SERVICES = [
+    ['⛨', 'Windows Defender', 'running'],
+    ['⛨', 'Firewall · domain profile', 'running'],
+    ['⛨', 'BitLocker drive encryption', 'enabled'],
+    ['⛨', 'Secure Boot', 'valid'],
+    ['⛨', 'System Restore points', '3 available'],
+    ['⛨', 'Safe Mode recovery', 'available'],
+  ];
+
+  async function runSecurity() {
+    showScene('security');
+    const rows = $('#secRows');
+    rows.innerHTML = '';
+    $('#secTotal').textContent = SERVICES.length;
+    $('#secCount').textContent = '0';
+    let n = 0;
+
+    for (const [ico, name, status] of SERVICES) {
+      if (cancelled) return;
+      const row = document.createElement('div');
+      row.className = 'lrow';
+      row.innerHTML = `<span class="l"><span class="ico">${ico}</span><span>${name}</span></span><span class="st">${status}</span>`;
+      rows.appendChild(row);
+      await sleep(260);
+      row.classList.add('killed');
+      row.querySelector('.st').textContent = 'disabled';
+      row.querySelector('.ico').textContent = '✕';
+      n += 1;
+      $('#secCount').textContent = n;
+      beep(150, 0.06, 'square', 0.045);
+      await sleep(170);
+    }
+    await sleep(600);
+    for (const row of rows.children) {
+      row.classList.remove('killed');
+      row.classList.add('dead');
+    }
+    await sleep(650);
+  }
+
+  // ----------------------------------------------------------- 6. files ----
+  const FILE_NAMES = [
+    'C:\\Users\\guest\\Documents\\quarterly-report.txt',
+    'C:\\Users\\guest\\Documents\\thesis-draft.txt',
+    'C:\\Users\\guest\\Documents\\tax-return-2025.txt',
+    'C:\\Users\\guest\\Pictures\\holiday-2025',
+    'C:\\Users\\guest\\Desktop\\todo.txt',
+    'C:\\Users\\guest\\Downloads\\Invoice_2026-04.pdf',
+    'C:\\Users\\guest\\AppData\\Roaming\\prefs.txt',
+    'D:\\removable\\backup-notes.txt',
+    'C:\\Users\\guest\\Videos\\clip-014.mp4',
+    'C:\\Users\\guest\\Music\\library.db',
+  ];
+
+  async function runFiles() {
+    showScene('files');
+    const rows = $('#fileRows');
+    rows.innerHTML = '';
+    $('#fileCount').textContent = '0';
+    const totalMb = Math.floor(rand(2400, 9800));
+    $('#fileTotal').textContent = totalMb;
+
+    const entries = FILE_NAMES.map((name) => ({
+      name,
+      size: `${Math.floor(rand(2, 900))} ${Math.random() > 0.85 ? 'GB' : 'MB'}`,
+    }));
+
+    const nodes = entries.map((e) => {
+      const node = document.createElement('div');
+      node.className = 'frow';
+      node.innerHTML = `<span class="fp">${e.name}</span><span class="fs">${e.size}</span>`;
+      rows.appendChild(node);
+      return node;
+    });
+
+    let done = 0;
+    const bar = $('#wipeBar');
+    for (const node of nodes) {
+      if (cancelled) return;
+      node.classList.add('wiping');
+      node.querySelector('.fs').textContent = 'overwriting…';
+      await sleep(rand(150, 300));
+      node.classList.remove('wiping');
+      node.classList.add('gone');
+      node.querySelector('.fs').textContent = '0 bytes';
+      done += 1;
+      $('#fileCount').textContent = Math.floor((done / nodes.length) * totalMb);
+      bar.style.width = `${(done / nodes.length) * 100}%`;
+      beep(rand(140, 220), 0.03, 'square', 0.03);
+      await sleep(rand(40, 110));
+    }
+    await sleep(420);
+  }
+
+  // ------------------------------------------------- 7. factory reset ------
+  const RING_LEN = 2 * Math.PI * 52;
+
+  async function runReset() {
+    showScene('reset');
+    setAlertFx(true);
+    sirenOn();
+    const num = $('#ringNum');
+    const prog = $('#ringProg');
+    prog.style.strokeDasharray = String(RING_LEN);
+
+    for (let n = 10; n >= 0; n--) {
+      if (cancelled) return;
+      num.textContent = String(n);
+      prog.style.strokeDashoffset = String(RING_LEN * (1 - (10 - n) / 10));
+      beep(n <= 3 ? 660 : 440, 0.07, 'square', 0.05);
+      if (n <= 3) {
+        prank.style.transform = `translate(${rand(-3, 3)}px, ${rand(-2, 2)}px)`;
+        setTimeout(() => { if (prank) prank.style.transform = ''; }, 90);
+      }
+      await sleep(1000);
+    }
+    await sleep(600);
+  }
+
+  // -------------------------------------------------- 8. blackout --------
+  async function runBlackout() {
+    sirenOff();
+    setAlertFx(false);
+    prank.classList.add('dark');
+    showScene('blackout');
+    beep(90, 0.9, 'sine', 0.03);
+    await sleep(2200);
+    prank.classList.remove('dark');
+  }
+
+  // ------------------------------------------------------------ sequence --
+  async function runSequence() {
+    try { await runBoot(); } catch { /* ignore */ }
+    if (cancelled) return;
+    try { await runAlert(); } catch { /* ignore */ }
+    if (cancelled) return;
+    try { await runTrace(); } catch { /* ignore */ }
+    if (cancelled) return;
+    try { await runConnections(); } catch { /* ignore */ }
+    if (cancelled) return;
+    try { await runSecurity(); } catch { /* ignore */ }
+    if (cancelled) return;
+    try { await runFiles(); } catch { /* ignore */ }
+    if (cancelled) return;
+    try { await runReset(); } catch { /* ignore */ }
+    if (cancelled) return;
+    try { await runBlackout(); } catch { /* ignore */ }
+    if (cancelled) return;
+    endDemo(false);
+  }
+
+  // --------------------------------------------------------------- ending --
+  function endDemo(byUser) {
+    if (cancelled) return;
+    cancelled = true;
+    sirenOff();
+    setAlertFx(false);
+    clearInterval(clockTimer);
+    if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    }
+    prank.hidden = true;
+    prank.classList.remove('dark');
+    prank.style.transform = '';
+    reveal.hidden = false;
+    $('#reveal').querySelector('.reveal-tag').textContent = byUser
+      ? '✓ Simulation ended · nothing happened'
+      : '✓ Simulation complete · nothing happened';
+    if (audio && byUser) beep(520, 0.12, 'sine', 0.04);
+  }
+
+  // ---------------------------------------------------------------- start --
+  async function start() {
+    cancelled = false;
+    soundOn = $('#chkSound').checked;
+    gate.classList.add('hidden');
+    prank.hidden = false;
+    reveal.hidden = true;
+
+    $('#hudHost').textContent = `HOST-UNKNOWN · ${platform()}`;
+
+    initAudio();
+    if (audio && audio.state === 'suspended') audio.resume().catch(() => {});
+
+    // Fullscreen needs the click we just got. If the browser refuses (iframe,
+    // iOS Safari), the fixed overlay already covers the viewport.
+    try {
+      if (!document.fullscreenElement && prank.requestFullscreen) {
+        await prank.requestFullscreen({ navigationUI: 'hide' });
+      }
+    } catch { /* fall back to the overlay */ }
+
+    startClock();
+    runSequence();
+  }
+
+  // ----------------------------------------------------------------- wire --
+  $('#btnStart').addEventListener('click', start);
+  $('#panic').addEventListener('click', () => endDemo(true));
+  $('#btnReplay').addEventListener('click', () => {
+    reveal.hidden = true;
+    gate.classList.remove('hidden');
+    startedAt = 0;
+    $('#hudClock').textContent = '00:00:00';
+  });
+  $('#btnCopy').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    try {
+      await navigator.clipboard.writeText(location.href);
+      btn.textContent = 'Copied ✓';
+    } catch {
+      btn.textContent = 'Copy failed';
+    }
+    setTimeout(() => { btn.textContent = 'Copy this link'; }, 1800);
+  });
+
+  // ESC always gets you out, even mid-sequence or mid-fullscreen.
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (!reveal.hidden) return;
+      if (!prank.hidden) endDemo(true);
+    }
+  });
+
+  // Leaving fullscreen (ESC, swipe, F11) also ends it.
+  document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement && !prank.hidden) endDemo(true);
+  });
+
+  // Safety net: if anything throws, do not leave the user stuck on a red screen.
+  window.addEventListener('error', () => {
+    if (!prank.hidden) endDemo(true);
+  });
+})();
+</script>
+</body>
+</html>

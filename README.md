@@ -4,7 +4,8 @@ A simulated patient laptop, a simulated intruder, and a **fully real** detection
 remediation engine — in one zero-dependency Node app with a browser UI.
 
 ```
-node server.js      →  http://localhost:3000
+node server.js      →  http://localhost:3000        the lab
+                    →  http://localhost:3000/prank  the fake incident (prank mode)
 node --test         →  6/6 passing (containment + full infection/cleanup cycle)
 ```
 
@@ -52,6 +53,64 @@ because this repo demonstrates both halves.
 The thing that actually saves a laptop is boring and layered: **patch fast, don't run
 `Invoice.pdf.exe`, keep an offline backup you have actually restored once, and have a
 reimage path.** A "vaccine" is one layer, not a cure.
+
+
+---
+
+## Prank mode (`/prank`) — the fake incident
+
+The thing you actually wanted: **a link that takes over the screen and looks like your laptop is
+being destroyed.** It is pure theatre, it runs entirely in the browser, and it costs nothing.
+
+```
+http://localhost:3000/prank          normal speed (~45s)
+http://localhost:3000/prank?speed=2  twice as fast — better for sharing
+```
+
+What happens: fullscreen takeover → boot log → `SYSTEM COMPROMISED` → "origin trace" with a radar
+and a hop list → connections being terminated → security services disabled → files crossed out as
+they are "overwritten" → 10-second `FACTORY RESET` countdown → black screen → **reveal screen
+that admits every single thing was fake.** `ESC` exits at any moment, and leaving fullscreen
+ends it too.
+
+Tap **Copy this link** on the reveal screen or just send `/prank?speed=2`.
+
+### What is fake (all of it)
+
+| On screen | What actually happened |
+|---|---|
+| "Public IP 203.0.113.47" | A reserved documentation address. No lookup, no network request at all. |
+| "Factory reset in 10…" | A CSS ring and a number. There is no countdown loop underneath. |
+| "Files destroyed: 4,812 MB" | Invented filenames. A web page cannot read your disk. |
+| "Connections terminated" | A page cannot close your network. Nothing was disconnected. |
+| Fullscreen "takeover" | `requestFullscreen()` — the standard browser API, one ESC away. |
+
+The smoke test asserts this: **zero network requests** during the run, and every IP on the page
+must be in a private or documentation range ([RFC 1918](https://datatracker.ietf.org/doc/html/rfc1918)
+/ [RFC 5737](https://datatracker.ietf.org/doc/html/rfc5737)). If someone later edits a real IP in,
+the test fails.
+
+### What a link genuinely cannot do
+
+This is the part worth internalising, because it is also how you spot a real attack:
+
+- **Cannot shut down, restart or freeze a machine.** Browsers have no access to power or boot.
+- **Cannot factory reset, delete files, or touch the OS.** The sandbox forbids it, by design.
+- **Cannot close your other connections.** No socket control outside its own origin.
+- **Cannot see your real IP.** It could ask a third-party service — so this page never does.
+
+To actually reboot someone's laptop from a link you would need either a browser 0-day (six figures,
+and a crime) or for them to download and run an `.exe` (also a crime, plus they deserve better).
+There is no third option.
+
+### Using it responsibly
+
+- **Opt-in only.** The gate screen says it is a simulation before anything starts. Do not remove it.
+- **Own screens, or people in on the joke.** Never on a work laptop, never on someone who is
+  anxious about losing data, never on a stranger.
+- **`ESC` is sacred.** Do not disable the panic button or the fullscreen-exit handler.
+- If you want a version for a **class or workshop**, that is the same page with the gate replaced
+  by a spoken intro — the theatre itself does not change.
 
 ---
 
@@ -105,7 +164,8 @@ enforced in **one chokepoint**, not by convention:
 node --test                              # 6 tests: containment, infection, detection, cleanup, blocking
 npm i --no-save jsdom
 node server.js &                         # in another shell
-node scripts/ui-smoke.js                 # drives the real page: clicks all five steps, asserts the DOM
+node scripts/ui-smoke.js                 # drives the lab: clicks all five steps, asserts the DOM
+node scripts/prank-smoke.js              # runs the scare end to end, checks ESC and zero network I/O
 ```
 
 The UI smoke test exists because a screenshot-free review of a browser app is guesswork.

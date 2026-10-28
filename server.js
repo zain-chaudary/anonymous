@@ -56,8 +56,15 @@ async function readBody(req) {
   }
 }
 
+// Clean URLs for the pages we actually link to.
+const ROUTES = {
+  '/': 'index.html',
+  '/prank': 'prank.html',
+  '/prank/': 'prank.html',
+};
+
 async function serveStatic(req, res, pathname) {
-  const rel = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
+  const rel = ROUTES[pathname] || pathname.replace(/^\/+/, '');
   const abs = path.resolve(PUBLIC_DIR, rel);
   if (!abs.startsWith(PUBLIC_DIR)) {
     res.writeHead(403).end('forbidden');
