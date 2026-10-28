@@ -131,31 +131,22 @@ There is no third option.
 ### Publishing it on a real URL
 
 The sandbox preview (`…e2b.app`) dies with the session, so it is useless for sending to anyone.
-`public/system-check.html` is completely self-contained, so any static host works:
+`public/system-check.html` is completely self-contained, so any static host works.
 
-**Option A — GitHub Pages (permanent, no extra account).**
-`docs/` already contains the built copy. In the repo: **Settings → Pages → Source: _Deploy from a
-branch_ → Branch: `arena/cad57155-anonymous`, Folder: `/docs` → Save.** After a minute the page is
-live at:
+**This repo is already wired for GitHub Pages.** Pages is set to this branch, folder `/`, so the
+published copy lives at the repo root (`index.html`, `system-check.html`, `.nojekyll` — all
+generated, all disposable):
 
 ```
 https://zain-chaudary.github.io/anonymous/system-check.html
+https://zain-chaudary.github.io/anonymous/            (same page)
 ```
 
-Run `node scripts/build-pages.js` again after editing the page, then commit — Pages redeploys on
-push. Delete `docs/` and turn Pages off in the same settings screen to take it down.
+After editing the page: `node scripts/build-pages.js`, commit, push. Pages redeploys in ~30s.
+Do not hand-edit the root copies — they are overwritten.
 
-**Option B — drag and drop.** Put `public/system-check.html` on
-[Netlify Drop](https://app.netlify.com/drop) or Cloudflare Pages. No build, no assets, one file.
-
-**Option C — instant, no settings.** `raw.githack.com` serves a single file from a public repo
-with the right content type:
-
-```
-https://raw.githack.com/zain-chaudary/anonymous/arena/cad57155-anonymous/docs/system-check.html
-```
-
-It is a third-party proxy, so use it for a quick test, not for something permanent.
+Other options, if you would rather not use Pages: drag `public/system-check.html` onto
+[Netlify Drop](https://app.netlify.com/drop), or use Cloudflare Pages. One file, no build.
 
 ### Using it responsibly
 
