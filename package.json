@@ -1,0 +1,16 @@
+{
+  "name": "malware-vaccine-lab",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A simulated patient PC, a simulated intruder, and a fully real detection and remediation engine. Zero dependencies, nothing executable, one containment chokepoint.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test",
+    "reset": "node -e \"require('./lib/image').reset().then(console.log)\""
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}

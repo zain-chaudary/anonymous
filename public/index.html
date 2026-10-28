@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Malware &amp; Vaccine Lab — simulated patient PC</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧪</text></svg>" />
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+<div class="grain"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="logo">🧪</div>
+    <div>
+      <h1>Malware &amp; Vaccine Lab</h1>
+      <p class="sub">A simulated patient laptop. Full kill chain, full cleanup, zero real code.</p>
+    </div>
+  </div>
+  <div class="topmeta">
+    <div class="meta-item">
+      <span class="meta-label">Definitions</span>
+      <span class="meta-value" id="sigVersion">—</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Patient state</span>
+      <span class="phase" id="phase">clean</span>
+    </div>
+    <button class="ghost" id="btnAbout" title="How this works">Design notes</button>
+  </div>
+</header>
+
+<main class="grid">
+
+  <!-- ===================== LEFT: PATIENT DISK ===================== -->
+  <section class="panel disk">
+    <div class="panel-head">
+      <h2>Patient PC <span class="hint">C:\ and D:\ — real folders in <code>./sandbox</code></span></h2>
+      <div class="disk-stats">
+        <span id="fileCount">0 files</span>
+        <span class="dot">·</span>
+        <span id="quarantineCount">0 quarantined</span>
+      </div>
+    </div>
+    <div class="legend">
+      <span class="chip clean">clean</span>
+      <span class="chip suspicious">suspicious</span>
+      <span class="chip infected">infected</span>
+      <span class="legend-note">click a file to inspect its bytes</span>
+    </div>
+    <div class="tree-wrap" id="tree"></div>
+  </section>
+
+  <!-- ===================== CENTER: ACTIONS ===================== -->
+  <section class="panel actions">
+    <div class="panel-head"><h2>Control room</h2></div>
+
+    <div class="protection-strip" id="protectionStrip">
+      <span class="shield-dot"></span>
+      <span id="protectionText">No vaccine inserted</span>
+    </div>
+
+    <!-- Step 1 -->
+    <div class="step" id="step-infect">
+      <div class="step-head">
+        <span class="step-num">1</span>
+        <h3>Infect the patient</h3>
+      </div>
+      <p class="step-desc">
+        A double-extension file (<code>Invoice_2026-04.pdf.exe</code>) in Downloads.
+        Each stage is a real technique defenders have to catch.
+      </p>
+      <button class="danger wide" id="btnInfectAll">Run full kill chain</button>
+      <div class="stage-buttons" id="stageButtons"></div>
+      <div class="chain" id="chain"></div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="step" id="step-mount">
+      <div class="step-head">
+        <span class="step-num">2</span>
+        <h3>Insert the vaccine</h3>
+      </div>
+      <p class="step-desc">
+        The USB stick carries the signature set and the remediation engine.
+        Inserting it does not cure anything — it makes tools available.
+      </p>
+      <div class="btn-row">
+        <button class="primary" id="btnMount">Insert USB vaccine</button>
+        <button class="ghost" id="btnUnmount">Eject</button>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="step" id="step-scan">
+      <div class="step-head">
+        <span class="step-num">3</span>
+        <h3>Scan</h3>
+      </div>
+      <p class="step-desc">
+        Hashes every file, scores behaviour, enumerates autoruns and scheduled
+        tasks. Detection only — nothing is modified.
+      </p>
+      <button class="primary wide" id="btnScan">Full scan</button>
+      <div class="scan-result" id="scanResult"></div>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="step" id="step-heal">
+      <div class="step-head">
+        <span class="step-num">4</span>
+        <h3>Heal the patient</h3>
+      </div>
+      <p class="step-desc">
+        Removes persistence first, disinfects documents, restores from the clean
+        image where one exists, quarantines the rest — then rescans to prove it.
+      </p>
+      <button class="success wide" id="btnHeal">Remediate &amp; verify</button>
+      <div class="heal-result" id="healResult"></div>
+    </div>
+
+    <!-- Step 5 -->
+    <div class="step" id="step-immunize">
+      <div class="step-head">
+        <span class="step-num">5</span>
+        <h3>Vaccinate against the next hit</h3>
+      </div>
+      <p class="step-desc">
+        Arms on-access protection: writes carrying a known marker or hitting a
+        known persistence path are refused <em>before</em> they land. Then run the
+        kill chain again and watch it fail.
+      </p>
+      <div class="btn-row">
+        <button class="primary" id="btnImmunize">Vaccinate</button>
+        <label class="switch">
+          <input type="checkbox" id="protectToggle" />
+          <span class="slider"></span>
+          <span class="switch-label">Real-time</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="reset-row">
+      <button class="ghost wide" id="btnReset">↺ Reimage the laptop</button>
+    </div>
+  </section>
+
+  <!-- ===================== RIGHT: FINDINGS ===================== -->
+  <section class="panel findings">
+    <div class="panel-head">
+      <div class="tabs" id="tabs">
+        <button class="tab active" data-tab="findings">Findings <span class="pill" id="findingPill">0</span></button>
+        <button class="tab" data-tab="vault">Vault <span class="pill" id="vaultPill">0</span></button>
+        <button class="tab" data-tab="registry">Autoruns <span class="pill" id="regPill">0</span></button>
+      </div>
+    </div>
+    <div class="tab-body" id="tabBody"></div>
+  </section>
+</main>
+
+<!-- ===================== CONSOLE ===================== -->
+<section class="console-wrap">
+  <div class="console-head">
+    <h2>Event log</h2>
+    <div class="console-actions">
+      <span class="live"><span class="pulse"></span> live</span>
+      <button class="ghost small" id="btnClearLog">clear</button>
+      <a class="ghost small" href="/api/report" download>export report</a>
+    </div>
+  </div>
+  <div class="console" id="console"></div>
+</section>
+
+<!-- ===================== FILE MODAL ===================== -->
+<div class="modal-backdrop" id="modal">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <h3 id="modalTitle">file</h3>
+        <p class="modal-path" id="modalPath"></p>
+      </div>
+      <button class="ghost" id="modalClose">✕</button>
+    </div>
+    <div class="modal-meta" id="modalMeta"></div>
+    <pre class="fileview" id="modalBody"></pre>
+  </div>
+</div>
+
+<!-- ===================== ABOUT MODAL ===================== -->
+<div class="modal-backdrop" id="aboutModal">
+  <div class="modal about">
+    <div class="modal-head">
+      <h3>Design notes — read this before you ask for a real one</h3>
+      <button class="ghost" id="aboutClose">✕</button>
+    </div>
+    <div class="about-body">
+      <p><strong>Nothing in this repository executes malicious code.</strong> Every "virus" and
+      "exe" is a text file. The only thing written to disk is inside <code>./sandbox</code>, and
+      <code>lib/safeFs.js</code> refuses any path that resolves outside it.</p>
+
+      <p>It is built this way because a real virus is the wrong deliverable: it is a criminal
+      offence in most jurisdictions, it is trivially re-used by someone else, and — the practical
+      point — it teaches you nothing about defence that a faithful simulation does not teach you
+      better. You cannot responsibly test a real worm on your own laptop, and you should not test
+      it on anyone else's.</p>
+
+      <p><strong>What is faithfully simulated:</strong> delivery, run-key + scheduled-task
+      persistence, file infection by marker append, self-replication into every writable folder,
+      removable-media spread via <code>autorun.inf</code>, and a destructive encryption stage.
+      Those are the steps a real incident responder walks through, and the vaccine panel is a real
+      scanner doing real hashing and real remediation against them.</p>
+
+      <p><strong>What is real:</strong> the detection engine. SHA-256 matching, behavioural scoring,
+      autorun enumeration, surgical disinfection, quarantine with chain-of-custody metadata,
+      restore-from-image, verification rescan, and write-time blocking. Point it at a folder of
+      your own test files and it behaves identically.</p>
+
+      <p><strong>The honest limitation:</strong> this vaccine is signature-based. Change one byte of
+      the payload and it walks past. That is why real defence is layered — patching, least
+      privilege, offline backups you have actually restored, and EDR behaviour monitoring. A
+      "vaccine" alone has never stopped an outbreak.</p>
+    </div>
+  </div>
+</div>
+
+<div class="toast-stack" id="toasts"></div>
+
+<script src="/app.js"></script>
+</body>
+</html>

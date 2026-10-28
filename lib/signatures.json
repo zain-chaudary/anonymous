@@ -1,0 +1,69 @@
+{
+  "version": "2026.10.28.1",
+  "updated": "2026-10-28",
+  "publisher": "Malware & Vaccine Lab (educational)",
+  "notes": "Signatures for the simulated family Worm.Sim/7. Exact hashes are shown alongside behavioural markers on purpose: real AV engines use both, and hash-only detection is trivially defeated by a one-byte change.",
+  "families": [
+    {
+      "id": "WORM_SIM7",
+      "name": "Worm.Sim/7 (simulated)",
+      "severity": "high",
+      "markers": [
+        "WORM::SIM-7",
+        "MZ-SIMULATED-PAYLOAD"
+      ],
+      "hashes": [
+        "39699fa1fb78794ef5b73c0938ce12b4dc41532c6569416ec943e55a404042a9"
+      ],
+      "filenames": [
+        "svch0st.exe",
+        "Invoice_2026-04.pdf.exe"
+      ],
+      "ransomExtensions": [
+        ".locked"
+      ],
+      "persistenceTargets": [
+        "C/Users/guest/AppData/Roaming/svch0st.exe",
+        "C/Users/guest/AppData/Roaming/Startup"
+      ],
+      "notes": "File infector that appends a marker to documents, clones itself into every folder it can write to, installs a run key plus a logon task, spreads over removable media, then replaces files with .locked blobs."
+    }
+  ],
+  "heuristics": {
+    "doubleExtension": {
+      "enabled": true,
+      "weight": 40,
+      "pattern": "\\.(pdf|docx|xlsx|jpg|jpeg|png|txt|zip|rar|mp4)\\.(exe|scr|js|vbs|bat|cmd|com|pif|lnk)$",
+      "explain": "A file that claims to be a document but ends in an executable extension. The classic `Invoice.pdf.exe` trick \u2014 Windows hides the real extension by default."
+    },
+    "ransomExtension": {
+      "enabled": true,
+      "weight": 55,
+      "pattern": "\\.(locked|crypt|enc|wncry|locky)$",
+      "explain": "An extension associated with mass-encryption payloads."
+    },
+    "autorunInf": {
+      "enabled": true,
+      "weight": 45,
+      "explain": "autorun.inf on removable media: the mechanism that makes an infected USB stick run code on the next machine."
+    },
+    "untrustedRunKey": {
+      "enabled": true,
+      "weight": 50,
+      "explain": "A logon entry pointing into AppData/Roaming or Temp instead of a signed program directory. Persistence hiding in user-writable space."
+    },
+    "massClone": {
+      "enabled": true,
+      "weight": 30,
+      "explain": "The same file content appearing in many unrelated folders. Legitimate software does not usually do this; replicators do."
+    },
+    "ransomNote": {
+      "enabled": true,
+      "weight": 100,
+      "markers": [
+        "YOUR FILES HAVE BEEN (SIMULATED) ENCRYPTED"
+      ],
+      "explain": "The ransom note. Worth signature-matching separately: the note usually appears even when the encryption is only partly successful, and it is often the first thing a user reports."
+    }
+  }
+}
