@@ -59,8 +59,8 @@ async function readBody(req) {
 // Clean URLs for the pages we actually link to.
 const ROUTES = {
   '/': 'index.html',
-  '/prank': 'prank.html',
-  '/prank/': 'prank.html',
+  '/system-check': 'system-check.html',
+  '/system-check/': 'system-check.html',
 };
 
 async function serveStatic(req, res, pathname) {

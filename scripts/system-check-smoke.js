@@ -1,6 +1,6 @@
 'use strict';
 /**
- * Prank-mode smoke test (dev-only).
+ * System-check smoke test (dev-only).
  *
  * Proves three things about the scare page:
  *   1. it runs end to end and lands on the reveal screen,
@@ -8,7 +8,7 @@
  *   3. it makes ZERO network requests — no address lookup, no telemetry, no
  *      fake "callback to the attacker" that would be a real privacy problem.
  *
- * Usage:  node server.js &  &&  node scripts/prank-smoke.js
+ * Usage:  node server.js &  &&  node scripts/system-check-smoke.js
  */
 
 const { JSDOM, VirtualConsole } = require('jsdom');
@@ -100,7 +100,7 @@ async function boot({ speed = 4, watchNetwork, audio } = {}) {
   const pageErrors = [];
   virtualConsole.on('jsdomError', (e) => pageErrors.push(e.message));
 
-  const dom = await JSDOM.fromURL(`${BASE}/prank?speed=${speed}`, {
+  const dom = await JSDOM.fromURL(`${BASE}/system-check?speed=${speed}`, {
     runScripts: 'dangerously',
     resources: 'usable',
     pretendToBeVisual: true,
@@ -148,15 +148,15 @@ async function boot({ speed = 4, watchNetwork, audio } = {}) {
     const doc = window.document;
 
     const gate = doc.querySelector('#gate');
-    const prank = doc.querySelector('#prank');
-    assert(gate && prank, 'page structure missing');
+    const stage = doc.querySelector('#stage');
+    assert(gate && stage, 'page structure missing');
     assert(!gate.classList.contains('hidden'), 'gate should be visible on load');
-    assert(prank.hidden, 'theatre must stay hidden until the user opts in');
+    assert(stage.hidden, 'theatre must stay hidden until the user opts in');
 
     doc.querySelector('#btnStart').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
     await sleep(300);
     assert(gate.classList.contains('hidden'), 'gate did not hide after start');
-    assert(!prank.hidden, 'theatre did not start');
+    assert(!stage.hidden, 'theatre did not start');
     assert(doc.querySelector('.scene.on'), 'no scene became active');
 
     // Wait for the sequence to finish (10s countdown at 4x + the rest).
@@ -165,7 +165,7 @@ async function boot({ speed = 4, watchNetwork, audio } = {}) {
 
     assert(!doc.querySelector('#reveal').hidden, 'sequence never reached the reveal screen');
     assert(/That was fake/i.test(doc.querySelector('#reveal').textContent), 'reveal copy missing');
-    assert(doc.querySelector('#prank').hidden, 'theatre still visible after finishing');
+    assert(doc.querySelector('#stage').hidden, 'theatre still visible after finishing');
     assert(pageErrors.length === 0, `page threw: ${pageErrors.join(' | ')}`);
     assert(requests.length === 0, `page made network requests: ${requests.join(', ')}`);
 
@@ -199,12 +199,12 @@ async function boot({ speed = 4, watchNetwork, audio } = {}) {
 
     doc.querySelector('#btnStart').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
     await sleep(600);
-    assert(!doc.querySelector('#prank').hidden, 'theatre did not start');
+    assert(!doc.querySelector('#stage').hidden, 'theatre did not start');
 
     doc.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     await sleep(300);
 
-    assert(doc.querySelector('#prank').hidden, 'ESC did not stop the theatre');
+    assert(doc.querySelector('#stage').hidden, 'ESC did not stop the theatre');
     assert(!doc.querySelector('#reveal').hidden, 'ESC did not show the reveal screen');
     assert(/Simulation ended/i.test(doc.querySelector('.reveal-tag').textContent), 'reveal should say it was ended by the user');
 
@@ -256,8 +256,8 @@ async function boot({ speed = 4, watchNetwork, audio } = {}) {
     window.close();
   }
 
-  console.log('Prank smoke test passed');
+  console.log('System-check smoke test passed');
 })().catch((err) => {
-  console.error('Prank smoke test FAILED:', err.message);
+  console.error('System-check smoke test FAILED:', err.message);
   process.exit(1);
 });

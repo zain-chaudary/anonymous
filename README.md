@@ -5,12 +5,12 @@ remediation engine — in one zero-dependency Node app with a browser UI.
 
 ```
 node server.js      →  http://localhost:3000        the lab
-                    →  http://localhost:3000/prank  the fake incident (prank mode)
+                    →  http://localhost:3000/system-check  the incident simulation
 node --test         →  6/6 passing (containment + full infection/cleanup cycle)
 ```
 
-**`public/prank.html` is fully self-contained** — one file, no assets, no network calls. Drop it
-on any static host (Netlify Drop, GitHub Pages, Cloudflare Pages) and the `/prank` link works
+**`public/system-check.html` is fully self-contained** — one file, no assets, no network calls. Drop it
+on any static host (Netlify Drop, GitHub Pages, Cloudflare Pages) and the link works
 anywhere. Nothing else from this repo needs to be deployed with it.
 
 ---
@@ -61,14 +61,14 @@ reimage path.** A "vaccine" is one layer, not a cure.
 
 ---
 
-## Prank mode (`/prank`) — the fake incident
+## Incident simulation (`/system-check`)
 
 The thing you actually wanted: **a link that takes over the screen and looks like your laptop is
 being destroyed.** It is pure theatre, it runs entirely in the browser, and it costs nothing.
 
 ```
-http://localhost:3000/prank          normal speed (~45s)
-http://localhost:3000/prank?speed=2  twice as fast — better for sharing
+http://localhost:3000/system-check          normal speed (~45s)
+http://localhost:3000/system-check?speed=2  twice as fast — better for sharing
 ```
 
 What happens: fullscreen takeover → boot log → `SYSTEM COMPROMISED` → "origin trace" with a radar
@@ -77,7 +77,7 @@ they are "overwritten" → 10-second `FACTORY RESET` countdown → black screen 
 that admits every single thing was fake.** `ESC` exits at any moment, and leaving fullscreen
 ends it too.
 
-Tap **Copy this link** on the reveal screen or just send `/prank?speed=2`.
+Tap **Copy this link** on the reveal screen or just send `/system-check?speed=2`.
 
 ### Sound
 
@@ -127,6 +127,19 @@ This is the part worth internalising, because it is also how you spot a real att
 To actually reboot someone's laptop from a link you would need either a browser 0-day (six figures,
 and a crime) or for them to download and run an `.exe` (also a crime, plus they deserve better).
 There is no third option.
+
+### Publishing it on a real URL
+
+A sandbox preview (`…e2b.app`) only lives as long as the session, so it is useless for sending
+to someone. Two ways to get a permanent link:
+
+1. **Drag and drop** `public/system-check.html` onto [Netlify Drop](https://app.netlify.com/drop).
+   No account, ~20 seconds, you get `https://something.netlify.app/system-check.html`.
+2. **GitHub Pages from this repo:** `node scripts/build-pages.js` copies the standalone page into
+   `docs/`, then enable Pages with source = this branch, folder = `/docs`. The page is then at
+   `https://<user>.github.io/<repo>/system-check.html`.
+
+There are no build steps, no dependencies and no assets to upload — the HTML is the whole thing.
 
 ### Using it responsibly
 
@@ -190,7 +203,7 @@ node --test                              # 6 tests: containment, infection, dete
 npm i --no-save jsdom
 node server.js &                         # in another shell
 node scripts/ui-smoke.js                 # drives the lab: clicks all five steps, asserts the DOM
-node scripts/prank-smoke.js              # runs the scare end to end, checks ESC, sound graph, zero network I/O
+node scripts/system-check-smoke.js       # runs the sequence end to end, checks ESC, sound graph, zero network I/O
 ```
 
 The UI smoke test exists because a screenshot-free review of a browser app is guesswork.

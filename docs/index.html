@@ -140,8 +140,8 @@
     margin: 16px 0 0;
   }
 
-  /* =========================================================== prank root */
-  #prank {
+  /* ============================================================ stage root */
+  #stage {
     position: fixed;
     inset: 0;
     z-index: 50;
@@ -150,7 +150,7 @@
     background: #05080c;
     overflow: hidden;
   }
-  #prank[hidden] { display: none; }
+  #stage[hidden] { display: none; }
 
   /* CRT texture */
   .fx {
@@ -503,8 +503,8 @@
   @keyframes blackoutpulse { 0%, 100% { opacity: 0.15; } 50% { opacity: 0.9; } }
 
   /* chrome disappears for the fake power-off */
-  #prank.dark .hud, #prank.dark .hud-foot { opacity: 0; transition: opacity .6s; pointer-events: none; }
-  #prank.dark .fx { opacity: 0; transition: opacity .6s; }
+  #stage.dark .hud, #stage.dark .hud-foot { opacity: 0; transition: opacity .6s; pointer-events: none; }
+  #stage.dark .fx { opacity: 0; transition: opacity .6s; }
 
   /* ---- footer ---- */
   .hud-foot {
@@ -654,11 +654,12 @@
 <section id="gate">
   <div class="gate-card">
     <div class="gate-tag">⚠ Simulation · nothing real</div>
-    <h1>Fake virus scare — a 45-second bit of theatre</h1>
+    <h1>A 45-second incident simulation</h1>
     <p>
-      Fullscreen takeover, fake IP trace, fake “factory reset” countdown. <strong>Nothing on this
-      device will be changed:</strong> no files touched, no reset, no connections closed, no
-      address looked up. It is a web page pretending.
+      A full-screen demonstration of what a compromise looks like: trace, terminated
+      connections, disabled security, a fake “factory reset” countdown. <strong>Nothing on this
+      device will be changed</strong> — no files touched, no reset, no connections closed, and
+      no address looked up. It is a web page pretending.
     </p>
     <ul class="gate-list">
       <li>Press <strong>ESC</strong> at any time to end it instantly</li>
@@ -670,14 +671,15 @@
       <label class="gate-check"><input type="checkbox" id="chkSound" checked /> play sound</label>
     </div>
     <p class="fineprint">
-      Not for people who are anxious about losing their data, and never on a work laptop you
-      do not own. The scariest part of a real incident is that you cannot press ESC.
+      Ideal for a class, a security briefing, or colleagues who know a demo is running. Not for
+      anyone anxious about losing their data, and never on a work laptop you do not own — the
+      scariest part of a real incident is that you cannot press ESC.
     </p>
   </div>
 </section>
 
-<!-- =============================================================== PRANK -->
-<div id="prank" hidden>
+<!-- ============================================================= THEATRE -->
+<div id="stage" hidden>
   <div class="fx fx-lines"></div>
   <div class="fx fx-flicker"></div>
   <div class="fx fx-alert" id="alertFx"></div>
@@ -685,7 +687,7 @@
 
   <header class="hud">
     <div class="hud-left">
-      <span class="badge"><span class="dot"></span>Prank mode · simulation</span>
+      <span class="badge"><span class="dot"></span>Simulation · nothing real</span>
       <span class="hud-host" id="hudHost">HOST-UNKNOWN</span>
     </div>
     <div class="hud-right">
@@ -857,7 +859,7 @@
   const $ = (s) => document.querySelector(s);
 
   const gate = $('#gate');
-  const prank = $('#prank');
+  const stage = $('#stage');
   const reveal = $('#reveal');
   const scenes = new Map([...document.querySelectorAll('.scene')].map((s) => [s.dataset.scene, s]));
 
@@ -1455,8 +1457,8 @@
       prog.style.strokeDashoffset = String(RING_LEN * (1 - (10 - n) / 10));
       SFX.countdown(n);
       if (n <= 3) {
-        prank.style.transform = `translate(${rand(-3, 3)}px, ${rand(-2, 2)}px)`;
-        setTimeout(() => { if (prank) prank.style.transform = ''; }, 90);
+        stage.style.transform = `translate(${rand(-3, 3)}px, ${rand(-2, 2)}px)`;
+        setTimeout(() => { if (stage) stage.style.transform = ''; }, 90);
       }
       await sleep(1000);
     }
@@ -1469,11 +1471,11 @@
   async function runBlackout() {
     SFX.stopLoops();
     setAlertFx(false);
-    prank.classList.add('dark');
+    stage.classList.add('dark');
     showScene('blackout');
     SFX.powerDown();
     await sleep(2200);
-    prank.classList.remove('dark');
+    stage.classList.remove('dark');
   }
 
   // ------------------------------------------------------------ sequence --
@@ -1507,9 +1509,9 @@
     if (document.fullscreenElement && document.exitFullscreen) {
       document.exitFullscreen().catch(() => {});
     }
-    prank.hidden = true;
-    prank.classList.remove('dark');
-    prank.style.transform = '';
+    stage.hidden = true;
+    stage.classList.remove('dark');
+    stage.style.transform = '';
     reveal.hidden = false;
     $('#reveal').querySelector('.reveal-tag').textContent = byUser
       ? '✓ Simulation ended · nothing happened'
@@ -1522,7 +1524,7 @@
     cancelled = false;
     const wantSound = $('#chkSound').checked;
     gate.classList.add('hidden');
-    prank.hidden = false;
+    stage.hidden = false;
     reveal.hidden = true;
 
     $('#hudHost').textContent = `HOST-UNKNOWN · ${platform()}`;
@@ -1540,8 +1542,8 @@
     // Fullscreen needs the click we just got. If the browser refuses (iframe,
     // iOS Safari), the fixed overlay already covers the viewport.
     try {
-      if (!document.fullscreenElement && prank.requestFullscreen) {
-        await prank.requestFullscreen({ navigationUI: 'hide' });
+      if (!document.fullscreenElement && stage.requestFullscreen) {
+        await stage.requestFullscreen({ navigationUI: 'hide' });
       }
     } catch { /* fall back to the overlay */ }
 
@@ -1573,7 +1575,7 @@
   // M for mute, ESC for the exit.
   document.addEventListener('keydown', (e) => {
     if (e.key === 'm' || e.key === 'M') {
-      if (!prank.hidden) {
+      if (!stage.hidden) {
         SFX.toggleMute();
         paintMute();
       }
@@ -1602,18 +1604,18 @@
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       if (!reveal.hidden) return;
-      if (!prank.hidden) endDemo(true);
+      if (!stage.hidden) endDemo(true);
     }
   });
 
   // Leaving fullscreen (ESC, swipe, F11) also ends it.
   document.addEventListener('fullscreenchange', () => {
-    if (!document.fullscreenElement && !prank.hidden) endDemo(true);
+    if (!document.fullscreenElement && !stage.hidden) endDemo(true);
   });
 
   // Safety net: if anything throws, do not leave the user stuck on a red screen.
   window.addEventListener('error', () => {
-    if (!prank.hidden) endDemo(true);
+    if (!stage.hidden) endDemo(true);
   });
 })();
 </script>
