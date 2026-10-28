@@ -38,108 +38,6 @@
 
   body { position: fixed; inset: 0; }
 
-  /* ============================================================ the gate */
-  #gate {
-    position: fixed;
-    inset: 0;
-    z-index: 100;
-    display: grid;
-    place-items: center;
-    padding: 24px;
-    background:
-      radial-gradient(900px 520px at 50% -10%, rgba(58, 214, 222, 0.10), transparent 65%),
-      radial-gradient(700px 400px at 100% 110%, rgba(255, 47, 69, 0.08), transparent 60%),
-      var(--bg);
-  }
-  #gate.hidden { display: none; }
-
-  .gate-card {
-    width: min(560px, 100%);
-    border: 1px solid #1b2634;
-    border-radius: 16px;
-    background: linear-gradient(180deg, #0c1219, #080c11);
-    padding: 26px 24px 22px;
-    box-shadow: 0 40px 90px rgba(0, 0, 0, 0.7);
-  }
-  .gate-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    font-size: 10px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--amber);
-    border: 1px solid #4a3416;
-    background: #1a1308;
-    padding: 4px 9px;
-    border-radius: 999px;
-    margin-bottom: 16px;
-  }
-  .gate-card h1 {
-    font-family: var(--sans);
-    font-size: 21px;
-    line-height: 1.25;
-    margin: 0 0 10px;
-    letter-spacing: -0.2px;
-    color: #eaf2fb;
-  }
-  .gate-card p {
-    font-family: var(--sans);
-    font-size: 13px;
-    line-height: 1.65;
-    color: var(--dim);
-    margin: 0 0 14px;
-  }
-  .gate-card p strong { color: #b9c9da; }
-  .gate-list {
-    font-family: var(--sans);
-    font-size: 12.5px;
-    color: #92a5b8;
-    margin: 0 0 18px;
-    padding-left: 18px;
-    line-height: 1.85;
-  }
-  .gate-list li::marker { color: var(--cyan); }
-  .gate-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-  .gate-check {
-    display: flex; align-items: center; gap: 7px;
-    font-family: var(--sans); font-size: 12px; color: var(--dim);
-    cursor: pointer; user-select: none;
-  }
-  .gate-check input { accent-color: var(--cyan); width: 14px; height: 14px; }
-
-  button {
-    font-family: var(--sans);
-    font-size: 13px;
-    font-weight: 600;
-    padding: 11px 18px;
-    border-radius: 10px;
-    border: 1px solid #24303f;
-    background: #151d28;
-    color: #dce6f2;
-    cursor: pointer;
-    transition: transform .08s ease, background .15s ease, border-color .15s;
-  }
-  button:hover { background: #1b2532; border-color: #2f3d4f; }
-  button:active { transform: translateY(1px); }
-  button.go {
-    background: linear-gradient(180deg, #6d1a24, #43101a);
-    border-color: #8d2634;
-    color: #ffc9ce;
-    letter-spacing: 0.03em;
-  }
-  button.go:hover { background: linear-gradient(180deg, #85202c, #521320); }
-  button.quiet { background: transparent; color: var(--dim); border-color: #1e2937; font-weight: 500; }
-  button.quiet:hover { color: #dce6f2; }
-
-  .fineprint {
-    font-family: var(--sans);
-    font-size: 11px;
-    line-height: 1.6;
-    color: #43546a;
-    margin: 16px 0 0;
-  }
-
   /* ============================================================ stage root */
   #stage {
     position: fixed;
@@ -492,6 +390,155 @@
   .count-sub { font-size: clamp(10px, 1.1vw, 12px); color: #7b8ea3; margin: 0; letter-spacing: 0.06em; }
   .count-sub b { color: var(--red-soft); }
 
+  /* ---- files headline ---- */
+  .fs-headline { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; flex: none; }
+  .fs-kicker {
+    font-size: 9.5px; letter-spacing: 0.24em; text-transform: uppercase;
+    color: var(--red); border: 1px solid #5c1f24; background: rgba(255,47,69,.08);
+    padding: 4px 9px; border-radius: 3px;
+  }
+  .fs-title {
+    margin: 0;
+    font-family: var(--sans);
+    font-size: clamp(22px, 4.4vw, 52px);
+    font-weight: 900;
+    line-height: 0.9;
+    letter-spacing: -0.04em;
+    text-transform: uppercase;
+    color: #fff;
+    text-shadow: 0 0 28px rgba(255, 47, 69, 0.6);
+  }
+  .fs-title .red { color: var(--red); }
+
+  /* ---- big words ---- */
+  .bigword-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(10px, 2vh, 22px);
+    text-align: center;
+    padding: 0 clamp(10px, 3vw, 40px);
+  }
+  .bigword {
+    font-family: var(--sans);
+    font-weight: 900;
+    font-size: clamp(34px, 10.5vw, 132px);
+    line-height: 0.92;
+    letter-spacing: -0.045em;
+    text-transform: uppercase;
+    color: #fff;
+    text-shadow: 0 0 30px rgba(255, 47, 69, 0.75), 0 0 90px rgba(255, 47, 69, 0.35);
+    animation: wordin 0.45s cubic-bezier(.2, .9, .2, 1) both, wordshake 4s 0.5s infinite;
+  }
+  .bigword .red { color: var(--red); }
+  @keyframes wordin {
+    0% { opacity: 0; transform: scale(1.35); filter: blur(14px); }
+    100% { opacity: 1; transform: scale(1); filter: blur(0); }
+  }
+  @keyframes wordshake {
+    0%, 92%, 100% { transform: translate(0, 0); }
+    94% { transform: translate(-3px, 2px); }
+    96% { transform: translate(3px, -2px); }
+    98% { transform: translate(-2px, -1px); }
+  }
+  .bigword-sub {
+    font-size: clamp(10px, 1.5vw, 15px);
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--red-soft);
+    border: 1px solid #5c1f24;
+    background: rgba(255, 47, 69, 0.07);
+    padding: 6px 14px;
+    border-radius: 3px;
+  }
+
+  /* ---- ransom ---- */
+  .ransom-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(10px, 1.8vh, 18px);
+    text-align: center;
+    max-width: 760px;
+    margin: 0 auto;
+  }
+  .ransom-tag {
+    font-size: 9.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--dim);
+    border: 1px solid #22303f;
+    padding: 4px 10px;
+    border-radius: 3px;
+  }
+  .ransom-title {
+    margin: 0;
+    font-family: var(--sans);
+    font-size: clamp(26px, 6.4vw, 68px);
+    font-weight: 900;
+    line-height: 0.95;
+    letter-spacing: -0.04em;
+    color: #fff;
+    text-shadow: 0 0 34px rgba(255, 47, 69, 0.8);
+    animation: wordin 0.5s ease both;
+  }
+  .ransom-sub {
+    margin: 0;
+    max-width: 560px;
+    font-size: clamp(10.5px, 1.25vw, 13.5px);
+    line-height: 1.75;
+    color: #93a6ba;
+  }
+  .ransom-box {
+    width: min(560px, 100%);
+    border: 1px solid #5c1f24;
+    background: rgba(255, 47, 69, 0.05);
+    border-radius: 8px;
+    padding: 6px 14px;
+  }
+  .ransom-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 14px;
+    padding: 7px 0;
+    font-size: clamp(10px, 1.15vw, 12.5px);
+    color: #8ba0b6;
+    border-bottom: 1px solid rgba(255, 47, 69, 0.12);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .ransom-row:last-child { border-bottom: 0; }
+  .ransom-row b { color: #dfe9f3; font-weight: 600; letter-spacing: 0.02em; }
+  .ransom-row b.hot { color: var(--red); }
+  .ransom-row b.clock { font-size: clamp(15px, 2.2vw, 24px); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--red-soft); }
+  .ransom-foot {
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #43546a;
+  }
+
+  /* ---- sound hint ---- */
+  #soundHint {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 9px;
+    border-radius: 6px;
+    border: 1px solid #4a3416;
+    background: rgba(255, 180, 84, 0.08);
+    color: var(--amber);
+    font-weight: 500;
+    animation: blackoutpulse 2.4s ease-in-out infinite;
+  }
+  #soundHint.off { display: none; }
+
   /* ---- blackout ---- */
   .scene[data-scene="blackout"] { background: #000; padding: 0; }
   .blackout { flex: 1; display: grid; place-items: center; }
@@ -650,36 +697,8 @@
 </head>
 <body>
 
-<!-- ================================================================ GATE -->
-<section id="gate">
-  <div class="gate-card">
-    <div class="gate-tag">⚠ Simulation · nothing real</div>
-    <h1>A 45-second incident simulation</h1>
-    <p>
-      A full-screen demonstration of what a compromise looks like: trace, terminated
-      connections, disabled security, a fake “factory reset” countdown. <strong>Nothing on this
-      device will be changed</strong> — no files touched, no reset, no connections closed, and
-      no address looked up. It is a web page pretending.
-    </p>
-    <ul class="gate-list">
-      <li>Press <strong>ESC</strong> at any time to end it instantly</li>
-      <li>Works on any device; sound is optional</li>
-      <li>Play it on your own screen, or with someone who is in on the joke</li>
-    </ul>
-    <div class="gate-row">
-      <button class="go" id="btnStart">START THE DEMO</button>
-      <label class="gate-check"><input type="checkbox" id="chkSound" checked /> play sound</label>
-    </div>
-    <p class="fineprint">
-      Ideal for a class, a security briefing, or colleagues who know a demo is running. Not for
-      anyone anxious about losing their data, and never on a work laptop you do not own — the
-      scariest part of a real incident is that you cannot press ESC.
-    </p>
-  </div>
-</section>
-
 <!-- ============================================================= THEATRE -->
-<div id="stage" hidden>
+<div id="stage">
   <div class="fx fx-lines"></div>
   <div class="fx fx-flicker"></div>
   <div class="fx fx-alert" id="alertFx"></div>
@@ -691,6 +710,7 @@
       <span class="hud-host" id="hudHost">HOST-UNKNOWN</span>
     </div>
     <div class="hud-right">
+      <button id="soundHint" title="Browsers block audio until you interact">🔊 click for sound</button>
       <span id="hudPhase">boot</span>
       <span class="hud-clock" id="hudClock">00:00:00</span>
     </div>
@@ -775,10 +795,39 @@
     <!-- 6. files -->
     <section class="scene" data-scene="files">
       <div class="panel-scene">
-        <p class="sec-label">overwriting local storage</p>
+        <div class="fs-headline">
+          <span class="fs-kicker">destructive payload running</span>
+          <h2 class="fs-title">DESTROYING<br /><span class="red">FILES</span></h2>
+        </div>
         <div class="rows" id="fileRows"></div>
         <div class="wipe-bar"><i id="wipeBar"></i></div>
         <div class="counter-strip">files destroyed <b id="fileCount">0</b> <span>· <span id="fileTotal">0</span> mb written</span></div>
+      </div>
+    </section>
+
+    <!-- big-word interstitial -->
+    <section class="scene" data-scene="words">
+      <div class="bigword-wrap">
+        <div class="bigword" id="bigWord">DESTROYING FILES</div>
+        <div class="bigword-sub" id="bigWordSub"></div>
+      </div>
+    </section>
+
+    <!-- ransom note -->
+    <section class="scene" data-scene="ransom">
+      <div class="ransom-wrap">
+        <div class="ransom-tag">ransom note · readme_restore.txt</div>
+        <h2 class="ransom-title">YOUR FILES HAVE BEEN<br />ENCRYPTED</h2>
+        <p class="ransom-sub">
+          All documents, photos and backups on this device have been locked with a key that
+          only exists on our server. Do not shut down — the key is destroyed on reboot.
+        </p>
+        <div class="ransom-box">
+          <div class="ransom-row"><span>files encrypted</span><b id="ransomFiles">0</b></div>
+          <div class="ransom-row"><span>recovery key</span><b class="hot">held on remote server</b></div>
+          <div class="ransom-row"><span>time remaining</span><b class="clock" id="ransomClock">23:59:59</b></div>
+        </div>
+        <div class="ransom-foot">payments accepted in cryptocurrency only · do not contact authorities</div>
       </div>
     </section>
 
@@ -855,10 +904,9 @@
   'use strict';
 
   const params = new URLSearchParams(location.search);
-  const SPEED = Math.min(4, Math.max(0.25, parseFloat(params.get('speed')) || 1));
+  const SPEED = Math.min(16, Math.max(0.25, parseFloat(params.get('speed')) || 1));
   const $ = (s) => document.querySelector(s);
 
-  const gate = $('#gate');
   const stage = $('#stage');
   const reveal = $('#reveal');
   const scenes = new Map([...document.querySelectorAll('.scene')].map((s) => [s.dataset.scene, s]));
@@ -993,6 +1041,12 @@
     // ---------------------------------------------------------- one-shots --
     const api = {
       init,
+
+      // Raw primitives. The scenes use these directly for one-off cues, so they
+      // must be on the public surface — a missing method here silently killed a
+      // whole scene (TypeError swallowed by the sequence's catch).
+      tone,
+      noise,
 
       get muted() { return muted; },
 
@@ -1211,6 +1265,12 @@
     ['[ 0.3622] disabling security services …', 'warn'],
     ['[ 0.4180] scheduling destructive payload …', 'err'],
     ['[ 0.4501] payload armed · awaiting trigger', 'err'],
+    ['[ 0.4810] backup service stopped · no restore points remain', 'err'],
+    ['[ 0.5230] usb device enumerated · writing autorun payload', 'warn'],
+    ['[ 0.5840] shadow copies deleted (vssadmin · 0x00000000)', 'err'],
+    ['[ 0.6120] encryption key generated · 2048-bit', ''],
+    ['[ 0.6394] key transmitted to remote host', 'err'],
+    ['[ 0.7010] starting filesystem pass 1 of 3', 'err'],
   ];
 
   async function runBoot() {
@@ -1226,7 +1286,7 @@
       term.appendChild(line);
       if (kind === 'err') SFX.tone({ freq: 220, dur: 0.06, type: 'square', gain: 0.06 });
       else SFX.tick(line);
-      await sleep(rand(90, 190));
+      await sleep(rand(700, 1080));
     }
     if (cancelled) return;
     const cursorLine = document.createElement('div');
@@ -1249,7 +1309,7 @@
       $('#flashLine').textContent = flashes[i];
       if (i > 0) SFX.impact();
       SFX.tone({ freq: 700, dur: 0.05, type: 'square', gain: 0.03 });
-      await sleep(560);
+      await sleep(880);
     }
   }
 
@@ -1295,7 +1355,7 @@
       requestAnimationFrame(() => row.classList.add('in'));
       if (hot) SFX.impact();
       else SFX.ping();
-      await sleep(520);
+      await sleep(1050);
     }
     await sleep(900);
   }
@@ -1326,7 +1386,7 @@
       row.className = 'lrow';
       row.innerHTML = `<span class="l"><span class="ico">${ico}</span><span>${name}</span></span><span class="st">${status}</span>`;
       rows.appendChild(row);
-      await sleep(240);
+      await sleep(520);
       row.classList.add('killed');
       row.querySelector('.st').textContent = 'terminated';
       row.querySelector('.ico').textContent = '✕';
@@ -1367,7 +1427,7 @@
       row.className = 'lrow';
       row.innerHTML = `<span class="l"><span class="ico">${ico}</span><span>${name}</span></span><span class="st">${status}</span>`;
       rows.appendChild(row);
-      await sleep(260);
+      await sleep(560);
       row.classList.add('killed');
       row.querySelector('.st').textContent = 'disabled';
       row.querySelector('.ico').textContent = '✕';
@@ -1396,6 +1456,10 @@
     'D:\\removable\\backup-notes.txt',
     'C:\\Users\\guest\\Videos\\clip-014.mp4',
     'C:\\Users\\guest\\Music\\library.db',
+    'C:\\Users\\guest\\Documents\\contracts\\lease-agreement.pdf',
+    'C:\\Users\\guest\\Pictures\\wedding-2019',
+    'C:\\Users\\guest\\Documents\\passwords.kdbx',
+    'D:\\removable\\family-photos.zip',
   ];
 
   async function runFiles() {
@@ -1403,10 +1467,12 @@
     const rows = $('#fileRows');
     rows.innerHTML = '';
     $('#fileCount').textContent = '0';
-    const totalMb = Math.floor(rand(2400, 9800));
+    const totalMb = Math.floor(rand(4800, 9800));
     $('#fileTotal').textContent = totalMb;
 
     SFX.shredStart();
+
+    // A long list on purpose: the destruction should feel like it never ends.
     const entries = FILE_NAMES.map((name) => ({
       name,
       size: `${Math.floor(rand(2, 900))} ${Math.random() > 0.85 ? 'GB' : 'MB'}`,
@@ -1426,7 +1492,7 @@
       if (cancelled) return;
       node.classList.add('wiping');
       node.querySelector('.fs').textContent = 'overwriting…';
-      await sleep(rand(150, 300));
+      await sleep(rand(900, 1300));
       node.classList.remove('wiping');
       node.classList.add('gone');
       node.querySelector('.fs').textContent = '0 bytes';
@@ -1434,27 +1500,72 @@
       $('#fileCount').textContent = Math.floor((done / nodes.length) * totalMb);
       bar.style.width = `${(done / nodes.length) * 100}%`;
       SFX.glitch();
-      await sleep(rand(40, 110));
+      await sleep(rand(340, 780));
     }
     SFX.shredStop();
-    await sleep(420);
+    await sleep(600);
   }
 
-  // ------------------------------------------------- 7. factory reset ------
-  const RING_LEN = 2 * Math.PI * 52;
+  // ------------------------------------------------- 9. big-word beats ----
+  async function runWords(title, sub, hold = 4500) {
+    showScene('words');
+    const word = $('#bigWord');
+    word.innerHTML = title;
+    $('#bigWordSub').textContent = sub || '';
+    // Restart the entrance animation every time.
+    word.style.animation = 'none';
+    void word.offsetWidth;
+    word.style.animation = '';
+    SFX.impact();
+    await sleep(hold);
+  }
 
+  // ---------------------------------------------------- 10. ransom note ---
+  async function runRansom() {
+    showScene('ransom');
+    SFX.klaxonStart();
+    const files = Math.floor(rand(42000, 78000));
+    const node = $('#ransomFiles');
+    const clock = $('#ransomClock');
+
+    // Count the "encrypted" files up, then let the clock run.
+    for (let i = 0; i <= 20; i++) {
+      if (cancelled) return;
+      node.textContent = Math.floor((i / 20) * files).toLocaleString();
+      await sleep(120);
+    }
+    node.textContent = files.toLocaleString();
+
+    let remaining = 23 * 3600 + 59 * 60 + 59;
+    for (let i = 0; i < 70; i++) {
+      if (cancelled) return;
+      remaining -= Math.floor(rand(1, 3));
+      const hh = String(Math.floor(remaining / 3600)).padStart(2, '0');
+      const mm = String(Math.floor((remaining % 3600) / 60)).padStart(2, '0');
+      const ss = String(remaining % 60).padStart(2, '0');
+      clock.textContent = `${hh}:${mm}:${ss}`;
+      await sleep(300);
+    }
+    SFX.klaxonStop();
+    await sleep(500);
+  }
+
+  // --------------------------------------------------- 11. factory reset --
   async function runReset() {
     showScene('reset');
     setAlertFx(true);
     SFX.klaxonStart();
     const num = $('#ringNum');
     const prog = $('#ringProg');
+    const RING_LEN = 2 * Math.PI * 52;
     prog.style.strokeDasharray = String(RING_LEN);
+    prog.style.strokeDashoffset = '0';
 
-    for (let n = 10; n >= 0; n--) {
+    const from = 15;
+    for (let n = from; n >= 0; n--) {
       if (cancelled) return;
       num.textContent = String(n);
-      prog.style.strokeDashoffset = String(RING_LEN * (1 - (10 - n) / 10));
+      prog.style.strokeDashoffset = String(RING_LEN * (1 - (from - n) / from));
       SFX.countdown(n);
       if (n <= 3) {
         stage.style.transform = `translate(${rand(-3, 3)}px, ${rand(-2, 2)}px)`;
@@ -1464,7 +1575,7 @@
     }
     SFX.klaxonStop();
     SFX.impact();
-    await sleep(600);
+    await sleep(700);
   }
 
   // -------------------------------------------------- 8. blackout --------
@@ -1480,22 +1591,33 @@
 
   // ------------------------------------------------------------ sequence --
   async function runSequence() {
-    try { await runBoot(); } catch { /* ignore */ }
-    if (cancelled) return;
-    try { await runAlert(); } catch { /* ignore */ }
-    if (cancelled) return;
-    try { await runTrace(); } catch { /* ignore */ }
-    if (cancelled) return;
-    try { await runConnections(); } catch { /* ignore */ }
-    if (cancelled) return;
-    try { await runSecurity(); } catch { /* ignore */ }
-    if (cancelled) return;
-    try { await runFiles(); } catch { /* ignore */ }
-    if (cancelled) return;
-    try { await runReset(); } catch { /* ignore */ }
-    if (cancelled) return;
-    try { await runBlackout(); } catch { /* ignore */ }
-    if (cancelled) return;
+    window.__incidentErrors = [];
+
+    // Keep going if one beat fails, but record it: a scene that throws mid-way
+    // used to be indistinguishable from a scene that finished.
+    const beat = async (fn) => {
+      if (cancelled) return false;
+      try {
+        await fn();
+      } catch (err) {
+        window.__incidentErrors.push(String((err && err.message) || err));
+        if (window.console) console.error('[scene]', err);
+      }
+      return !cancelled;
+    };
+
+    if (!await beat(runBoot)) return;                                   // ~19s
+    if (!await beat(runAlert)) return;                                  // ~5s
+    if (!await beat(() => runTrace())) return;                          // ~6s
+    if (!await beat(() => runConnections())) return;                    // ~6s
+    if (!await beat(() => runSecurity())) return;                       // ~5s
+    if (!await beat(() => runWords('SECURITY<br /><span class="red">DISABLED</span>', 'firewall · antivirus · recovery · backups', 6000))) return;
+    if (!await beat(runFiles)) return;                                  // ~35s
+    if (!await beat(() => runWords('ENCRYPTION<br /><span class="red">COMPLETE</span>', 'your files are no longer yours', 5000))) return;
+    if (!await beat(runRansom)) return;                                 // ~14s
+    if (!await beat(() => runWords('FACTORY RESET', 'drive 0 · partition table being recreated', 5000))) return;
+    if (!await beat(runReset)) return;                                  // ~13s
+    if (!await beat(runBlackout)) return;                               // ~3s
     endDemo(false);
   }
 
@@ -1520,46 +1642,52 @@
   }
 
   // ---------------------------------------------------------------- start --
-  async function start() {
-    cancelled = false;
-    const wantSound = $('#chkSound').checked;
-    gate.classList.add('hidden');
-    stage.hidden = false;
-    reveal.hidden = true;
-
-    $('#hudHost').textContent = `HOST-UNKNOWN · ${platform()}`;
-
-    // Must happen inside the click handler or the browser suspends the context.
-    SFX.init();
-    SFX.setMuted(!wantSound);
-    SFX.resume();
-    const mb = $('#mute');
-    if (mb) {
-      mb.textContent = SFX.muted ? 'sound: off' : 'sound: on';
-      mb.classList.toggle('off', SFX.muted);
+  // No gate, no button: the page starts itself. Sound and fullscreen are the
+  // two things a browser refuses to grant without a click, so both are armed
+  // and fire on the first interaction anywhere.
+  function armBrowserPermissions() {
+    let armed = true;
+    const fire = async () => {
+      if (!armed) return;
+      armed = false;
+      SFX.resume();
+      try {
+        if (!document.fullscreenElement && stage.requestFullscreen) {
+          await stage.requestFullscreen({ navigationUI: 'hide' });
+        }
+      } catch { /* overlay already covers the viewport */ }
+      const hint = $('#soundHint');
+      if (hint) hint.classList.add('off');
+      document.removeEventListener('pointerdown', fire);
+      document.removeEventListener('keydown', fire);
+      document.removeEventListener('touchstart', fire);
+    };
+    for (const ev of ['pointerdown', 'keydown', 'touchstart']) {
+      document.addEventListener(ev, fire, { once: false, passive: true });
     }
 
-    // Fullscreen needs the click we just got. If the browser refuses (iframe,
-    // iOS Safari), the fixed overlay already covers the viewport.
-    try {
-      if (!document.fullscreenElement && stage.requestFullscreen) {
-        await stage.requestFullscreen({ navigationUI: 'hide' });
-      }
-    } catch { /* fall back to the overlay */ }
+    // Try immediately too — some browsers allow it on a same-origin navigation.
+    SFX.resume();
+    if (stage.requestFullscreen) {
+      stage.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
+    }
+  }
+
+  function start() {
+    cancelled = false;
+    stage.hidden = false;
+    reveal.hidden = true;
+    $('#hudHost').textContent = `HOST-UNKNOWN · ${platform()}`;
+
+    SFX.init();
+    SFX.setMuted(false);
+    armBrowserPermissions();
 
     startClock();
     runSequence();
   }
 
-  // The "back to the lab" button only makes sense when this page is served by
-  // the lab. A shared copy has no server behind it, so keep it hidden there.
-  if (params.get('lab') === '1') {
-    const labLink = $('#labLink');
-    if (labLink) labLink.hidden = false;
-  }
-
   // ----------------------------------------------------------------- wire --
-  $('#btnStart').addEventListener('click', start);
   $('#panic').addEventListener('click', () => endDemo(true));
 
   const muteBtn = $('#mute');
@@ -1570,6 +1698,12 @@
   muteBtn.addEventListener('click', () => {
     SFX.toggleMute();
     paintMute();
+  });
+
+  $('#soundHint').addEventListener('click', (e) => {
+    e.stopPropagation();
+    SFX.resume();
+    e.currentTarget.classList.add('off');
   });
 
   // M for mute, ESC for the exit.
@@ -1583,9 +1717,10 @@
   });
   $('#btnReplay').addEventListener('click', () => {
     reveal.hidden = true;
-    gate.classList.remove('hidden');
     startedAt = 0;
     $('#hudClock').textContent = '00:00:00';
+    stage.hidden = false;
+    start();
   });
   $('#btnCopy').addEventListener('click', async (e) => {
     const btn = e.currentTarget;
@@ -1617,6 +1752,14 @@
   window.addEventListener('error', () => {
     if (!stage.hidden) endDemo(true);
   });
+
+  // Auto-start. This is the whole point: no button, no opt-in screen.
+  // The verdict/reveal at the end is what keeps it honest.
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start);
+  } else {
+    start();
+  }
 })();
 </script>
 </body>

@@ -16,6 +16,12 @@ const { JSDOM, VirtualConsole } = require('jsdom');
 const BASE = process.env.BASE || 'http://127.0.0.1:3000';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+const pageText = (doc) => {
+  // Scenes that have already run keep their text in the DOM, but the reachable
+  // evidence we care about is the copy that was actually rendered.
+  return doc.body.textContent;
+};
+
 function assert(cond, msg) {
   if (!cond) throw new Error(msg);
 }
@@ -147,23 +153,42 @@ async function boot({ speed = 4, watchNetwork, audio } = {}) {
     const { window } = dom;
     const doc = window.document;
 
-    const gate = doc.querySelector('#gate');
     const stage = doc.querySelector('#stage');
-    assert(gate && stage, 'page structure missing');
-    assert(!gate.classList.contains('hidden'), 'gate should be visible on load');
-    assert(stage.hidden, 'theatre must stay hidden until the user opts in');
+    assert(stage, 'stage missing');
+    assert(!doc.querySelector('#btnStart'), 'the start button must be gone — the page runs itself');
 
-    doc.querySelector('#btnStart').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
-    await sleep(300);
-    assert(gate.classList.contains('hidden'), 'gate did not hide after start');
-    assert(!stage.hidden, 'theatre did not start');
+    // No clicks, no gate: it has to be running already.
+    await sleep(600);
+    assert(!stage.hidden, 'theatre did not auto-start');
     assert(doc.querySelector('.scene.on'), 'no scene became active');
 
-    // Wait for the sequence to finish (10s countdown at 4x + the rest).
-    const deadline = Date.now() + 25000;
+    // It must actually advance through scenes without help.
+    const first = doc.querySelector('.scene.on').dataset.scene;
+    const sceneNow = () => doc.querySelector('.scene.on')?.dataset.scene;
+    let second = first;
+    for (let i = 0; i < 40 && second === first; i++) {
+      await sleep(250);
+      second = sceneNow();
+    }
+    assert(first !== second, 'timeline is stuck on the first scene');
+
+    // The boot log must genuinely fill in, not render three lines and give up.
+    assert(first === 'boot', `expected to start on boot, got ${first}`);
+
+    // The 2-minute run at 4x is ~30s; allow plenty of slack.
+    const deadline = Date.now() + 90000;
     while (doc.querySelector('#reveal').hidden && Date.now() < deadline) await sleep(200);
 
     assert(!doc.querySelector('#reveal').hidden, 'sequence never reached the reveal screen');
+    assert(pageText(doc).includes('DESTROYING'), 'the big "DESTROYING FILES" beat never rendered');
+    assert(pageText(doc).includes('ENCRYPTED'), 'the ransom-note beat never rendered');
+    assert(doc.querySelectorAll('#term div').length >= 18,
+      `boot log stopped early: ${doc.querySelectorAll('#term div').length} lines`);
+
+    // A scene that throws must fail the build. This is how the alert scene was
+    // silently dead for a commit: the sequence caught the TypeError and moved on.
+    assert(Array.isArray(window.__incidentErrors), 'scene error channel missing');
+    assert(window.__incidentErrors.length === 0, `scenes threw: ${window.__incidentErrors.join(' | ')}`);
     assert(/That was fake/i.test(doc.querySelector('#reveal').textContent), 'reveal copy missing');
     assert(doc.querySelector('#stage').hidden, 'theatre still visible after finishing');
     assert(pageErrors.length === 0, `page threw: ${pageErrors.join(' | ')}`);
@@ -197,9 +222,8 @@ async function boot({ speed = 4, watchNetwork, audio } = {}) {
     const { window } = dom;
     const doc = window.document;
 
-    doc.querySelector('#btnStart').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
     await sleep(600);
-    assert(!doc.querySelector('#stage').hidden, 'theatre did not start');
+    assert(!doc.querySelector('#stage').hidden, 'theatre did not auto-start');
 
     doc.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     await sleep(300);
@@ -224,12 +248,11 @@ async function boot({ speed = 4, watchNetwork, audio } = {}) {
 
     const { window } = dom;
     const doc = window.document;
-    assert(doc.querySelector('#chkSound').checked, 'sound should be on by default');
     assert(doc.querySelector('#mute'), 'mute button missing from the HUD');
+    assert(doc.querySelector('#soundHint'), 'sound-hint button missing');
 
-    doc.querySelector('#btnStart').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
-
-    const deadline = Date.now() + 25000;
+    await sleep(600);
+    const deadline = Date.now() + 90000;
     while (doc.querySelector('#reveal').hidden && Date.now() < deadline) await sleep(200);
     assert(!doc.querySelector('#reveal').hidden, 'sound run never finished');
     assert(pageErrors.length === 0, `page threw with audio active: ${pageErrors.join(' | ')}`);
@@ -243,9 +266,7 @@ async function boot({ speed = 4, watchNetwork, audio } = {}) {
     // Mute has to actually silence the graph and stop the loops.
     const before = audio.stats.oscillators;
     doc.querySelector('#btnReplay').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
-    await sleep(100);
-    doc.querySelector('#btnStart').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
-    await sleep(400);
+    await sleep(600);
     doc.querySelector('#mute').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
     await sleep(120);
     const mutedAt = audio.stats.oscillators;

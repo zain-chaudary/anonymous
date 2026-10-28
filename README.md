@@ -63,21 +63,55 @@ reimage path.** A "vaccine" is one layer, not a cure.
 
 ## Incident simulation (`/system-check`)
 
-The thing you actually wanted: **a link that takes over the screen and looks like your laptop is
-being destroyed.** It is pure theatre, it runs entirely in the browser, and it costs nothing.
+**A link that takes over the screen and looks like the machine is being destroyed.** Two minutes,
+full-screen, no start button — it begins the moment it loads. All theatre, all in the browser.
 
 ```
-http://localhost:3000/system-check          normal speed (~45s)
-http://localhost:3000/system-check?speed=2  twice as fast — better for sharing
+https://zain-chaudary.github.io/anonymous/system-check.html      2 minutes
+https://zain-chaudary.github.io/anonymous/system-check.html?speed=2    twice as fast
 ```
 
-What happens: fullscreen takeover → boot log → `SYSTEM COMPROMISED` → "origin trace" with a radar
-and a hop list → connections being terminated → security services disabled → files crossed out as
-they are "overwritten" → 10-second `FACTORY RESET` countdown → black screen → **reveal screen
-that admits every single thing was fake.** `ESC` exits at any moment, and leaving fullscreen
-ends it too.
+The timeline:
 
-Tap **Copy this link** on the reveal screen or just send `/system-check?speed=2`.
+| Time | Beat |
+|---|---|
+| 0:00 | power-on, kernel log, remote session established, SYSTEM token escalation |
+| 0:19 | **SYSTEM COMPROMISED** — impact, klaxon, flashing incident lines |
+| 0:23 | origin trace: fake IP typed out, hop chain, radar sweep |
+| 0:29 | connections terminated one by one |
+| 0:35 | security services disabled: firewall, Defender, BitLocker, restore points |
+| 0:41 | **SECURITY DISABLED** in 10cm letters |
+| 0:47 | **DESTROYING FILES** — 18 files crossed out, MB counter climbing, 12MB/s |
+| 1:11 | **ENCRYPTION COMPLETE** |
+| 1:16 | ransom note: files encrypted, key on remote server, clock ticking down |
+| 1:40 | **FACTORY RESET** — 15-second ring countdown, screen shake |
+| 1:57 | blackout, then the reveal that admits everything was fake |
+
+`ESC` exits instantly, `M` mutes, and there is a mute button in the footer. Nothing to install.
+
+### Two things a browser will not let any page do
+
+These are hard browser rules, not choices in this code:
+
+1. **No automatic sound.** Audio needs a click. The page starts silently and the *first click,
+   key or tap anywhere* starts the sound. There is a small `🔊 click for sound` button in the
+   corner that disappears once you interact.
+2. **No automatic fullscreen.** `requestFullscreen()` also needs a gesture. The page fills the
+   viewport regardless, and the first interaction promotes it to real fullscreen.
+
+That is also why the first click is worth spending deliberately: click anywhere once when you
+send it to someone, and both switch on.
+
+### What is still honest
+
+The gate is gone — it starts on its own, as asked. Two disclosures remain, and they are not
+negotiable:
+
+- a permanent `Simulation · nothing real` badge in the header, and
+  `simulated · this device is untouched` in the footer;
+- the reveal screen at the end, which names every lie it told.
+
+Those keep it a prank rather than a deception. Anyone who panics mid-run has `ESC`.
 
 ### Sound
 
