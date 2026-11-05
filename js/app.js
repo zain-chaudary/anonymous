@@ -1,27 +1,26 @@
 /* boot */
 window.addEventListener('DOMContentLoaded', ()=>{
-  // restore selection hook
   Object.defineProperty(window, '_sel', {
     get(){ return this.__sel; },
-    set(v){ this.__sel = v; G.setSelected(v); if (MAP.features.length) drawMap(); }
+    set(v){ this.__sel = v; if (G.getState()) G.setSelected(v); if (MAP.features.length) drawMap(); }
   });
 
   const hadSave = G.loadGame();
-  if (!hadSave) {
-    // fresh game
-    G.newGame();
-  }
+  if (!hadSave) G.newGame();
 
   buildMap();
 
   document.getElementById('endmonth').addEventListener('click', ()=>{
-    if (G.getState().gameOver) return;
+    const s = G.getState();
+    if (s.gameOver) return;
     if (G.getPending().length) { showEventModal(); return; }
-    G.endMonth(G.getState());
+    G.endMonth(s);
     toast(dateStr(G.getState()) + ' — month resolved');
   });
-  document.getElementById('newtab').addEventListener('click', ()=>{
-    window.open(window.location.href, '_blank');
+  document.getElementById('openmap').addEventListener('click', openMap);
+  document.getElementById('closemap').addEventListener('click', openHome);
+  document.getElementById('ranksearch').addEventListener('input', function(){
+    window._rankq = this.value; renderRankList(G.getState());
   });
   document.getElementById('save').addEventListener('click', ()=>{ localStorage.setItem('wl2026', JSON.stringify(G.getState())); toast('Game saved'); });
   document.getElementById('reset').addEventListener('click', ()=>{
@@ -34,7 +33,6 @@ window.addEventListener('DOMContentLoaded', ()=>{
   });
 
   render();
-  // intro modal for fresh games
   if (!hadSave) showIntro();
 });
 
@@ -43,32 +41,31 @@ function showIntro(){
   modal.innerHTML = `
   <div class="modal-box intro">
     <h1>🇵🇰 WORLD LEADER 2026</h1>
-    <p class="tag">Realistic geopolitical simulator — you rule Pakistan from <b>November 2026</b>.</p>
+    <p class="tag">You are <b>President Zain Chaudary</b> of Pakistan — supreme ruler since <b>November 2026</b>.</p>
     <div class="intro-cols">
       <div>
         <h3>Your inheritance</h3>
         <ul>
-          <li>241 million people, $415B economy, 7% inflation</li>
-          <li>$15.5B reserves, $91B external debt, IMF program running</li>
-          <li>170 nuclear warheads, 654k troops, battle-hardened PAF</li>
-          <li>Insurgencies: TTP (KP), BLA (Balochistan)</li>
-          <li>Political firestorm: PTI street movement, leadership in Adiala jail</li>
-          <li>India hostile, China generous, America transactional, Gulf rich, Afghanistan hostile</li>
+          <li>241M people · $415B economy · 7% inflation</li>
+          <li>$15.5B in the government bank · $91B loans to repay</li>
+          <li>654k troops, 3719 tanks, 470 jets, 170 nuclear warheads</li>
+          <li>TTP insurgency in KP, BLA in Balochistan</li>
+          <li>India hostile · China generous · America transactional</li>
         </ul>
       </div>
       <div>
-        <h3>How to play</h3>
+        <h3>How to rule</h3>
         <ul>
-          <li><b>Orders tab</b>: issue directives (cost 💵 money + 🏛 political capital)</li>
-          <li><b>End Month</b>: the world simulates — economy, factions, war, spies, AI countries react</li>
-          <li><b>Map</b>: click any country; color = relations toward you</li>
-          <li>Decision modals arrive — choose wisely, hardcore mode has no undo</li>
-          <li>Lose by: coup, revolution, default, losing a war, nuclear war</li>
+          <li><b>My Government</b>: set ministry budgets with sliders — balance revenue vs spending</li>
+          <li><b>🗺 World Map</b>: see all countries ranked by power; click any for relations, army, condition</li>
+          <li><b>Orders</b>: issue directives (cost 💵 + 🏛 political capital)</li>
+          <li><b>End Month</b>: the world simulates and reacts</li>
+          <li>Lose by coup, revolution, default, lost war, or nuclear war</li>
         </ul>
       </div>
     </div>
-    <p class="muted small">Baseline data: IMF/World Bank/SIPRI/IISS 2025 estimates projected to Nov 2026. You can also give orders in chat — the simulation adjudicates them.</p>
-    <button class="btn big" onclick="document.getElementById('modal').style.display='none'">Take Power</button>
+    <p class="muted small">Real baseline data: IMF/World Bank/SIPRI/IISS 2025, projected to Nov 2026. Hardcore mode: no undo.</p>
+    <button class="btn big primary" onclick="document.getElementById('modal').style.display='none'">Take Power</button>
   </div>`;
   modal.style.display = 'flex';
 }

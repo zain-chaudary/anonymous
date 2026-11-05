@@ -32,6 +32,20 @@ function combatPower(c){
   return air + armor + sea + men + nukeDeterrent;
 }
 
+/* world power ranking score (economy + military + nukes) */
+function powerScore(c){
+  if (!c) return 0;
+  return c.gdp*0.6 + (c.defense||0)*6 + (c.troops||0)*0.08 +
+         (c.aircraft||0)*0.5 + (c.tanks||0)*0.06 + (c.ships||0)*0.4 + (c.nu||0)*4;
+}
+const relLabel = r => r>=80?'Ally':r>=60?'Close partner':r>=40?'Friendly':r>=20?'Cordial':r>=0?'Neutral':r>=-30?'Unfriendly':'Hostile';
+const stabLabel = v => v>=70?'Stable':v>=55?'Mostly stable':v>=40?'Tense':v>=25?'Serious unrest':'Near collapse';
+
+/* monthly budget math */
+function monthlyRevenue(s){ const P=s.countries.PAK; return P.gdp*(P.taxGdp/100)/12*(0.8+s.econ.compliance*0.35); }
+function monthlyDebtService(s){ return s.countries.PAK.extDebt*0.055/12; }
+function monthlySpend(s){ const B=s.budget; return B.defense+B.dev+B.health+B.edu+B.interior+B.subsidy+B.admin+monthlyDebtService(s)+(s.war?1.5:0)+(s.militPosture-2)*0.12; }
+
 /* ---------- new game ---------- */
 function newGame(){
   const countries = JSON.parse(JSON.stringify(COUNTRIES));
@@ -44,7 +58,9 @@ function newGame(){
     stability: 55,
     militPosture: 2,     // 1-5 border readiness vs India
     readiness: 0.65,
-    econ: { devSpend: 2.0, compliance: 0.55, energy: 55, food: 60 },
+    econ: { compliance: 0.55, energy: 55, food: 60 },
+    /* monthly ministry budgets in $B — player controls via sliders */
+    budget: { defense:0.72, dev:0.50, health:0.15, edu:0.18, interior:0.22, subsidy:0.50, admin:0.70 },
     intel: {
       budget: 0.35,
       networks: { IND:{lvl:3,heat:1}, AFG:{lvl:4,heat:1}, USA:{lvl:2,heat:0}, IRN:{lvl:2,heat:0}, SAU:{lvl:2,heat:0}, GBR:{lvl:1,heat:0} }
@@ -64,6 +80,7 @@ function newGame(){
   news(s,'Field Marshal Asim Munir: "The Army stands with you. Just remember who stands longest." (Test of loyalty ahead.)','warn');
   // US midterm moment (real: Nov 3 2026)
   news(s,'US midterms: Trump\'s Republicans lose the House narrowly; Senate holds 52-48. Foreign policy hardens into pure transactional mode.','info');
+  state = s;                    // assign the live game state (UI reads this)
   return s;
 }
 
@@ -82,11 +99,11 @@ function econTick(s){
   const P = s.countries.PAK;
 
   // GDP growth: base 3 + investment programs - energy/food stress - war - high rates
+  const B = s.budget;
   let g = 3.0;
-  g += (s.econ.devSpend - 2.0) * 0.8;          // development spending
+  g += (B.dev - 0.5)*0.8 + (B.edu - 0.18)*0.5 + (B.health - 0.15)*0.4;
   g += (s.econ.energy - 50) * 0.02;            // energy availability
   g += (s.econ.food - 50) * 0.015;
-  g += (P.deficit > 8 ? -0.8 : 0.2);
   if (s.oil > 100) g -= 0.6;
   if (s.war && s.war.enemy === 'IND') g -= 2.2;
   if (s.war) g -= 1.0;
@@ -96,6 +113,7 @@ function econTick(s){
 
   // inflation: money printing, subsidies, oil, reserves stress
   let it = 6;
+  it += (0.5 - B.subsidy)*3;                   // cutting subsidies hurts short-term
   if (s.flags.printMonths > 0){
     it += 9; s.flags.printMonths--;
     if (s.flags.printMonths === 0){ s.flags.moneyPrinting = false; news(s,'Direct deficit financing ends as the SBP "exhausts its statutory room". Inflation scarring remains.','warn'); }
@@ -116,15 +134,17 @@ function econTick(s){
   if ((s.countries.CHN.rel.PAK||0) > 70 && chance(0.25)) { P.reserves += rnd(0.2,0.8); }
   if ((s.countries.SAU.rel.PAK||0) > 70 && chance(0.12)) { P.reserves += rnd(0.3,0.7); }
 
-  // budget
-  const revenue = P.gdp * (P.taxGdp/100) * s.econ.compliance / 12;
-  const spend = revenue/0.94 + s.econ.devSpend/12 + (s.militPosture-2)*0.15 + (s.war?1.8:0);
-  P.deficit = ((spend - revenue)*12 / P.gdp) * 100;
-
-  // debt & rupee
-  P.extDebt += Math.max(0, (spend - revenue)) * 0.5;
+  // budget: revenue vs ministry spending → reserves/debt
+  const revenue = monthlyRevenue(s);
+  const spend = monthlySpend(s);
+  const bal = revenue - spend;
+  P.reserves += bal;
+  if (P.reserves < 0){ P.extDebt += (-P.reserves)*1.1; P.reserves = 0; if (chance(0.4)) news(s,'Treasury overdraft — government borrowing to pay salaries. Debt climbs.','warn'); }
+  else P.extDebt = Math.max(0, P.extDebt - bal*0.15);
+  P.deficit = -bal*12/P.gdp*100;
+  P.defense = B.defense*12;                    // annualized for power calcs
   P.debtGdp += (P.deficit - P.growth)*0.05;
-  P.debtGdp = clamp(P.debtGdp, 50, 140);
+  P.debtGdp = clamp(P.debtGdp, 45, 145);
 
   const importCover = P.reserves / (P.imports/12);
   const fxPressure = (P.infl - 3)/12/100 + (importCover < 2 ? 0.006 : importCover > 4 ? -0.002 : 0);
@@ -148,7 +168,9 @@ function econTick(s){
 function stabTick(s){
   const P = s.countries.PAK;
   // approval target
+  const B = s.budget;
   let t = 50 + (P.growth - 3)*2.2 + (6 - Math.min(P.infl,30))*1.6;
+  t += (B.health-0.15)*10 + (B.edu-0.18)*6 + (B.subsidy-0.5)*8;
   t -= Math.max(0, s.countries.PAK.factions.TTP.power - 25)*0.3;
   t -= Math.max(0, s.countries.PAK.factions.BLA.power - 20)*0.25;
   if (s.flags.ptiDialogue) t += 3;
@@ -157,10 +179,10 @@ function stabTick(s){
   if (s.war) t += s.war.patriotism; // rally-round-flag
   s.approval = clamp(s.approval*0.75 + t*0.25, 0, 100);
 
-  // factions drift
   const F = P.factions;
-  F.TTP.power  = clamp(F.TTP.power + rnd(-1.5, 1.2) + (s.flags.ttpOps? -2.2:0) + ((s.countries.AFG.rel.PAK||0)<20?0.8:0), 5, 95);
-  F.BLA.power  = clamp(F.BLA.power + rnd(-1.2, 1.0) + (s.flags.blaOps? -1.8:0) + (s.flags.blaDev? -1.4:0) + (s.flags.blaTalks? -1.0:0), 5, 95);
+  const intGap = (s.budget.interior - 0.22);
+  F.TTP.power  = clamp(F.TTP.power + rnd(-1.5, 1.2) + (s.flags.ttpOps? -2.2:0) + ((s.countries.AFG.rel.PAK||0)<20?0.8:0) - intGap*1.5, 5, 95);
+  F.BLA.power  = clamp(F.BLA.power + rnd(-1.2, 1.0) + (s.flags.blaOps? -1.8:0) + (s.flags.blaDev? -1.4:0) + (s.flags.blaTalks? -1.0:0) - intGap*1.2, 5, 95);
   F.PTI.power  = clamp(F.PTI.power + rnd(-1.5, 1.3) + (s.flags.ptiDialogue? -2.0:0) + (s.flags.ptiCrackdown? -3.0:0) + (s.approval<40?1.2:0), 5, 95);
   F.SECT.power = clamp(F.SECT.power + rnd(-1.2, 1.0) + (s.flags.sectJirga? -1.5:0), 5, 95);
 
@@ -197,7 +219,7 @@ function stabTick(s){
    ============================================================ */
 function milTick(s){
   const P = s.countries.PAK;
-  let target = 0.55 + (P.defense*12/P.gdp)*2;  // spending share drives readiness
+  let target = 0.35 + (s.budget.defense*12/P.gdp)*2.2;  // defense spending share drives readiness
   if (s.militPosture >= 4) target += 0.08;
   if (s.war) target = Math.min(0.95, target + 0.15);
   s.readiness = clamp(s.readiness + (target - s.readiness)*0.25, 0.2, 0.98);
@@ -554,8 +576,8 @@ const ACTIONS = [
  desc:'Relief for the salaried class. Approval up, deficit up, IMF frowns.',
  cd:4, fx:s=>{ s.countries.PAK.taxGdp -= 0.6; s.approval += 5; news(s,'Income tax relief announced for salaried class — cheers in offices, groans in the Finance Ministry.','info'); }},
 {id:'subsidy_cut', cat:'Economy', name:'Cut Power & Fuel Subsidies', cost:{pc:10},
- desc:'IMF demand. Saves ~$1.5B/yr; inflation +2-3pts; streets heat up.',
- cd:6, fx:s=>{ s.econ.subsidyCut = true; s.approval -= 7; s.countries.PAK.factions.PTI.power += 3; news(s,'Electricity and petrol prices jump as subsidies are slashed. "Inflation-mare" trends on every platform.','bad'); }},
+ desc:'IMF demand. Saves ~$1.5B/yr; inflation +2-3pts; streets heat up. (Lowers the Subsidy slider sharply.)',
+ cd:6, fx:s=>{ s.budget.subsidy = Math.max(0.05, s.budget.subsidy-0.3); s.econ.subsidyCut = true; s.approval -= 7; s.countries.PAK.factions.PTI.power += 3; news(s,'Electricity and petrol prices jump as subsidies are slashed. "Inflation-mare" trends on every platform.','bad'); }},
 {id:'imf_tranche', cat:'Economy', name:'Request IMF Tranche', cost:{pc:3},
  desc:'$1.1B if the program is active and reviews are passing.',
  cd:6, avail:s=>s.flags.imfActive, fx:s=>{ s.countries.PAK.reserves += 1.1; news(s,'$1.1B IMF tranche received after staff-level agreement.','good'); }},
@@ -586,9 +608,9 @@ const ACTIONS = [
 {id:'stop_print', cat:'Economy', name:'End Money Printing (Stabilization)', cost:{pc:8},
  desc:'Shut the printing presses now. Inflation normalizes over months; approval suffers.',
  cd:6, avail:s=>!!s.flags.moneyPrinting, fx:s=>{ s.flags.moneyPrinting = false; s.flags.printMonths = 0; s.approval -= 4; s.countries.PAK.factions.PTI.power += 2; news(s,'Stabilization: SBP halts direct deficit financing. Inflation fight begins; subsidies gone, pain real.','warn'); }},
-{id:'austerity', cat:'Economy', name:'Austerity Package (HMF-style self-help)', cost:{pc:12},
- desc:'Cut dev spending, freeze hiring, merge ministries. Deficit down, approval down, growth down.',
- cd:10, fx:s=>{ s.econ.devSpend -= 0.8; s.countries.PAK.deficit -= 1.5; s.approval -= 6; s.countries.PAK.growth -= 0.4; s.countries.PAK.reserves += 0.4; news(s,'Austerity: development budget slashed, hiring frozen. "The state spends less so it can live."','warn'); }},
+{id:'austerity', cat:'Economy', name:'Austerity Package', cost:{pc:12},
+ desc:'Slash dev, health, education budgets hard. Deficit down, approval down, growth down.',
+ cd:10, fx:s=>{ s.budget.dev = Math.max(0.1, s.budget.dev-0.2); s.budget.health = Math.max(0.05, s.budget.health-0.08); s.budget.edu = Math.max(0.05, s.budget.edu-0.08); s.approval -= 6; s.countries.PAK.growth -= 0.3; s.countries.PAK.reserves += 0.3; news(s,'Austerity: development and social budgets slashed. "The state spends less so it can live."','warn'); }},
 
 /* ---------------- DOMESTIC ---------------- */
 {id:'pti_talks', cat:'Domestic', name:'Dialogue with PTI / Opposition', cost:{pc:10},
@@ -647,9 +669,9 @@ const ACTIONS = [
 {id:'missile_test', cat:'Military', name:'Test Strategic Missile (Ababeel/Shaheen-III)', cost:{money:0.1, pc:3},
  desc:'MIRV test. Deterrence message to New Delhi. India reacts; US "concerned".',
  cd:6, fx:s=>{ s.flags.nukeTest = true; s.countries.IND.rel.PAK -= 6; s.countries.USA.rel.PAK -= 3; news(s,'STRATCOM test-fires Ababeel MIRV missile — full trajectory success, ISPR video released.','warn'); }},
-{id:'def_budget_up', cat:'Military', name:'Raise Defense Budget +15%', cost:{pc:8},
- desc:'Readiness and procurement climb; deficit climbs too. Army pleased.',
- cd:12, fx:s=>{ s.countries.PAK.defense *= 1.15; s.readiness = clamp(s.readiness+0.05,0,0.98); news(s,'Defense allocation up 15% — new money for the Rocket Force Command and PAF munitions stockpile.','warn'); }},
+{id:'def_budget_up', cat:'Military', name:'Raise Defense Budget +20%', cost:{pc:8},
+ desc:'Readiness and procurement climb; deficit climbs too. Army pleased. (Raises the Defense slider.)',
+ cd:12, fx:s=>{ s.budget.defense += 0.15; s.countries.PAK.defense = s.budget.defense*12; s.readiness = clamp(s.readiness+0.05,0,0.98); news(s,'Defense allocation up — new money for the Rocket Force Command and PAF munitions stockpile.','warn'); }},
 {id:'exercises', cat:'Military', name:'Joint Exercises (choose partner)', cost:{money:0.1, pc:3},
  desc:'Drills with China, Saudi Arabia or Türkiye. Relations up, interoperability up.',
  cd:5, target:'exercisePartner', fx:s=>{ const p = s._exTarget || 'CHN'; s.countries[p].rel.PAK = clamp(s.countries[p].rel.PAK+5,0,100); news(s,'Exercise "Indus '+p+'" concludes — air, land and naval components rehearse together.','info'); }},
@@ -780,5 +802,6 @@ function endMonth(s){
 
 /* expose for UI */
 window.G = { newGame, saveGame, loadGame, endMonth, doAction, actionAvailable,
-  getState:()=>state, setSelected:v=>selectedISO=v, ACTIONS, EVENTS, news, combatPower,
+  getState:()=>state, setSelected:v=>selectedISO=v, ACTIONS, EVENTS, news, combatPower, powerScore,
+  monthlyRevenue, monthlySpend, monthlyDebtService, relLabel, stabLabel,
   getPending:()=>pendingEvents, shiftPending:()=>pendingEvents.shift() };

@@ -3,51 +3,72 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>World Leader 2026 — Pakistan</title>
+<title>World Leader 2026 — President of Pakistan</title>
 <link rel="stylesheet" href="css/style.css">
+<script>
+/* show any boot error on screen instead of a blank page */
+window.__errs = [];
+window.addEventListener('error', function(e){
+  window.__errs.push(e.message);
+  var d = document.getElementById('booterr');
+  if (d){ d.style.display = 'block'; d.textContent = '⚠ Error: ' + window.__errs.join(' | '); }
+});
+</script>
 </head>
 <body>
-  <header id="topbar">
-    <div class="brand">🇵🇰 <b>WORLD LEADER 2026</b> <span id="date" class="date"></span></div>
-    <div id="topstats" class="topstats"></div>
-    <div class="controls">
-      <button id="endmonth" class="btn primary big">▶ End Month</button>
-      <button id="newtab" class="btn" title="Open in new tab">↗ New Tab</button>
-      <button id="save" class="btn">💾</button>
-      <button id="reset" class="btn danger">⟲</button>
-    </div>
-  </header>
 
-  <main id="main">
-    <section id="mapwrap">
-      <canvas id="map" width="980" height="560"></canvas>
+  <!-- ============ HOME VIEW: MY GOVERNMENT ============ -->
+  <div id="view-home" class="view">
+    <header id="topbar">
+      <div class="brand">🇵🇰 <b>WORLD LEADER 2026</b></div>
+      <div id="date" class="date"></div>
+      <div id="topchips" class="topchips"></div>
+      <div class="controls">
+        <button id="endmonth" class="btn primary big">▶ End Month</button>
+        <button id="openmap" class="btn mapbtn big" title="Open world map">🗺 World Map</button>
+        <button id="save" class="btn" title="Save">💾</button>
+        <button id="reset" class="btn danger" title="New game">⟲</button>
+      </div>
+    </header>
+
+    <nav id="tabs">
+      <button class="tabbtn on" data-tab="gov">🎖 My Government</button>
+      <button class="tabbtn" data-tab="orders">📜 Orders</button>
+      <button class="tabbtn" data-tab="intel">🕵 Intel</button>
+      <button class="tabbtn" data-tab="news">📰 News</button>
+    </nav>
+
+    <div id="panel"></div>
+    <footer id="tickerwrap"><div id="ticker"></div></footer>
+  </div>
+
+  <!-- ============ MAP VIEW: WORLD ============ -->
+  <div id="view-map" class="view hidden">
+    <aside id="rankbar">
+      <div class="rankhead">
+        <button id="closemap" class="btn">✕ Close</button>
+        <h3>🌍 World Powers</h3>
+      </div>
+      <input id="ranksearch" type="text" placeholder="Search country…">
+      <div id="ranklist"></div>
+    </aside>
+    <div id="mapfull">
+      <canvas id="map"></canvas>
       <div class="maplegend">
         <span><i style="background:#0a7d32"></i> Ally</span>
         <span><i style="background:#7fb069"></i> Friendly</span>
         <span><i style="background:#d9bf77"></i> Neutral</span>
         <span><i style="background:#d98e5f"></i> Unfriendly</span>
         <span><i style="background:#c0392b"></i> Hostile</span>
-        <span><i style="background:#16a34a"></i> YOU</span>
+        <span><i style="background:#16a34a"></i> PAKISTAN (You)</span>
       </div>
-    </section>
-
-    <section id="side">
-      <nav id="tabs">
-        <button class="tabbtn on" data-tab="pakistan">🇵🇰 Pakistan</button>
-        <button class="tabbtn" data-tab="country">🌍 Country</button>
-        <button class="tabbtn" data-tab="orders">📜 Orders</button>
-        <button class="tabbtn" data-tab="military">⚔ Military</button>
-        <button class="tabbtn" data-tab="intel">🕵 Intel</button>
-        <button class="tabbtn" data-tab="news">📰 News</button>
-      </nav>
-      <div id="panel"></div>
-    </section>
-  </main>
-
-  <footer id="tickerwrap"><div id="ticker"></div></footer>
+      <div id="countrycard" class="hidden"></div>
+    </div>
+  </div>
 
   <div id="modal" class="modal" style="display:none"></div>
   <div id="toast"></div>
+  <div id="booterr" style="display:none;background:#7f1d1d;color:#fff;padding:10px;font-family:monospace;position:fixed;bottom:0;left:0;right:0;z-index:999"></div>
 
   <script src="js/data.js"></script>
   <script src="js/engine.js"></script>

@@ -1,52 +1,68 @@
 /* ============================================================
-   WORLD MAP — canvas, equirectangular, pan/zoom, click select
-   Colors = country relations toward Pakistan
+   WORLD MAP — fullscreen canvas, pan/zoom/click, auto-resize
+   Colors = relations toward Pakistan
    ============================================================ */
-let MAP = { canvas:null, ctx:null, features:[], paths:[], scale:1, ox:0, oy:0, drag:null, hover:null };
+let MAP = { canvas:null, ctx:null, features:[], paths:[], scale:1, ox:0, oy:0, drag:null, hover:null, ready:false };
 
 function project(lon, lat, W, H){
   const x = (lon + 180) / 360 * W;
   const latRad = lat * Math.PI / 180;
-  // mercator-ish for nicer shape
-  const y = H * (0.5 - Math.log(Math.tan(Math.PI/4 + latRad/2)) / (2*Math.PI)) * 1.35;
+  const y = H * (0.5 - Math.log(Math.tan(Math.PI/4 + latRad/2)) / (2*Math.PI)) * 1.30;
   return [x, y + H*0.18];
 }
 
-function buildMap(){
-  const cv = document.getElementById('map');
-  MAP.canvas = cv; MAP.ctx = cv.getContext('2d');
-  fetch('data/world.geo.json').then(r=>r.json()).then(gj=>{
-    MAP.features = gj.features.filter(f=>f.id && f.id !== 'ATA'); // skip Antarctica
-    MAP.paths = MAP.features.map(f=>{
-      const p = new Path2D();
-      const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
-      for (const poly of polys){
-        for (const ring of poly){
-          ring.forEach((pt,i)=>{
-            const [x,y] = project(pt[0], pt[1], cv.width, cv.height);
-            i===0 ? p.moveTo(x,y) : p.lineTo(x,y);
-          });
-          p.closePath();
-        }
+function fitMapCanvas(){
+  const wrap = document.getElementById('mapfull');
+  const cv = MAP.canvas;
+  if (!wrap || !cv) return;
+  const w = Math.max(300, wrap.clientWidth), h = Math.max(300, wrap.clientHeight);
+  if (cv.width !== w || cv.height !== h){ cv.width = w; cv.height = h; rebuildPaths(); drawMap(); }
+}
+
+function rebuildPaths(){
+  const cv = MAP.canvas;
+  MAP.paths = MAP.features.map(f=>{
+    const p = new Path2D();
+    const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
+    for (const poly of polys){
+      for (const ring of poly){
+        ring.forEach((pt,i)=>{
+          const [x,y] = project(pt[0], pt[1], cv.width, cv.height);
+          i===0 ? p.moveTo(x,y) : p.lineTo(x,y);
+        });
+        p.closePath();
       }
-      return p;
-    });
+    }
+    return p;
+  });
+}
+
+function buildMap(){
+  MAP.canvas = document.getElementById('map');
+  MAP.ctx = MAP.canvas.getContext('2d');
+  fetch('data/world.geo.json').then(r=>r.json()).then(gj=>{
+    MAP.features = gj.features.filter(f=>f.id && f.id !== 'ATA' && f.id !== 'ATF');
+    fitMapCanvas();
+    MAP.ready = true;
     drawMap();
+  }).catch(err=>{
+    MAP.ctx && (MAP.ctx.fillStyle='#ef4444', MAP.ctx.font='16px monospace', MAP.ctx.fillText('Map data failed to load: '+err.message, 20, 30));
   });
   // interactions
+  const cv = MAP.canvas;
   cv.addEventListener('mousedown', e=>{ MAP.drag = {x:e.offsetX, y:e.offsetY, ox:MAP.ox, oy:MAP.oy}; });
   window.addEventListener('mouseup', ()=> MAP.drag = null);
   cv.addEventListener('mousemove', e=>{
     if (MAP.drag){ MAP.ox = MAP.drag.ox + (e.offsetX - MAP.drag.x); MAP.oy = MAP.drag.oy + (e.offsetY - MAP.drag.y); drawMap(); return; }
-    const hit = hitTest(e.offsetX, e.offsetY);
-    MAP.hover = hit;
-    cv.title = hit ? (G.getState().countries[hit.id]?.name || hit.id) : '';
+    MAP.hover = hitTest(e.offsetX, e.offsetY);
+    const s = G.getState();
+    cv.title = MAP.hover ? (s.countries[MAP.hover.id]?.name || MAP.hover.id) : '';
     drawMap();
   });
   cv.addEventListener('click', e=>{
     if (MAP.drag && (e.offsetX!==MAP.drag.x || e.offsetY!==MAP.drag.y)) return;
     const hit = hitTest(e.offsetX, e.offsetY);
-    if (hit){ window._sel = hit.id; window._tab = 'country'; render(); }
+    if (hit){ showCountryCard(hit.id); }
   });
   cv.addEventListener('wheel', e=>{
     e.preventDefault();
@@ -54,17 +70,18 @@ function buildMap(){
     MAP.scale = clamp(MAP.scale*f, 0.8, 8);
     drawMap();
   }, {passive:false});
+  window.addEventListener('resize', ()=>{ if (!document.getElementById('view-map').classList.contains('hidden')) fitMapCanvas(); });
 }
 
 function hitTest(mx, my){
-  const {ctx, features, paths} = MAP;
-  const W = MAP.canvas.width, H = MAP.canvas.height;
+  const {ctx, paths} = MAP;
+  if (!ctx || !paths.length) return null;
   const t = ctx.getTransform();
   ctx.setTransform(1,0,0,1,0,0);
   const x = (mx - MAP.ox)/MAP.scale, y = (my - MAP.oy)/MAP.scale;
   let found = null;
   for (let i=paths.length-1; i>=0; i--){
-    if (ctx.isPointInPath(paths[i], x*1, y*1)){ found = {id: features[i].id}; break; }
+    if (ctx.isPointInPath(paths[i], x, y)){ found = {id: MAP.features[i].id}; break; }
   }
   ctx.setTransform(t);
   return found;
@@ -72,15 +89,15 @@ function hitTest(mx, my){
 
 function drawMap(){
   const {ctx, canvas, features, paths} = MAP;
-  if (!ctx || !features.length) return;
+  if (!ctx || !features.length || !canvas) return;
   const s = G.getState();
-  const W = canvas.width, H = canvas.height;
   ctx.save();
   ctx.setTransform(1,0,0,1,0,0);
   ctx.fillStyle = '#0b1220';
-  ctx.fillRect(0,0,W,H);
+  ctx.fillRect(0,0,canvas.width,canvas.height);
   ctx.translate(MAP.ox, MAP.oy);
   ctx.scale(MAP.scale, MAP.scale);
+  const sel = window._sel;
   for (let i=0;i<features.length;i++){
     const f = features[i];
     const c = s.countries[f.id];
@@ -92,7 +109,7 @@ function drawMap(){
     ctx.strokeStyle = '#0b1220';
     ctx.lineWidth = 0.6;
     ctx.stroke(paths[i]);
-    if (f.id === selectedISO){
+    if (f.id === sel){
       ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 2.2; ctx.stroke(paths[i]);
     } else if (MAP.hover && MAP.hover.id === f.id){
       ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1.4; ctx.stroke(paths[i]);
