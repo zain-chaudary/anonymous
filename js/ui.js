@@ -357,43 +357,54 @@ function openPopup(iso, kind){
   if (kind==='mil'){
     head = popHead('mil', c.flag||'🏳', c.name+' — Military', `Power rank #${rank} · ${c.nu? c.nu+' warheads ☢':'No nukes'} · Agency: ${esc(c.agency||'—')}`);
     const m = c.mil, mf = c.milf;
+    /* HERO: 6 numbers you read in one glance */
+    const hero = [
+      ['👥 Active troops', fmtMen(c.troops)],
+      ['🛡 Tanks', c.tanks.toLocaleString()],
+      ['✈ Fighter jets', c.aircraft.toLocaleString()],
+      ['🚢 Warships', (c.ships||0).toLocaleString()],
+      ['☢ Warheads', c.nu? String(c.nu) : '0'],
+      ['💵 Budget/yr', '$'+(c.defense||0).toFixed(c.defense<10?1:0)+'B']
+    ];
+    /* quick lines: one line per domain */
+    const lines = [];
     if (mf){
-      const mg = pairs => `<div class="mgrid">${pairs.map(p=>`<div class="mtile2"><span>${p[0]}</span><b>${p[1]}</b></div>`).join('')}</div>`;
-      body = `
-        <div class="msec"><h5>🧍 Personnel</h5>
-        ${mg([['👥 Active duty', mf.per[0]],['🎖 Reserve forces', mf.per[1]],['🚔 Paramilitary', mf.per[2]],['🧍 Available workforce', mf.per[3]]])}</div>
-        <div class="msec"><h5>✈ Air Power</h5>
-        ${mg([['🛩 Fighters/Interceptors', mf.air[0]],['💥 Attack aircraft', mf.air[1]],['💣 Bombers', mf.air[2]],['🚚 Transport aircraft', mf.air[3]],['📡 Special mission & tankers', mf.air[4]],['🚁 Helicopters', mf.air[5]],['🛸 UAVs / Drones', mf.air[6]]])}</div>
-        <div class="msec"><h5>🪖 Land Power</h5>
-        ${mg([['🛡 Main battle tanks', mf.land[0]],['🚙 AFVs / APCs / IFVs', mf.land[1]],['💥 Self-propelled artillery', mf.land[2]],['🎯 Towed artillery', mf.land[3]],['🚀 Rocket projectors (MLRS)', mf.land[4]]])}</div>
-        <div class="msec"><h5>⚓ Naval Power</h5>
-        ${mg([['🛳 Aircraft carriers', mf.navy[0]],['🚢 Helicopter/amphibious', mf.navy[1]],['🏴‍☠ Submarines', mf.navy[2]],['⚔ Destroyers & cruisers', mf.navy[3]],['🛥 Frigates & corvettes', mf.navy[4]],['🔱 Patrol & mine warfare', mf.navy[5]]])}</div>
-        <div class="msec"><h5>💰 War Finances & Fuel</h5>
-        ${mg([['💵 Defense budget', mf.fin[0]],['⚖ Buying power (PPP)', mf.fin[1]],['🛢 Oil: produce / use / reserves', mf.fin[2]]])}</div>
-        <h4 class="popsub">📜 Last Conflicts — who won</h4>
-        ${(m && m.cf) ? m.cf.slice(0,4).map(cf=>{
-          const badge = cf[2]==='W'?['✔ WON','good']:cf[2]==='L'?['✘ LOST','bad']:['= DRAW','warn'];
-          return `<div class="conf"><span class="cbadge ${badge[1]}">${badge[0]}</span>
-            <div class="cmain"><b>${esc(cf[0])}</b><div class="muted tiny">${esc(cf[1])}${cf[3]?' — '+esc(cf[3]):''}</div></div></div>`;
-        }).join('') : `<div class="noteline">${m?esc(m.x):'No recorded conflicts.'}</div>`}
-        <div class="note">🧭 ${esc(m?m.j:'Assessment limited.')}</div>
-        ${milCompare(s, iso)}`;
-    } else {
-      body = `
-      <div class="mtiles">
-        <div class="mtile"><span>👥 Active troops</span><b>${fmtMen(c.troops)}</b><div class="muted tiny">${m?esc((m.r||'').split('·')[0].trim()):'active duty'}</div></div>
-        <div class="mtile"><span>🛡 Tanks</span><b>${c.tanks.toLocaleString()}</b><div class="muted tiny">${m?esc((m.a||'—').split('·')[0].trim()):'armored units'}</div></div>
-        <div class="mtile"><span>✈ Fighter Jets</span><b>${c.aircraft.toLocaleString()}</b><div class="muted tiny">${m?esc((m.f||'—').split('·')[0].trim()):'combat aircraft'}</div></div>
-        <div class="mtile"><span>🚢 Warships</span><b>${(c.ships||0).toLocaleString()}</b><div class="muted tiny">${m?esc((m.n||'—').split('·')[0].trim()):'vessels'}</div></div>
-      </div>
-      <div class="note">Detailed personnel/air/land/navy breakdown limited for this country — judge by the numbers, conflicts and assessment.</div>
-      ${m?`<div class="pgrid">
-        ${tile('🎖 Reserves / SF', m.r)}
-        ${tile('🌍 Foreign bases', m.b)}
-      </div>
-      <div class="note">🧭 ${esc(m.j)}</div>`:''}
-      ${milCompare(s, iso)}`;
+      lines.push(['👥', `${mf.per[0]} active · ${mf.per[1]} reserve · ${mf.per[2]} paramilitary · ${mf.per[3]} workforce`]);
+      const air = [mf.air[0], mf.air[1]];
+      if (mf.air[2] && mf.air[2]!=='none') air.push(mf.air[2]);
+      air.push(mf.air[5], mf.air[6]);
+      lines.push(['✈', air.filter(x=>x && x!=='none').join(' · ')]);
+      lines.push(['🪖', `${mf.land[0]} · ${mf.land[1]} · SPG ${mf.land[2]} · MLRS ${mf.land[4]}`]);
+      const nav = [mf.navy[0], mf.navy[2], mf.navy[3], mf.navy[4]].filter(x=>x && x!=='none');
+      lines.push(['⚓', nav.join(' · ') || 'no navy']);
+      lines.push(['💰', `${mf.fin[0]} · PPP ${mf.fin[1]}`]);
+      lines.push(['🛢', mf.fin[2].replace(/^oil:\s*/i,'')]);
+    } else if (m){
+      const seg = (t,n) => (t||'').split('·').slice(0,n).map(s=>s.trim()).filter(Boolean).join(' · ');
+      lines.push(['👥', seg(m.r,2)]);
+      lines.push(['✈', seg(m.f,3)]);
+      lines.push(['🪖', seg(m.a,2)]);
+      lines.push(['⚓', seg(m.n,2)]);
     }
+    /* strength / weak verdict split into two chips */
+    let str='', weak='';
+    if (m && m.j.includes('WEAK:')){
+      const p = m.j.split('WEAK:');
+      str = p[0].replace(/^STRENGTH:\s*/,'').replace(/^🧭\s*/,'').trim();
+      weak = p[1].trim();
+    } else if (m){ str = m.j; }
+    body = `
+      <div class="herotiles">${hero.map(h=>`<div class="hero"><span>${h[0]}</span><b>${h[1]}</b></div>`).join('')}</div>
+      ${milCompare(s, iso)}
+      <h4 class="popsub">📜 Last conflicts</h4>
+      ${(m && m.cf) ? m.cf.slice(0,4).map(cf=>{
+        const badge = cf[2]==='W'?['✔ WON','good']:cf[2]==='L'?['✘ LOST','bad']:['= DRAW','warn'];
+        return `<div class="conf"><span class="cbadge ${badge[1]}">${badge[0]}</span>
+          <div class="cmain"><b>${esc(cf[0])}</b><div class="muted tiny">${esc(cf[1])}</div></div></div>`;
+      }).join('') : `<div class="oneliner"><span>📜</span><p>${m?esc(m.x):'No recorded conflicts.'}</p></div>`}
+      ${lines.map(l=>`<div class="oneliner"><span>${l[0]}</span><p>${esc(l[1])}</p></div>`).join('')}
+      ${str?`<div class="sw good">✔ ${esc(str)}</div>`:''}
+      ${weak?`<div class="sw bad">⚠ ${esc(weak)}</div>`:''}`;
   }
   if (kind==='econ'){
     head = popHead('econ', c.flag||'🏳', c.name+' — Economy', `${c.currency||'—'} currency · ${esc(c.gov||'—')}`);
