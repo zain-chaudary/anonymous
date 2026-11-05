@@ -54,7 +54,7 @@ function showIntro(){
         <h3>Your inheritance</h3>
         <ul>
           <li>241M people · $415B economy · 7% inflation</li>
-          <li>$15.5B in the government bank · $91B loans to repay</li>
+          <li>$15.5B in modeled foreign-currency reserves · $91B external debt owed</li>
           <li>Game scenario values: 654k troops, 3,719 tanks, 470 aircraft, 170 warheads</li>
           <li>TTP insurgency in KP, BLA in Balochistan</li>
           <li>India hostile · China generous · America transactional</li>

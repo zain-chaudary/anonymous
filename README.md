@@ -14,7 +14,7 @@ Then open the preview URL.
 ## How it works
 - **1 turn = 1 month.** The Situation page shows alerts and recent updates. Copy its briefing into Arena AI chat to discuss decisions; chat is not connected to the browser save. Political-capital, cash-balance and cooldown limits no longer block repeated actions (scenario prerequisites may still apply); treasury spending still affects the simulation.
 - **173 countries** with simplified game baselines. Separate V13 public-reference panels show selected sourced military, resource, oil and energy figures with their own dates and definitions; they do not alter gameplay baselines or mechanics.
-- **Government & Projects**: named public officeholders with clearly fictional in-game relationship scores; launched schemes with modeled support outlooks; foreign game operations are labeled simulation-only and are not claims of real coverage.
+- **Government & Projects**: a color-coded money board separates modeled tax income, spending categories, FX reserves, external debt and interest, trade/remittance flows, plus clearly labeled game-only borrowing and revenue-improvement estimates. Named public officeholders have fictional in-game relationship scores; projects and foreign game operations are labeled simulation-only.
 - **Realistic consequences**: default → collapse; coup risk when approval craters; India war → escalation ladder, international pressure, ceasefire mechanics; nuclear use = MAD game over.
 - **Win** by surviving, uniting the country and growing into a top-tier power. **Lose** by coup, revolution, bankruptcy, conquest or nuclear war.
 
@@ -26,7 +26,7 @@ js/data.js          — game scenario data, public officeholder references and p
 js/data-v13.js      — view-only sourced reference figures; does not change simulation data
 js/engine.js        — simulation: economy, stability, war, game operations, AI and events
 js/map.js           — canvas world map (pan/zoom/click, relation colors)
-js/ui.js            — dashboard, Projects, optional order briefings, event modals and news ticker
+js/ui.js            — money dashboard, Government, Projects, event modals and news ticker
 js/app.js           — boot, save/load
 data/world.geo.json — Natural-Earth-derived country polygons (johan/world.geo.json)
 ```

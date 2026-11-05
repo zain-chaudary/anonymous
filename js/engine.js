@@ -144,8 +144,8 @@ function econTick(s){
   // external accounts: monthly flows in $B
   const inflow = P.remit/12 + P.exports/12;
   const outflow = P.imports/12 * (s.oil/82) * 0.6 + P.imports/12 * 0.4; // oil ~35% of import bill
-  const debtService = P.extDebt * 0.055 / 12;   // ~5.5% avg rate
-  P.reserves += inflow - outflow - debtService;
+  // External-debt interest is included in monthlySpend below; deduct it only once.
+  P.reserves += inflow - outflow;
 
   // FDI flavor: China/GB investments when relations high
   if ((s.countries.CHN.rel.PAK||0) > 70 && chance(0.25)) { P.reserves += rnd(0.2,0.8); }
