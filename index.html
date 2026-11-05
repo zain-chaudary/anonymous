@@ -54,13 +54,19 @@ window.addEventListener('error', function(e){
     </aside>
     <div id="mapfull">
       <canvas id="map"></canvas>
+      <div id="mapctl">
+        <button id="zin" title="Zoom in">+</button>
+        <button id="zout" title="Zoom out">−</button>
+        <button id="zreset" title="World view">⌂</button>
+        <button id="zpak" title="Go to Pakistan">★</button>
+      </div>
       <div class="maplegend">
-        <span><i style="background:#0a7d32"></i> Ally</span>
-        <span><i style="background:#7fb069"></i> Friendly</span>
-        <span><i style="background:#d9bf77"></i> Neutral</span>
-        <span><i style="background:#d98e5f"></i> Unfriendly</span>
-        <span><i style="background:#c0392b"></i> Hostile</span>
-        <span><i style="background:#16a34a"></i> PAKISTAN (You)</span>
+        <span><i style="background:#059669"></i> Ally</span>
+        <span><i style="background:#65a30d"></i> Friendly</span>
+        <span><i style="background:#7c7f87"></i> Neutral</span>
+        <span><i style="background:#ea580c"></i> Unfriendly</span>
+        <span><i style="background:#dc2626"></i> Hostile</span>
+        <span><i style="background:#0da271"></i> ★ PAKISTAN (You)</span>
       </div>
       <div id="countrycard" class="hidden"></div>
     </div>

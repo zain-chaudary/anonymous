@@ -570,11 +570,14 @@ for (const k in EXTRA) if (COUNTRIES[k]) Object.assign(COUNTRIES[k], EXTRA[k]);
 /* Merge Pakistan deep state into its country object */
 Object.assign(COUNTRIES.PAK, PAK_STATE);
 
-/* Relations color helper for map */
+/* Relations color helper for map — refined emerald→red scale */
 const relColor = r => {
-  if (r === undefined) return '#3a3f4a';
-  if (r >= 80) return '#0a7d32'; if (r >= 60) return '#3fa34d';
-  if (r >= 40) return '#7fb069'; if (r >= 20) return '#d9bf77';
-  if (r >= 0)  return '#b0a08a'; if (r >= -30) return '#d98e5f';
-  return '#c0392b';
+  if (r === undefined) return '#242b37';
+  if (r >= 80) return '#059669';
+  if (r >= 60) return '#10b981';
+  if (r >= 40) return '#65a30d';
+  if (r >= 20) return '#ca8a04';
+  if (r >= 0)  return '#7c7f87';
+  if (r >= -30) return '#ea580c';
+  return '#dc2626';
 };
