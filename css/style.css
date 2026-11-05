@@ -1112,3 +1112,28 @@ body { font-size:16px; line-height:1.55; }
   .digital-app-finance span { font-size:12px; }
   .digital-app-finance b { font-size:17px; }
 }
+
+/* Digital suite · scenario backing roles and revenue bar chart */
+.digital-backing{margin:14px 0 0;padding:14px 16px;border:1px solid rgba(148,163,184,.28);border-radius:14px;background:rgba(15,23,42,.45)}
+.digital-backing-head{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;justify-content:space-between;margin-bottom:10px}
+.digital-backing-head b{font-size:.95rem}
+.digital-backing-head small{color:var(--muted,#94a3b8);font-size:.76rem}
+.digital-backing-roles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.backing-role{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-radius:12px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.35)}
+.backing-role span{font-size:.78rem;color:#cbd5e1}
+.backing-role b{font-size:1.05rem;color:#6ee7b7;display:flex;justify-content:space-between;align-items:baseline}
+.backing-role b small{font-size:.7rem;color:#94a3b8;font-weight:600}
+.digital-chart{margin-top:14px}
+.digital-chart-bars{display:grid;gap:8px;margin-top:8px}
+.digital-chart-row{display:grid;grid-template-columns:88px 1fr 132px;align-items:center;gap:10px;font-size:.8rem}
+.digital-chart-row>span{color:#cbd5e1}
+.digital-chart-row>b{font-variant-numeric:tabular-nums;text-align:right;color:#e2e8f0;font-weight:600}
+.digital-chart-duo{display:grid;gap:3px}
+.digital-chart-track{display:flex;height:7px;border-radius:4px;overflow:hidden;background:rgba(148,163,184,.16)}
+.digital-chart-track i{display:block;height:100%;border-radius:4px}
+.digital-chart-track i.rev{background:linear-gradient(90deg,#059669,#34d399)}
+.digital-chart-track i.cost{background:linear-gradient(90deg,#b45309,#f59e0b)}
+.digital-chart-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.74rem;color:#94a3b8;margin-top:8px}
+.digital-chart-legend span{display:inline-flex;align-items:center;gap:6px}
+.digital-chart-legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+@media(max-width:640px){.digital-chart-row{grid-template-columns:70px 1fr 104px;font-size:.74rem}}

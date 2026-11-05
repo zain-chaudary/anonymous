@@ -730,12 +730,30 @@ function renderSchemeCard(project,s,compact=false){
     ${!compact&&project.outcome?`<div class="project-outcome"><b>In-game response</b><span>${esc(project.outcome)}</span></div>`:''}
   </article>`;
 }
+const SUITE_ROLE_LABELS={army:'Army chief',air:'Air chief',navy:'Navy chief',punjab:'Punjab chief minister'};
 function renderDigitalSuiteProject(s){
   const project=(s.projects||[]).find(item=>item.id===PAK_DIGITAL_SUITE.id);if(!project)return '';
   const apps=project.products||[], cost=apps.reduce((sum,app)=>sum+(Number(app.monthlyCostM)||0),0), revenue=apps.reduce((sum,app)=>sum+(Number(app.monthlyRevenueM)||0),0);
+  const relations=s.innerInfluence?.relationships||{};
+  const accepted=(s.leadershipMeeting?.accepted||[]).filter(id=>SUITE_ROLE_LABELS[id]);
+  const backing=accepted.length?`<div class="digital-backing">
+      <div class="digital-backing-head"><b>🤝 Scenario backing · 100/100</b><small>${accepted.length} of ${Object.keys(SUITE_ROLE_LABELS).length} modeled offices agreed. Other offices have not committed.</small></div>
+      <div class="digital-backing-roles">${accepted.map(id=>`<div class="backing-role"><span>${esc(SUITE_ROLE_LABELS[id])}</span><b>${clamp(Number(relations[id])||0,0,100).toFixed(0)}<small>/100 · in-game</small></b></div>`).join('')}</div>
+    </div>`:'';
+  const peak=Math.max(1,...apps.map(app=>Math.max(Number(app.monthlyCostM)||0,Number(app.monthlyRevenueM)||0)));
+  const chart=apps.map(app=>{
+    const rev=Number(app.monthlyRevenueM)||0, spend=Number(app.monthlyCostM)||0;
+    return `<div class="digital-chart-row"><span>${esc(app.name)}</span><div class="digital-chart-duo"><div class="digital-chart-track"><i class="rev" style="width:${(rev/peak*100).toFixed(1)}%"></i></div><div class="digital-chart-track"><i class="cost" style="width:${(spend/peak*100).toFixed(1)}%"></i></div></div><b>${fmtUSDmillions(rev)} / ${fmtUSDmillions(spend)}</b></div>`;
+  }).join('');
   return `<section class="digital-suite-project">
     <div class="digital-suite-heading"><div><span class="eyebrow">CONFIDENTIAL GAME SCENARIO · ${esc(project.date||'')}</span><h2>${esc(project.name)}</h2><p>${esc(project.team||'Elite development team')} · built in one month · held for a coordinated launch</p></div><div class="digital-project-badges"><span class="digital-secrecy-pill">🔒 SECRET · ${Number(project.secrecy)||100}%</span><div class="digital-complete-badge"><b>${Number(project.completion)||100}%</b><span>COMPLETE</span></div></div></div>
     <div class="digital-suite-stats"><article><span>One-time funding</span><b>${fmtB(project.setupCostB)}</b><small>Deducted from national reserves</small></article><article><span>Monthly running cost</span><b>${fmtUSDmillions(cost)}</b><small>All seven services</small></article><article><span>Projected monthly revenue</span><b>${fmtUSDmillions(revenue)}</b><small>Initial scenario estimate</small></article><article class="digital-net-stat"><span>Monthly operating balance</span><b>${signedUSDmillions(revenue-cost)}</b><small>Revenue minus running costs</small></article></div>
+    <div class="digital-chart">
+      <b>Monthly revenue vs running cost · per app</b>
+      <div class="digital-chart-bars">${chart}</div>
+      <div class="digital-chart-legend"><span><i style="background:#34d399"></i>Revenue / month</span><span><i style="background:#f59e0b"></i>Running cost / month</span><span>Total: ${fmtUSDmillions(revenue)} revenue · ${fmtUSDmillions(cost)} cost · ${signedUSDmillions(revenue-cost)} net</span></div>
+    </div>
+    ${backing}
     <div class="digital-app-grid">${apps.map(app=>`<article class="digital-app-card accent-${esc(app.accent)}"><div class="digital-app-head"><span class="digital-app-icon">${app.icon}</span><span class="digital-app-ready">✓ Ready · 100%</span></div><h3>${esc(app.name)}</h3><p>${esc(app.category)}</p><div class="digital-app-finance"><div><span>Cost / month</span><b>${fmtUSDmillions(app.monthlyCostM)}</b></div><div><span>Revenue / month</span><b>${fmtUSDmillions(app.monthlyRevenueM)}</b></div></div></article>`).join('')}</div>
     <div class="digital-suite-footnote">Fictional game record only: no real developers were hired and no applications were deployed. Product revenue and operating costs are estimates. The $5B scenario build cost is a one-time spend; monthly operations now flow into the national budget.</div>
   </section>`;
