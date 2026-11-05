@@ -727,7 +727,7 @@ body { font-size:16px; line-height:1.55; }
 .btn { min-height:42px; padding:9px 15px; font-size:14px; }
 .btn.mini { min-height:36px; padding:5px 11px; font-size:14px; }
 .brandcopy b { font-size:16px; }
-.brandcopy small { font-size:11px; }
+.brandcopy small { font-size:12px; }
 .date { font-size:15px; }
 .chip { padding:6px 11px; font-size:13px; }
 .tabbtn { padding:14px 10px; font-size:14px; }
@@ -879,3 +879,9 @@ body { font-size:16px; line-height:1.55; }
   .situation-extra .btn { flex:1; padding:8px; font-size:13px; }
   .tabbtn { font-size:13px; padding:11px 4px; }
 }
+
+/* Keep supporting text legible as well as the primary dashboard values. */
+.brandcopy small,.quick-link small,.leader-card-head,.leader-status,.leader-relation,.leader-relation strong,.leader-source,.leader-count,.budget-unit,.war-month,.status-pill,.finance-flow span,.snapshot-label,.snapshot-values > div,.game-reference > small,.scheme-date,.project-record-head time,.project-forecast > div span,.project-forecast > small,.project-outcome b,.project-outcome span,.project-overview-stat small,.project-empty p,.game-network-card span { font-size:13px; }
+.compact-budgets .blabel .tiny { font-size:13px !important; }
+.project-tag { font-size:11px; }
+.project-forecast > div b { font-size:15px; }
