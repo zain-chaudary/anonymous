@@ -22,7 +22,7 @@ const COUNTRIES = {
     pop:241.5, gdp:415, growth:3.0, infl:7.0, debtGdp:70, extDebt:91, reserves:15.5,
     fx:281, currency:'PKR', remit:34, exports:32, imports:58, taxGdp:10.5, deficit:6.0,
     defense:8.6, troops:654, tanks:3719, aircraft:470, ships:60, artillery:4600,
-    nu:170, agency:'ISI', leader:'You — Ruler of Pakistan',
+    nu:170, agency:'ISI', leader:'President Zain Chaudary (You)',
     gov:'Federal Parliamentary Republic', st:55,
     rel:{CHN:85,SAU:80,ARE:74,TUR:72,QAT:68,AZE:66,OMN:60,KWT:58,USA:38,GBR:45,CAN:48,
          IRN:26,AFG:6,IND:14,RUS:40,BGD:40,LKA:55,CHN2:0,MLD:52,NPL:55,DEU:50,FRA:48,
@@ -455,14 +455,20 @@ const MINORS = [
 /* Expand minors into full country objects (low detail) */
 (function(){
   const seen = new Set(Object.keys(COUNTRIES));
+  const hash = str => { let h=0; for (let i=0;i<str.length;i++) h = (h*31 + str.charCodeAt(i))>>>0; return h; };
+  const clampL = (v,a,b) => Math.max(a, Math.min(b, v));
   for (const m of MINORS) {
     const [iso,name,flag,pop,gdp,troops,rel] = m;
     if (!name || seen.has(iso)) continue;
+    const h = hash(iso);
+    const gdpPc = gdp*1000/pop; // $k per capita
     COUNTRIES[iso] = { name, flag, region:'World', minor:true,
       pop, gdp, growth: 2.5, infl: 4, debtGdp: 50, extDebt: gdp*0.35, reserves: gdp*0.1,
       fx: 100, currency: iso, remit: gdp*0.08, exports: gdp*0.3, imports: gdp*0.32,
       taxGdp: 14, deficit: 3, defense: gdp*0.015, troops, tanks: troops*0.6, aircraft: troops*0.12,
-      ships: 5, artillery: troops*1.2, nu:0, agency:'—', leader:'—', gov:'—', st:55,
+      ships: 5, artillery: troops*1.2, nu:0, agency:'National agency', leader:'Government of '+name, gov:'Sovereign state', st:55,
+      gold: h%45, tax: clampL(10 + gdpPc/4, 10, 38), def: 3+(h%4),
+      partners:'Regional trade 60%, Global 40%', expGoods:'Local produce & resources', impGoods:'Machinery & fuel',
       rel:{ PAK: rel } };
   }
   // cleanup null placeholder keys
@@ -506,6 +512,60 @@ const PAK_STATE = {
     saud_pact: {signed:true, note:'Strategic Mutual Defense Agreement (Sep 2025): aggression against either = aggression against both'}
   }
 };
+
+/* ---- Country extras: gold reserves (tonnes, est. WGC 2025), tax %GDP,
+   deficit %GDP, trade partners & goods, military notes ---- */
+const EXTRA = {
+ PAK:{gold:65,tax:10.5,def:6,partners:'US 16%,China 12%,UK 8%,UAE 8%',expGoods:'Textiles 55%, rice, IT services, surgical goods',impGoods:'Petroleum, machinery, chemicals, edible oil',milNote:'Battle-hardened; PAF elite; largest Muslim nuclear arsenal'},
+ IND:{gold:880,tax:12,def:5,partners:'US 18%,UAE 7%,EU 15%',expGoods:'Petroleum products, pharma, IT services, gems',impGoods:'Crude oil, gold, electronics',milNote:'2nd largest army; 2 carriers; Agni-V MIRV missiles'},
+ CHN:{gold:2280,tax:20,def:5,partners:'US 15%,EU 15%,ASEAN 16%',expGoods:'Electronics, machinery, EVs, steel',impGoods:'Oil, iron ore, semiconductors, food',milNote:'Largest navy by hulls; rocket force; massive shipbuilding'},
+ USA:{gold:8133,tax:17,def:7,partners:'Canada 17%,Mexico 16%,China 13%',expGoods:'Tech, services, weapons, agriculture',impGoods:'Electronics, vehicles, oil',milNote:'11 carrier groups, stealth fleet, 750+ overseas bases'},
+ RUS:{gold:2330,tax:25,def:2,partners:'China 30%,India 10%,Türkiye 8%',expGoods:'Oil, gas, arms, wheat, fertilizer',impGoods:'Machinery, vehicles, electronics',milNote:'Largest nuclear arsenal; sub fleet; war-hardened in Ukraine'},
+ SAU:{gold:323,tax:28,def:2,partners:'China 18%,Japan 12%,India 10%',expGoods:'Crude oil 70%, petrochemicals, dates',impGoods:'Machinery, food, vehicles',milNote:'Vision-2030 modernization; Pakistani-trained forces'},
+ ARE:{gold:6,tax:20,def:2,partners:'India 12%,China 10%,Japan 6%',expGoods:'Oil, re-exports, gold, aluminum',impGoods:'Machinery, gold, food',milNote:'Small elite force; big defense deals with US/France'},
+ TUR:{gold:615,tax:22,def:5,partners:'Germany 8%,US 6%,UK 6%',expGoods:'Autos, textiles, drones, steel, appliances',impGoods:'Oil, gas, machinery, electronics',milNote:'NATO 2nd largest army; Bayraktar drone pioneer'},
+ QAT:{gold:5,tax:25,def:2,partners:'Japan 12%,China 10%,India 9%',expGoods:'LNG 60%, oil, petrochemicals',impGoods:'Machinery, food, vehicles',milNote:'Tiny force; hosts CENTCOM; Al-Udeid air base'},
+ IRN:{gold:90,tax:10,def:4,partners:'China 80%,Türkiye 5%',expGoods:'Oil to China, petrochemicals, pistachios',impGoods:'Machinery, rice, electronics',milNote:'Big missile/drone arsenal; proxy networks; weakened air force'},
+ ISR:{gold:0,tax:32,def:5,partners:'US 28%,EU 20%,China 6%',expGoods:'Tech, weapons, diamonds, pharma',impGoods:'Oil, diamonds, machinery',milNote:'Most advanced air force in region; undeclared nuclear power; Iron Dome'},
+ AFG:{gold:2,tax:6,def:8,partners:'Pakistan 40%,Iran 15%,China 10%',expGoods:'Coal, dry fruits, carpets, gems',impGoods:'Fuel, wheat, machinery, medicine',milNote:'GDI intelligence; captured US equipment; insurgency-hardened'},
+ EGY:{gold:126,tax:14,def:8,partners:'EU 25%,Saudi 9%,US 7%',expGoods:'Gas, Suez Canal services, textiles, citrus',impGoods:'Wheat, machinery, oil',milNote:'Largest Arab army; Russian-French mixed hardware'},
+ GBR:{gold:310,tax:35,def:5,partners:'US 20%,EU 42%',expGoods:'Services, pharma, autos, whisky',impGoods:'Machinery, food, electronics',milNote:'2 carriers, nuclear subs, Five Eyes intel hub'},
+ FRA:{gold:2437,tax:45,def:6,partners:'EU 55%,US 8%',expGoods:'Luxury goods, aerospace, wine, machinery',impGoods:'Machinery, oil, electronics',milNote:'Only EU nuclear+carrier power; arms exporter'},
+ DEU:{gold:3350,tax:39,def:3,partners:'US 10%,France 8%,China 6%',expGoods:'Autos, machinery, chemicals',impGoods:'Gas, electronics, raw materials',milNote:'Rearming under Zeitenwende; Leopard tanks, Eurofighters'},
+ JPN:{gold:846,tax:34,def:4,partners:'US 20%,China 18%',expGoods:'Autos, machinery, electronics',impGoods:'Oil, gas, food, semiconductors',milNote:'Pacifist constitution; upgrading to counterstrike doctrine'},
+ KOR:{gold:104,tax:29,def:3,partners:'China 20%,US 18%',expGoods:'Semiconductors, autos, ships, K-pop exports',impGoods:'Oil, gas, machinery',milNote:'US joint command; K9 howitzers, Aegis destroyers'},
+ PRK:{gold:10,tax:40,def:5,partners:'China 90%',expGoods:'Minerals, textiles, arms to Russia',impGoods:'Oil, food, fertilizer',milNote:'Huge artillery, ICBMs, 50 warheads, 1.2M troops'},
+ UKR:{gold:25,tax:25,def:20,partners:'EU 55%,US 12%',expGoods:'Grain, iron, drones (battle-proven)',impGoods:'Fuel, machinery, weapons',milNote:'Largest drone warfare innovator; NATO-standard now'},
+ BGD:{gold:14,tax:9,def:5,partners:'US 15%,Germany 12%,India 8%',expGoods:'Garments 84%, jute, shrimp',impGoods:'Cotton, machinery, oil',milNote:'UN peacekeeping powerhouse (top troop contributor)'},
+ IDN:{gold:87,tax:13,def:3,partners:'China 22%,US 10%',expGoods:'Coal, palm oil, nickel',impGoods:'Machinery, oil, wheat',milNote:'Largest SE Asian military; green-water navy focus'},
+ AUS:{gold:80,tax:30,def:2,partners:'China 35%,Japan 15%',expGoods:'Iron ore, coal, gas, agriculture',impGoods:'Machinery, vehicles, electronics',milNote:'AUKUS subs incoming; joint exercises with US'},
+ CAN:{gold:0,tax:33,def:2,partners:'US 75%,EU 8%',expGoods:'Oil, autos, timber, wheat',impGoods:'Machinery, electronics',milNote:'NORAD member; Arctic focus; small but modern'},
+ BRA:{gold:130,tax:33,def:6,partners:'China 30%,US 11%',expGoods:'Soy, iron ore, beef, coffee, planes (Embraer)',impGoods:'Fertilizer, machinery, oil',milNote:'Largest Latin American military; peacekeeping tradition'},
+ MEX:{gold:120,tax:17,def:5,partners:'US 80%',expGoods:'Autos, electronics, oil, avocados',impGoods:'Machinery, chemicals, grain',milNote:'Focused on cartels, not foreign war'},
+ NGA:{gold:21,tax:8,def:5,partners:'India 15%,EU 20%,US 8%',expGoods:'Oil 80%, cocoa, gas',impGoods:'Machinery, food, chemicals',milNote:'Fighting jihadist insurgency; regional ECOWAS leader'},
+ ZAF:{gold:125,tax:26,def:5,partners:'China 20%,EU 25%',expGoods:'Gold, platinum, coal, autos',impGoods:'Oil, machinery, electronics',milNote:'BRICS member; most industrial African military'},
+ ETH:{gold:8,tax:10,def:4,partners:'China 25%,EU 20%',expGoods:'Coffee, gold, flowers',impGoods:'Machinery, fuel, food',milNote:'Battle-tested in Tigray war; Red Sea access ambitions'},
+ KAZ:{gold:290,tax:20,def:2,partners:'China 15%,Russia 25%,EU 30%',expGoods:'Uranium 40% of world, oil, wheat',impGoods:'Machinery, consumer goods',milNote:'CSTO member; balances Russia and China'},
+ UZB:{gold:10,tax:20,def:4,partners:'China 25%,Russia 18%',expGoods:'Gold, cotton, gas, uranium',impGoods:'Machinery, food',milNote:'Strongest Central Asian military'},
+ AZE:{gold:15,tax:22,def:1,partners:'Italy 20%,Israel 15%',expGoods:'Oil, gas, tomatoes, cotton',impGoods:'Machinery, weapons from Israel/Türkiye',milNote:'Drone-warfare winner of 2020 Nagorno-Karabakh war'},
+ OMN:{gold:0,tax:15,def:2,partners:'China 30%,India 15%',expGoods:'Oil, fish, re-exports',impGoods:'Machinery, food',milNote:'Quiet mediator; hosts US base, good Iran ties'},
+ KWT:{gold:79,tax:20,def:5,partners:'China 15%,India 12%',expGoods:'Oil, gas',impGoods:'Machinery, food, cars',milNote:'US-majority defense agreements'},
+ IRQ:{gold:96,tax:15,def:5,partners:'China 25%,India 20%',expGoods:'Oil 95%',impGoods:'Machinery, food, medicine',milNote:'Rebuilding; Iranian-backed militias active'},
+ JOR:{gold:12,tax:20,def:5,partners:'US 25%,Saudi 10%',expGoods:'Phosphates, textiles, fertilizer',impGoods:'Oil, machinery, food',milNote:'Superb intelligence (GID); borders all flashpoints'},
+ LKA:{gold:12,tax:11,def:4,partners:'US 25%,India 15%',expGoods:'Tea, garments, spices',impGoods:'Oil, machinery, medicine',milNote:'IMF restructure after 2022 default'},
+ NEP:{gold:2,tax:11,def:5,partners:'India 65%,China 15%',expGoods:'Hydropower, carpets, tourism',impGoods:'Fuel, machinery from India',milNote:'Gurkha soldiers famous worldwide'},
+ MMR:{gold:8,tax:8,def:6,partners:'China 40%,Thailand 15%',expGoods:'Gas, jade, rice',impGoods:'Oil, machinery',milNote:'Junta losing civil war; airstrike-dependent'},
+ VEN:{gold:155,tax:12,def:8,partners:'China 40%,Turkey 10%',expGoods:'Oil (sanctioned), gold',impGoods:'Food, medicine',milNote:'Oil riches in decay; Russian equipment'},
+ TWN:{gold:424,tax:20,def:2,partners:'China 30%,US 15%',expGoods:'Semiconductors 40% (TSMC), electronics',impGoods:'Oil, machinery, food',milNote:'Porcupine strategy vs China; chip shield'},
+ SYR:{gold:25,tax:8,def:6,partners:'Turkey 25%,UAE 15%',expGoods:'Olives, cotton, phosphates',impGoods:'Fuel, wheat, machinery',milNote:'Post-Assad army rebuilding from rubble'},
+ YEM:{gold:15,tax:5,def:10,partners:'China 20%,Saudi 15%',expGoods:'Oil, fish, qat',impGoods:'Food, fuel',milNote:'Houthi missile/drone threat to Red Sea shipping'},
+ SDN:{gold:5,tax:6,def:8,partners:'UAE 30%,Egypt 15%',expGoods:'Gold, gum arabic',impGoods:'Food, fuel',milNote:'Army vs RSF civil war; gold smuggling economy'},
+ SOM:{gold:0,tax:4,def:6,partners:'UAE 25%,Turkey 20%',expGoods:'Livestock, bananas',impGoods:'Food, khat, fuel',milNote:'ATMIS era ending; Al-Shabaab insurgency'},
+ PSE:{gold:0,tax:8,def:10,partners:'Israel (transit),Jordan',expGoods:'Stone, textiles, agriculture',impGoods:'Food, fuel, cement',milNote:'Ceasefire administration; security forces rebuilding'}
+};
+
+/* Merge extras into deep countries */
+for (const k in EXTRA) if (COUNTRIES[k]) Object.assign(COUNTRIES[k], EXTRA[k]);
 
 /* Merge Pakistan deep state into its country object */
 Object.assign(COUNTRIES.PAK, PAK_STATE);

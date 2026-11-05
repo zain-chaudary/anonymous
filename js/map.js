@@ -21,18 +21,23 @@ function fitMapCanvas(){
 
 function rebuildPaths(){
   const cv = MAP.canvas;
+  MAP.meta = [];
   MAP.paths = MAP.features.map(f=>{
     const p = new Path2D();
     const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
+    let sx=0, sy=0, n=0, minX=1e9, maxX=-1e9, minY=1e9, maxY=-1e9;
     for (const poly of polys){
       for (const ring of poly){
         ring.forEach((pt,i)=>{
           const [x,y] = project(pt[0], pt[1], cv.width, cv.height);
           i===0 ? p.moveTo(x,y) : p.lineTo(x,y);
+          sx+=x; sy+=y; n++;
+          if (x<minX)minX=x; if (x>maxX)maxX=x; if (y<minY)minY=y; if (y>maxY)maxY=y;
         });
         p.closePath();
       }
     }
+    MAP.meta.push({ cx:sx/n, cy:sy/n, w:maxX-minX, h:maxY-minY, name:(f.properties&&f.properties.name)||f.id });
     return p;
   });
 }
@@ -114,6 +119,32 @@ function drawMap(){
     } else if (MAP.hover && MAP.hover.id === f.id){
       ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1.4; ctx.stroke(paths[i]);
     }
+  }
+  ctx.restore();
+
+  /* ---- country name labels (screen space, zoom-aware density) ---- */
+  if (!MAP.meta || !MAP.meta.length) return;
+  ctx.save();
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  for (let i=0;i<features.length;i++){
+    const f = features[i];
+    const m = MAP.meta[i];
+    if (!m) continue;
+    const sx = m.cx*MAP.scale + MAP.ox, sy = m.cy*MAP.scale + MAP.oy;
+    if (sx < -40 || sx > canvas.width+40 || sy < -20 || sy > canvas.height+20) continue;
+    const px = m.w * MAP.scale;                       // country width on screen
+    if (MAP.scale < 2.5 && px < 34) continue;         // too small at world zoom
+    if (MAP.scale >= 2.5 && px < 12) continue;        // even zoomed, hide micro dots
+    const size = clamp(9 + MAP.scale*1.4, 9.5, 17);
+    ctx.font = (f.id==='PAK' ? '800 ' : '600 ') + size + 'px "Segoe UI",system-ui,sans-serif';
+    const label = f.id==='PAK' ? '★ PAKISTAN' : m.name.toUpperCase();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(5,10,22,.85)';
+    ctx.strokeText(label, sx, sy);
+    ctx.fillStyle = f.id==='PAK' ? '#fbbf24' : (MAP.hover && MAP.hover.id===f.id ? '#ffffff' : '#dbe4f0');
+    ctx.fillText(label, sx, sy);
   }
   ctx.restore();
 }
