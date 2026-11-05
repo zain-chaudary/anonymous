@@ -2,13 +2,6 @@
    THE GREAT CHANGE — country dashboard + world map + power rankings
    ============================================================ */
 
-const ORDER_GROUPS = [
-  {id:'Economy', label:'Economy', cats:['Economy']},
-  {id:'Domestic', label:'Home', cats:['Domestic']},
-  {id:'Military', label:'Defense', cats:['Military','Nuclear']},
-  {id:'Foreign', label:'Diplomacy', cats:['Foreign']},
-  {id:'Projects', label:'Projects & operations', cats:['Intel']}
-];
 const BUDGET_META = [
   {key:'defense',  label:'🪖 Defense',           min:0.2, max:2.0, note:'Army, PAF, Navy, missiles. Drives readiness & power.'},
   {key:'dev',      label:'🏗 Development',        min:0.0, max:1.5, note:'Infrastructure, CPEC projects, energy. Drives growth.'},
@@ -77,7 +70,7 @@ function tabGov(s){
   return `
   <section class="dashboard-heading">
     <div><span class="eyebrow">PAKISTAN · NATIONAL DASHBOARD</span><h1>Government</h1><p>One clear view of public support, national finances and your team’s in-game standing.</p></div>
-    <div class="dashboard-heading-actions"><button class="btn" onclick="switchTab('projects')">🗂 View projects</button><button class="btn primary" onclick="openOrderGroup('Economy')">＋ Plan a decision</button></div>
+    <div class="dashboard-heading-actions"><button class="btn" onclick="switchTab('projects')">🗂 View projects</button><button class="btn primary" onclick="switchTab('orders')">🧭 Situation brief</button></div>
   </section>
 
   <section class="government-hero">
@@ -92,9 +85,9 @@ function tabGov(s){
   </section>
 
   <section class="quick-links" aria-label="Government shortcuts">
-    <button class="quick-link" onclick="switchTab('projects')"><span>🗂</span><b>Projects</b><small>See schemes & future outlook</small></button>
-    <button class="quick-link" onclick="openOrderGroup('Domestic')"><span>🏠</span><b>Domestic priorities</b><small>Review a policy before issuing</small></button>
-    <button class="quick-link" onclick="openOrderGroup('Projects')"><span>🌐</span><b>Game operations</b><small>Simulation-only records in Projects</small></button>
+    <button class="quick-link" onclick="switchTab('projects')"><span>🗂</span><b>Projects</b><small>Launched schemes & support outlook</small></button>
+    <button class="quick-link" onclick="switchTab('orders')"><span>🧭</span><b>Situation</b><small>What is happening right now</small></button>
+    <button class="quick-link" onclick="copySituation()"><span>📋</span><b>Copy briefing</b><small>Paste the current state into Arena AI chat</small></button>
   </section>
 
   <section class="card inner-influence">
@@ -619,7 +612,7 @@ function openPopup(iso, kind){
       ${c.un?`<div class="note">⚠ ${esc(c.un)}</div>`:''}
       ${iso!=='PAK'?`<div class="frow small" style="margin-top:8px"><b>Relations with you</b><span style="color:${relColor(rel)}"><b>${rel.toFixed(0)} — ${G.relLabel(rel)}</b></span></div>
       <div class="bar"><i style="width:${(rel+100)/2}%;background:${relColor(rel)}"></i></div>
-      <div class="muted tiny" style="margin-top:6px">💡 Improve with Orders → Foreign → State Visit / Trade Deal.</div>`:`<div class="note">This is YOUR government, President Zain Chaudary. The country answers to you.</div>`}`;
+      <div class="muted tiny" style="margin-top:6px">Discuss a diplomatic move in the Arena AI chat; this public-reference panel does not apply game actions.</div>`:`<div class="note">This is YOUR government, President Zain Chaudary. The country answers to you.</div>`}`;
   }
   modal.innerHTML = `<div class="pop">${head}<div class="popbody">${body}</div></div>`;
   modal.style.display = 'flex';
@@ -660,7 +653,7 @@ function renderProjectPreview(s){
   const projects=(s.projects||[]).filter(p=>p.type==='scheme').slice(0,3);
   return `<section class="card project-preview">
     <div class="section-title"><div><span class="eyebrow">DELIVERY & PUBLIC OUTLOOK</span><h2>Projects by Zain Chaudary</h2><p>Launched schemes and their modelled future national support.</p></div><button class="btn" onclick="switchTab('projects')">All projects ↗</button></div>
-    ${projects.length?`<div class="scheme-grid">${projects.map(p=>renderSchemeCard(p,s,true)).join('')}</div>`:`<div class="project-empty"><div class="empty-icon">＋</div><div><b>No schemes launched yet</b><p>Review a proposal first. Launching is optional; forecasts appear here after you issue a scheme.</p></div><button class="btn primary" onclick="openOrderGroup('Economy')">Review schemes</button></div>`}
+    ${projects.length?`<div class="scheme-grid">${projects.map(p=>renderSchemeCard(p,s,true)).join('')}</div>`:`<div class="project-empty"><div class="empty-icon">＋</div><div><b>No schemes launched yet</b><p>Tell me in Arena AI chat what you want launched. This page is not connected to chat commands.</p></div><button class="btn primary" onclick="copySituation()">Copy situation</button></div>`}
   </section>`;
 }
 function projectRecordMarkup(record,s){
@@ -697,6 +690,10 @@ function projectsByCountry(s){
     </article>`;
   }).join('') || `<div class="project-empty"><div class="empty-icon">🗂</div><div><b>No country projects recorded</b><p>Launched schemes and diplomacy/operations records will be grouped here.</p></div></div>`;
 }
+function scrollToGameOperations(){
+  if((window._tab||'gov')!=='projects'){window._tab='projects';render();}
+  document.getElementById('game-operations')?.scrollIntoView({behavior:'smooth',block:'start'});
+}
 function tabProjects(s){
   const allProjects=s.projects||[];
   const schemes=allProjects.filter(p=>p.type==='scheme');
@@ -707,7 +704,7 @@ function tabProjects(s){
   const projected=clamp(s.approval+(schemes[0]?Number(schemes[0].supportLift)||0:0),0,100);
   return `<section class="dashboard-heading">
       <div><span class="eyebrow">PLANS · DELIVERY · GAME SIMULATION</span><h1>Projects</h1><p>Track launched schemes, see a cautious support outlook and review projects by country.</p></div>
-      <div class="dashboard-heading-actions"><button class="btn" onclick="openOrderGroup('Projects')">🌐 Game operations</button><button class="btn primary" onclick="openOrderGroup('Economy')">＋ Review a scheme</button></div>
+      <div class="dashboard-heading-actions"><button class="btn" onclick="scrollToGameOperations()">🌐 Game operations</button><button class="btn primary" onclick="copySituation()">📋 Copy situation</button></div>
     </section>
     <section class="project-overview">
       <div class="project-overview-stat"><span>Launched schemes</span><b>${schemes.length}</b><small>Pakistan domestic projects</small></div>
@@ -716,190 +713,89 @@ function tabProjects(s){
       <div class="project-overview-stat"><span>National support outlook</span><b>${schemes.length?projected.toFixed(0)+'%':'—'}</b><small>${schemes.length?`~${(P.pop*projected/100).toFixed(1)}M modeled people`:'Launch a scheme to see an estimate'}</small></div>
     </section>
     <section class="card project-section">
-      <div class="section-title"><div><span class="eyebrow">PAKISTAN</span><h2>Launched schemes</h2><p>Each forecast is a simple scenario estimate based on current approval—not measured satisfaction.</p></div><button class="btn" onclick="openOrderGroup('Economy')">Browse schemes</button></div>
-      ${schemes.length?`<div class="scheme-grid">${schemes.map(p=>renderSchemeCard(p,s)).join('')}</div>`:`<div class="project-empty"><div class="empty-icon">＋</div><div><b>No schemes launched yet</b><p>Nothing has been launched. Describe a goal or review a proposal; issuing an order is always your choice.</p></div><button class="btn primary" onclick="openOrderGroup('Economy')">Review first scheme</button></div>`}
+      <div class="section-title"><div><span class="eyebrow">PAKISTAN</span><h2>Launched schemes</h2><p>Each forecast is a simple scenario estimate based on current approval—not measured satisfaction.</p></div><button class="btn" onclick="copySituation()">Copy briefing</button></div>
+      ${schemes.length?`<div class="scheme-grid">${schemes.map(p=>renderSchemeCard(p,s)).join('')}</div>`:`<div class="project-empty"><div class="empty-icon">＋</div><div><b>No schemes launched yet</b><p>Tell me in Arena AI chat which scheme you want; this browser game does not receive chat commands automatically.</p></div><button class="btn primary" onclick="copySituation()">Copy situation for chat</button></div>`}
     </section>
     <section class="card project-section">
       <div class="section-title"><div><span class="eyebrow">BY COUNTRY</span><h2>Projects by Zain Chaudary</h2><p>Domestic schemes and international initiatives grouped by their in-game destination.</p></div></div>
       ${allProjects.length||ops.length?`<div class="country-project-grid">${countryMarkup}</div>`:`${countryMarkup}`}
     </section>
-    <section class="card project-section game-operations-section">
-      <div class="section-title"><div><span class="eyebrow">FICTIONAL GAME SYSTEM</span><h2>Operations & network levels</h2><p>Placed in Projects as requested. These are gameplay meters and records, not real intelligence coverage.</p></div><button class="btn" onclick="openOrderGroup('Projects')">Review game operations</button></div>
+    <section id="game-operations" class="card project-section game-operations-section">
+      <div class="section-title"><div><span class="eyebrow">FICTIONAL GAME SYSTEM</span><h2>Operations & network levels</h2><p>Placed in Projects as requested. These are gameplay meters and records, not real intelligence coverage.</p></div><button class="btn" onclick="switchTab('orders')">Open situation</button></div>
       <div class="ops-sim-banner">Simulation only: network levels and exposure are fictional. They do not establish real agents, staffing, access, geographic coverage or ongoing activity.</div>
       <div class="game-network-grid">${Object.entries(s.intel.networks||{}).map(([iso,n])=>{const c=s.countries[iso];const lvl=clamp(Number(n.lvl)||0,0,8);const heat=clamp(Number(n.heat)||0,0,10);return `<article class="game-network-card"><div><b>${c?c.flag+' '+esc(c.name):esc(iso)}</b><span>Level ${lvl}/8 · exposure ${heat.toFixed(1)}/10</span></div><div class="bar"><i class="${heat>6?'red':'green'}" style="width:${lvl/8*100}%"></i></div></article>`;}).join('')}</div>
-      ${ops.length?`<h3 class="subsection-title">Recent fictional game records</h3><div class="sim-record-list">${ops.slice(0,6).map(op=>projectRecordMarkup(op,s)).join('')}</div>`:`<div class="project-empty compact-empty"><div><b>No game-operation orders issued</b><p>These optional mechanics remain idle unless you choose one.</p></div></div>`}
+      ${ops.length?`<h3 class="subsection-title">Recent fictional game records</h3><div class="sim-record-list">${ops.slice(0,6).map(op=>projectRecordMarkup(op,s)).join('')}</div>`:`<div class="project-empty compact-empty"><div><b>No game-operation records</b><p>Game-only operation records appear here when they exist in this save.</p></div></div>`}
       <p class="profile-note">Network level = simulated depth; exposure = simulated heat. Neither is a verified real-world count or country-coverage claim. Public reporting and unknowns remain separate in the country reference panels.</p>
     </section>`;
 }
 
-/* ============ TAB: ORDERS ============ */
-function actionCooldown(s,a){
-  const until=s.cooldowns[a.id], now=s.date.y*12+s.date.m;
-  return until&&now<until?until-now:0;
+/* ============ TAB: SITUATION BRIEF ============ */
+function situationAlerts(s){
+  const P=s.countries.PAK, alerts=[];
+  if(s.war) alerts.push({tone:'bad',title:`Active conflict · ${s.countries[s.war.enemy]?.name||'opponent'}`,text:`Month ${s.war.months}; international pressure is ${s.war.intlPressure.toFixed(0)}/100 in the game scenario.`});
+  if(P.reserves<6) alerts.push({tone:'bad',title:'Treasury under pressure',text:`Available reserves are ${fmtB(P.reserves)}. The scenario is approaching a reserve crisis.`});
+  else if(P.reserves<10) alerts.push({tone:'warn',title:'Watch the treasury',text:`Available reserves are ${fmtB(P.reserves)}; import cover is ${(P.reserves/(P.imports/12)).toFixed(1)} months.`});
+  if(P.infl>=12) alerts.push({tone:'bad',title:'High price pressure',text:`Modeled inflation is ${P.infl.toFixed(1)}%.`});
+  else if(P.infl>=9) alerts.push({tone:'warn',title:'Price pressure',text:`Modeled inflation is ${P.infl.toFixed(1)}%.`});
+  if(s.approval<35) alerts.push({tone:'bad',title:'Public support is low',text:`Modeled approval is ${s.approval.toFixed(0)}%. This is a gameplay estimate, not a poll.`});
+  for(const [key,faction] of Object.entries(P.factions)) if(faction.power>=55) alerts.push({tone:'warn',title:`High internal pressure · ${faction.name}`,text:`Game-model pressure level ${faction.power.toFixed(0)}/100.`});
+  for(const province of P.provinces) if(province.mood<38) alerts.push({tone:'warn',title:`Regional tension · ${province.name}`,text:`Game-model regional mood ${province.mood.toFixed(0)}/100.`});
+  return alerts.length?alerts.slice(0,6):[{tone:'good',title:'No critical alerts',text:'No major reserve, inflation, conflict or stability warning is active in the current game state.'}];
 }
-function actionBlockReason(s,a){
-  if (s.gameOver) return 'The campaign has ended.';
-  if (a.avail&&!a.avail(s)) return 'The required situation is not in place yet.';
-  const cd=actionCooldown(s,a);
-  if (cd) return `Available again in ${cd} month${cd===1?'':'s'}.`;
-  if (a.cost.money&&s.countries.PAK.reserves<a.cost.money) return `Needs ${fmtB(a.cost.money)} in available reserves.`;
-  if (a.cost.pc&&s.pc<a.cost.pc) return `Needs ${a.cost.pc} political capital.`;
-  return '';
+function buildSituationBrief(s){
+  const P=s.countries.PAK, alerts=situationAlerts(s);
+  const recent=(s.news||[]).slice(0,5).map(item=>`- ${item.d}: ${item.t}`);
+  const projects=(s.projects||[]).slice(0,4).map(item=>`- ${item.date}: ${item.name} (${item.countryIso||'PAK'})`);
+  return [
+    `THE GREAT CHANGE — Pakistan situation brief · ${dateStr(s)}`,
+    `Public support: ${s.approval.toFixed(0)}% (~${(P.pop*s.approval/100).toFixed(1)}M in-game estimate; not a poll).`,
+    `Stability: ${s.stability.toFixed(0)}/100. Treasury reserves: ${fmtB(P.reserves)}. GDP: ${fmtB(P.gdp)}. Inflation: ${P.infl.toFixed(1)}%.`,
+    `Modeled growth: ${P.growth.toFixed(1)}%. External debt: ${fmtB(P.extDebt)}.`,
+    'Current alerts:',...alerts.map(item=>`- ${item.title}: ${item.text}`),
+    'Recent game updates:',...(recent.length?recent:['- No updates yet.']),
+    'Recent projects:',...(projects.length?projects:['- No project records yet.']),
+    'All metrics and events above are game-scenario data.'
+  ].join('\n');
 }
-function actionTargetControl(s,a){
-  let options=[], current='', setter='';
-  if (a.target==='diploTarget'){
-    options=Object.keys(s.countries).filter(k=>k!=='PAK').sort((x,y)=>s.countries[y].gdp-s.countries[x].gdp).slice(0,40);
-    current=window._dipTarget||'CHN'; setter='setDip';
-  } else if (a.target==='covertTarget'){
-    options=['IND','AFG','USA','IRN','ISR','GBR','BGD'].filter(k=>s.countries[k]);
-    current=window._opTarget||'IND'; setter='setOp';
-  } else if (a.target==='exercisePartner'){
-    options=['CHN','SAU','TUR','ARE','AZE'].filter(k=>s.countries[k]);
-    current=window._exTarget||'CHN'; setter='setEx';
-  }
-  if (!options.length) return '';
-  return `<label class="target-picker">Country<select aria-label="Choose country" onchange="${setter}(this.value);refreshBrief()">${options.map(k=>`<option value="${esc(k)}" ${current===k?'selected':''}>${flag(k)} ${esc(s.countries[k].name)}</option>`).join('')}</select></label>`;
+function showSituationCopyFallback(text){
+  let field=document.getElementById('brief-copy-fallback');
+  if(!field){window._tab='orders';render();field=document.getElementById('brief-copy-fallback');}
+  if(field){field.hidden=false;field.value=text;field.focus();field.select();toast('Briefing selected — copy and paste it into chat.');}
 }
-function currentTargetIso(s,a){
-  if(a.target==='diploTarget') return window._dipTarget||'CHN';
-  if(a.target==='covertTarget') return window._opTarget||'IND';
-  if(a.target==='exercisePartner') return window._exTarget||'CHN';
-  return null;
-}
-function simulatedContext(s,a){
-  const P=s.countries.PAK;
-  const parts=[];
-  if(a.cat==='Economy') parts.push(`Reserves are ${fmtB(P.reserves)}; inflation is ${P.infl.toFixed(1)}%. The simulated result depends on the scheme and current fiscal room.`);
-  if(a.cat==='Domestic') parts.push(`Current national approval is ${s.approval.toFixed(0)}% and stability is ${s.stability.toFixed(0)}/100; local mood and security conditions can affect the in-game response.`);
-  if(a.cat==='Military'||a.cat==='Nuclear') parts.push(`The game uses scenario readiness (${(s.readiness*100).toFixed(0)}%) and political capital (${s.pc.toFixed(0)}). This is not a real-world capability or readiness assessment.`);
-  if(a.cat==='Foreign'){
-    const iso=currentTargetIso(s,a), c=iso&&s.countries[iso];
-    if(c&&c.rel&&c.rel.PAK!==undefined) parts.push(`Current modeled relations with ${c.name}: ${c.rel.PAK.toFixed(0)}/100 (${G.relLabel(c.rel.PAK)}).`);
-  }
-  if(a.cat==='Intel') parts.push('This is a fictional game operation. Its outcome is probabilistic and is logged only inside the simulation; it is not a real-world activity or coverage claim.');
-  return parts.join(' ');
-}
-function renderPlannerBriefing(s){
-  const actionId=window._planAction;
-  const notice=window._plannerNotice;
-  if(!actionId) return notice?`<div class="planner-notice"><b>Cabinet desk</b><p>${esc(notice)}</p><small>No order has been issued and the game state is unchanged.</small></div>`:'';
-  const a=ACTIONS.find(item=>item.id===actionId);
-  if(!a) return '';
-  const reason=actionBlockReason(s,a), targetControl=actionTargetControl(s,a);
-  const cost=[a.cost.money?`${fmtB(a.cost.money)} reserves`:null,a.cost.pc?`${a.cost.pc} political capital`:null].filter(Boolean).join(' + ')||'No direct cost';
-  const context=simulatedContext(s,a);
-  const suggestedText=window._orderText?`Your intent: “${esc(window._orderText)}”`:'';
-  return `<div class="planner-briefing">
-    <div class="briefing-head"><div><span class="eyebrow">SIMULATED CABINET BRIEF</span><h3>${esc(a.name)}</h3></div><span class="status-pill ${reason?'status-bad':'status-good'}">${reason?'Not available':'Ready to review'}</span></div>
-    ${suggestedText?`<p class="briefing-intent">${suggestedText}</p>`:''}
-    <div class="briefing-columns"><div><b>Likely in-game trade-off</b><p>${esc(a.desc)}</p></div><div><b>Current context</b><p>${esc(context||'The simulation will use this policy’s scripted effects and current state.')}</p></div></div>
-    <div class="briefing-meta"><span>Estimated cost <b>${esc(cost)}</b></span><span>Approval now <b>${s.approval.toFixed(0)}%</b></span><span>Political capital <b>${s.pc.toFixed(0)}</b></span></div>
-    ${targetControl}
-    ${reason?`<div class="order-blocked">${esc(reason)}</div>`:''}
-    <div class="briefing-actions"><button class="btn primary" ${reason?'disabled':''} onclick="issue('${a.id}')">Issue this order</button><button class="btn" onclick="dismissBrief()">Not now</button></div>
-    <small class="briefing-disclaimer">This is a scripted game briefing, not an AI or real-world policy forecast. Nothing changes until you press “Issue this order”.</small>
-  </div>`;
+async function copySituation(){
+  const text=buildSituationBrief(G.getState());
+  try{
+    if(typeof navigator!=='undefined'&&navigator.clipboard&&navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(text);
+      toast('Briefing copied — paste it into Arena AI chat.');
+      return;
+    }
+  }catch(_e){}
+  showSituationCopyFallback(text);
 }
 function tabOrders(s){
-  const activeGroup=ORDER_GROUPS.find(group=>group.id===(window._ordersCat||'Economy'))||ORDER_GROUPS[0];
-  const actions=ACTIONS.filter(a=>activeGroup.cats.includes(a.cat));
-  return `<section class="dashboard-heading orders-heading"><div><span class="eyebrow">OPTIONAL · YOU DECIDE</span><h1>Orders</h1><p>Describe a goal, review the simulated consequences, then decide whether to issue anything.</p></div></section>
-    <section class="planner-card">
-      <div class="planner-intro"><div class="planner-symbol">✦</div><div><h2>What do you want to achieve?</h2><p>The cabinet desk matches your description to a scripted game action. If no match exists, it will say so rather than invent a policy.</p></div></div>
-      <label class="prompt-label" for="policy-prompt">Your intended action</label>
-      <textarea id="policy-prompt" maxlength="320" placeholder="For example: Launch a solar and energy security programme, or open talks with the opposition…" oninput="window._orderText=this.value">${esc(window._orderText||'')}</textarea>
-      <div class="planner-submit-row"><button class="btn primary" onclick="previewPlan()">Get a simulated response</button><span>Draft only · no cost · nothing is issued</span></div>
-      <div id="planner-response">${renderPlannerBriefing(s)}</div>
+  const P=s.countries.PAK, alerts=situationAlerts(s), recent=(s.news||[]).slice(0,5);
+  const support=clamp(s.approval,0,100);
+  return `<section class="dashboard-heading situation-heading">
+      <div><span class="eyebrow">PAKISTAN · GAME SCENARIO</span><h1>Situation</h1><p>Here is what is happening now, with the latest alerts and updates.</p></div>
+      <div class="dashboard-heading-actions"><button class="btn" onclick="switchTab('projects')">🗂 View projects</button><button class="btn primary" onclick="copySituation()">📋 Copy briefing</button></div>
     </section>
-    <section class="order-picker-section"><div class="section-title"><div><span class="eyebrow">SCRIPTED OPTIONS</span><h2>Review an order</h2><p>Every action opens a briefing first. There is no one-click issue button.</p></div></div>
-      <div class="order-groupbar">${ORDER_GROUPS.map(group=>`<button class="order-group ${group.id===activeGroup.id?'on':''}" onclick="setCat('${group.id}')">${esc(group.label)}<small>${ACTIONS.filter(a=>group.cats.includes(a.cat)).length}</small></button>`).join('')}</div>
-      <div class="order-grid">${actions.map(a=>{
-        const reason=actionBlockReason(s,a), cost=[a.cost.money?`${fmtB(a.cost.money)}`:null,a.cost.pc?`${a.cost.pc} PC`:null].filter(Boolean).join(' · ')||'No direct cost';
-        return `<article class="order-option ${reason?'order-option-off':''}"><div class="order-option-top"><span class="order-tag">${esc(activeGroup.label)}</span><span class="order-cost">${esc(cost)}</span></div><h3>${esc(a.name)}</h3><p>${esc(a.desc)}</p><div class="order-option-footer">${reason?`<small>${esc(reason)}</small>`:'<small>Review consequences before deciding.</small>'}<button class="btn" onclick="reviewAction('${a.id}')">Review</button></div></article>`;
-      }).join('')}</div>
-    </section>`;
-}
-function inferCountryFromText(text){
-  const lower=String(text||'').toLowerCase(), s=G.getState();
-  const words=lower.split(/[^a-z0-9]+/).filter(Boolean);
-  const mentioned=term=>term.includes(' ')?lower.includes(term):words.includes(term);
-  const entries=Object.entries(s.countries).sort((a,b)=>b[1].name.length-a[1].name.length);
-  for(const [iso,country] of entries){
-    if(lower.includes(country.name.toLowerCase())||mentioned(iso.toLowerCase())) return iso;
-  }
-  const aliases={USA:['us','america','washington'],CHN:['china','beijing'],IND:['india','delhi'],IRN:['iran','tehran'],AFG:['afghan','kabul'],SAU:['saudi','riyadh'],ARE:['uae','emirates'],TUR:['turkey','turkiye'],GBR:['britain','uk','london'],ISR:['israel','tel aviv'],PSE:['palestine','gaza'],BGD:['bangladesh']};
-  for(const [iso,terms] of Object.entries(aliases)) if(terms.some(mentioned)) return iso;
-  return null;
-}
-function previewPlan(){
-  const field=document.getElementById('policy-prompt');
-  const text=(field?field.value:window._orderText||'').trim();
-  window._orderText=text;
-  window._planAction=null;
-  if(!text){window._plannerNotice='Write a short goal first. I will match it only to an existing scripted game action.';render();return;}
-  const lower=text.toLowerCase();
-  const rules=[
-    [/\b(solar|energy|power|electricity|load.?shedding|dam|thar)\b/,'energy_invest'],
-    [/\b(agri|agriculture|farm|farmer|food price|fertili[sz]er|crop|wheat)\b/,'agri_emergency'],
-    [/\b(export|textile|it park|it export|jobs|manufactur)\b/,'export_push'],
-    [/\b(balochistan|baloch|reko diq)\b/,/\b(talk|dialogue|peace|reconcil)\b/.test(lower)?'bla_talks':'bla_dev'],
-    [/\b(pti|opposition|political dialogue|protest)\b/,'pti_talks'],
-    [/\b(kurram|sectarian|jirga)\b/,'sect_jirga'],
-    [/\b(police|judiciary|court|justice reform)\b/,'police_reform'],
-    [/\b(cut taxes|tax relief|lower taxes)\b/,'tax_cut'],
-    [/\b(tax|gst|revenue base)\b/,'tax_up'],
-    [/\b(subsid|fuel price|electricity price)\b/,'subsidy_cut'],
-    [/\b(navy|submarine|hangor)\b/,'hangor'],
-    [/\b(air force|fighter jet|jf.?17|aircraft purchase)\b/,'jf17'],
-    [/\b(defen[cs]e budget|military budget|border posture)\b/,'def_budget_up'],
-    [/\b(imf|tranche)\b/,'imf_tranche'],
-    [/\b(afghan|kabul|ttp sanctuary|ttp)\b/,/\b(trade|transit)\b/.test(lower)?'afg_trade':'afg_pressure'],
-    [/\b(state visit|diplomatic visit|visit)\b/,'visit'],
-    [/\b(india|loc|line of control|backchannel)\b/,/\b(trade|market access|tariff)\b/.test(lower)?'trade_deal':'india_backchannel'],
-    [/\b(trade deal|trade agreement|market access|trade with)\b/,'trade_deal'],
-    [/\b(cyber|covert|secret operation|influence campaign)\b/,'covert_disinfo']
-  ];
-  const match=rules.find(([pattern])=>pattern.test(lower));
-  if(!match){window._plannerNotice='I could not match that request to a specific scripted action. Try a goal such as energy security, agriculture, exports, Balochistan development, dialogue, police reform, diplomacy or defence—or review a listed action below.';render();return;}
-  window._planAction=match[1];
-  window._plannerNotice=null;
-  const selectedAction=ACTIONS.find(a=>a.id===match[1]);
-  const mentionedCountry=inferCountryFromText(text);
-  if(selectedAction&&mentionedCountry){
-    if(selectedAction.target==='diploTarget')window._dipTarget=mentionedCountry;
-    if(selectedAction.target==='covertTarget')window._opTarget=mentionedCountry;
-    if(selectedAction.target==='exercisePartner')window._exTarget=mentionedCountry;
-  }
-  window._ordersCat=ORDER_GROUPS.find(group=>group.cats.includes(selectedAction?.cat))?.id||'Economy';
-  render();
-}
-function dismissBrief(){window._planAction=null;window._plannerNotice=null;render();}
-function reviewAction(id){
-  const a=ACTIONS.find(item=>item.id===id);
-  if(!a)return;
-  window._planAction=id;window._plannerNotice=null;window._orderText='';
-  window._ordersCat=ORDER_GROUPS.find(group=>group.cats.includes(a.cat))?.id||'Economy';
-  render();
-  document.querySelector('.planner-card')?.scrollIntoView({behavior:'smooth',block:'start'});
-}
-function refreshBrief(){const response=document.getElementById('planner-response');if(response)response.innerHTML=renderPlannerBriefing(G.getState());}
-function setCat(category){window._ordersCat=category;render();}
-function openOrderGroup(category){window._ordersCat=category;window._tab='orders';render();}
-function setDip(v){window._dipTarget=v;}
-function setOp(v){window._opTarget=v;}
-function setEx(v){window._exTarget=v;}
-function issue(id){
-  const s=G.getState(),a=ACTIONS.find(item=>item.id===id);
-  if(!a)return;
-  if(!G.actionAvailable(s,a)){toast(actionBlockReason(s,a)||'Order unavailable');return;}
-  if(a.target==='diploTarget'){if(!window._dipTarget)window._dipTarget='CHN';s._dipTarget=window._dipTarget;}
-  if(a.target==='covertTarget'){if(!window._opTarget)window._opTarget='IND';s._opTarget=window._opTarget;}
-  if(a.target==='exercisePartner'){if(!window._exTarget)window._exTarget='CHN';s._exTarget=window._exTarget;}
-  G.doAction(s,a);
-  window._planAction=null;window._plannerNotice=null;window._orderText='';
-  toast('Order issued: '+a.name);
-  render();
+    <section class="situation-kpis">
+      <article class="situation-kpi"><span>Public support</span><b>${support.toFixed(0)}%</b><small>~${(P.pop*support/100).toFixed(1)}M people · modeled</small></article>
+      <article class="situation-kpi"><span>National stability</span><b>${s.stability.toFixed(0)}<small>/100</small></b><small>${esc(G.stabLabel(s.stability))} · game metric</small></article>
+      <article class="situation-kpi"><span>Treasury reserves</span><b>${fmtB(P.reserves)}</b><small>Available in the scenario</small></article>
+      <article class="situation-kpi"><span>Inflation</span><b>${P.infl.toFixed(1)}%</b><small>Modeled annual rate</small></article>
+    </section>
+    <div class="situation-layout">
+      <section class="card situation-card"><div class="section-title"><div><span class="eyebrow">CURRENT SIGNALS</span><h2>What needs attention</h2></div><span class="status-pill">${alerts.length} alert${alerts.length===1?'':'s'}</span></div>
+        <div class="situation-alert-list">${alerts.map(alert=>`<article class="situation-alert ${alert.tone}"><span class="alert-mark">${alert.tone==='bad'?'!':alert.tone==='warn'?'•':'✓'}</span><div><b>${esc(alert.title)}</b><p>${esc(alert.text)}</p></div></article>`).join('')}</div>
+      </section>
+      <section class="card situation-card"><div class="section-title"><div><span class="eyebrow">LATEST DEVELOPMENTS</span><h2>Recent updates</h2></div><button class="btn" onclick="switchTab('news')">Open full news</button></div>
+        ${recent.length?`<div class="situation-news-list">${recent.map(item=>`<article class="situation-news ${esc(item.tone||'info')}"><time>${esc(item.d||'')}</time><p>${esc(item.t||'')}</p></article>`).join('')}</div>`:`<p class="situation-empty">No updates have been recorded yet.</p>`}
+      </section>
+    </div>
+    <section class="card chat-handoff"><div class="chat-handoff-icon">💬</div><div class="chat-handoff-copy"><span class="eyebrow">ARENA AI CHAT</span><h2>Tell me what you want to do</h2><p>Copy this situation and paste it into the Arena AI chat, then describe your decision in plain language. This page cannot automatically receive chat messages or change its browser save from the chat.</p></div><button class="btn primary" onclick="copySituation()">Copy situation for chat</button><textarea id="brief-copy-fallback" class="brief-copy-fallback" hidden readonly aria-label="Situation briefing to copy"></textarea></section>
+    <section class="situation-extra"><div><b>Other useful pages</b><span>Government: officials, in-game relationships and budgets</span></div><button class="btn" onclick="switchTab('gov')">Open Government</button><button class="btn" onclick="switchTab('projects')">Open Projects</button></section>`;
 }
 
 /* ============ TAB: NEWS ============ */

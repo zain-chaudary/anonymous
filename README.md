@@ -12,7 +12,7 @@ python3 -m http.server 8080
 Then open the preview URL.
 
 ## How it works
-- **1 turn = 1 month.** Orders are optional: describe a goal or review a scripted action, read the simulated briefing, then choose whether to issue it. Press **End Month** to advance the simulation.
+- **1 turn = 1 month.** The Situation page shows alerts and recent updates. Copy its briefing into Arena AI chat to discuss decisions; chat is not connected to the browser save. Political-capital, cash-balance and cooldown limits no longer block repeated actions (scenario prerequisites may still apply); treasury spending still affects the simulation.
 - **173 countries** with simplified game baselines. Separate V13 public-reference panels show selected sourced military, resource, oil and energy figures with their own dates and definitions; they do not alter gameplay baselines or mechanics.
 - **Government & Projects**: named public officeholders with clearly fictional in-game relationship scores; launched schemes with modeled support outlooks; foreign game operations are labeled simulation-only and are not claims of real coverage.
 - **Realistic consequences**: default → collapse; coup risk when approval craters; India war → escalation ladder, international pressure, ceasefire mechanics; nuclear use = MAD game over.

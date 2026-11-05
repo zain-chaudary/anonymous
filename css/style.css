@@ -716,3 +716,166 @@ input[type=range]::-moz-range-thumb { width:15px; height:15px; border-radius:50%
 }
 .sim-only-outcome { color:#b2a5d3 !important; }
 .project-record-outcome { color:#a9c4b4 !important; }
+
+/* Readability pass: comfortable type, clear spacing, fewer micro-labels. */
+html { font-size:16px; }
+body { font-size:16px; line-height:1.55; }
+#panel { font-size:16px; line-height:1.55; }
+#panel .tiny, #panel .muted.tiny { font-size:13px !important; line-height:1.5; }
+#panel .small { font-size:15px !important; line-height:1.5; }
+.eyebrow { font-size:12px; letter-spacing:1px; }
+.btn { min-height:42px; padding:9px 15px; font-size:14px; }
+.btn.mini { min-height:36px; padding:5px 11px; font-size:14px; }
+.brandcopy b { font-size:16px; }
+.brandcopy small { font-size:11px; }
+.date { font-size:15px; }
+.chip { padding:6px 11px; font-size:13px; }
+.tabbtn { padding:14px 10px; font-size:14px; }
+.card { padding:19px; }
+.card h3 { font-size:17px; }
+.dashboard-heading h1 { font-size:36px; }
+.dashboard-heading p,.section-title p { font-size:15px; line-height:1.55; }
+.section-title h2 { font-size:21px; }
+.eyebrow { font-size:12px; }
+.government-identity h2 { font-size:23px; }
+.government-identity p { font-size:14px; }
+.government-kpi { padding:14px; }
+.government-kpi span,.government-kpi small { font-size:13px; }
+.government-kpi b { font-size:26px; }
+.government-support .frow { font-size:14px; }
+.government-support small { font-size:12px; }
+.quick-link { padding:14px; }
+.quick-link b { font-size:15px; }
+.quick-link small { font-size:12px; }
+.leader-card { padding:14px; }
+.leader-card-head { min-height:34px; font-size:12px; line-height:1.45; }
+.leader-card-head > b { font-size:18px; }
+.leader-card-head > b small { font-size:12px; }
+.leader-card h4 { min-height:46px; font-size:16px; line-height:1.45; }
+.leader-status { font-size:12px; }
+.leader-relation { font-size:12px; }
+.leader-relation strong { font-size:12px; }
+.leader-source { font-size:12px; }
+.leader-count,.budget-unit,.war-month,.status-pill { padding:7px 11px; font-size:12px; }
+.influence-disclaimer { font-size:13px; line-height:1.55; }
+.subsection-title { font-size:15px; }
+.finance-grid > div { padding:12px; }
+.finance-grid span { font-size:13px; }
+.finance-grid b { font-size:19px; }
+.finance-flow > div { padding:9px; }
+.finance-flow span { font-size:12px; }
+.finance-flow b { font-size:14px; }
+.finance-card > small { font-size:12px; }
+.compact-bar-row > div:first-child,.region-mood-grid > div { font-size:13px; }
+.compact-bar-row b,.region-mood-grid b { font-size:13px; }
+.compact-budgets .brow { padding:10px 0; }
+.compact-budgets .blabel b { font-size:14px; }
+.compact-budgets .blabel .tiny { max-width:440px; font-size:12px !important; }
+.compact-budgets .bval { min-width:72px; font-size:15px; }
+.snapshot-label { font-size:12px; }
+.snapshot-values > div { padding:10px; font-size:12px; }
+.snapshot-values b { font-size:15px; }
+.game-reference > small { font-size:12px; line-height:1.5; }
+.scheme-card { padding:16px; }
+.scheme-card h3 { font-size:17px; }
+.scheme-card > p { font-size:13px; line-height:1.5; }
+.project-tag { padding:5px 8px; font-size:10px; }
+.scheme-date,.project-record-head time { font-size:12px; }
+.project-forecast { padding:11px; gap:9px; }
+.project-forecast > div span { font-size:12px; }
+.project-forecast > div b { font-size:14px; }
+.project-forecast > i { font-size:18px; }
+.project-forecast > small { font-size:11px; }
+.project-outcome b { font-size:12px; }
+.project-outcome span { font-size:12px; line-height:1.5; }
+.project-overview-stat { padding:15px; }
+.project-overview-stat span { font-size:13px; }
+.project-overview-stat b { font-size:28px; }
+.project-overview-stat small { font-size:12px; }
+.project-empty b { font-size:15px; }
+.project-empty p { font-size:13px; }
+.country-project-head { font-size:15px; }
+.country-project-head small { font-size:12px; }
+.country-project-card { padding:14px; }
+.country-project-record { padding:11px; }
+.country-project-record > b { font-size:13px; line-height:1.45; }
+.country-project-record > small { font-size:12px; line-height:1.5; }
+.game-network-card { padding:13px; }
+.game-network-card b { font-size:13px; }
+.game-network-card span { font-size:12px; }
+.profile-note { font-size:13px; line-height:1.55; }
+.ops-sim-banner,.mil-disclaimer { padding:12px 14px; font-size:13px; line-height:1.55; }
+.newsitem { padding:10px 0; font-size:15px; line-height:1.55; }
+.newsitem .d { font-size:12px; }
+#ticker { font-size:13px; }
+.modal-box p { font-size:16px; line-height:1.6; }
+.intro-cols ul { font-size:15px; line-height:1.65; }
+
+/* Situation page: readable at a glance, with no action-point accounting. */
+.situation-heading { align-items:center; }
+.situation-kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin:8px 0 14px; }
+.situation-kpi { min-width:0; padding:17px; border:1px solid #30474b; border-radius:14px; background:linear-gradient(145deg,#192a30,#142228); }
+.situation-kpi span,.situation-kpi small { display:block; color:#aec0c1; font-size:14px; }
+.situation-kpi b { display:block; margin:6px 0 3px; color:#f1f7f4; font-size:30px; line-height:1.2; }
+.situation-kpi b small { display:inline; margin-left:3px; font-size:15px; }
+.situation-layout { display:grid; grid-template-columns:1fr 1.1fr; gap:13px; align-items:start; }
+.situation-card { min-width:0; }
+.situation-alert-list,.situation-news-list { display:grid; gap:9px; }
+.situation-alert { display:grid; grid-template-columns:28px 1fr; gap:10px; padding:13px; border:1px solid #46504b; border-radius:11px; background:#1c2828; }
+.situation-alert.bad { border-color:#754743; background:#2a2022; }
+.situation-alert.warn { border-color:#756442; background:#2b281f; }
+.situation-alert.good { border-color:#37674f; background:#192c24; }
+.alert-mark { display:grid; place-items:center; width:27px; height:27px; border-radius:50%; color:#f4f3e7; background:#71503d; font-size:16px; font-weight:900; }
+.situation-alert.good .alert-mark { background:#286947; }
+.situation-alert b { display:block; color:#edf4f0; font-size:15px; }
+.situation-alert p { margin-top:3px; color:#c0cdca; font-size:13px; line-height:1.5; }
+.situation-news { padding:11px 12px; border-left:4px solid #58737a; border-radius:0 9px 9px 0; background:#111f25; }
+.situation-news.good { border-color:#299568; }
+.situation-news.bad { border-color:#cf5750; }
+.situation-news.warn { border-color:#d3a548; }
+.situation-news time { display:block; margin-bottom:3px; color:#9fb1b4; font-size:12px; }
+.situation-news p { color:#e1e9e7; font-size:14px; line-height:1.55; }
+.situation-empty { color:#bac8c7; font-size:15px; }
+.chat-handoff { display:grid; grid-template-columns:46px minmax(0,1fr) auto; align-items:center; gap:15px; margin-top:13px; padding:20px; border-color:#38604e; background:linear-gradient(125deg,#192a2b,#172820); }
+.chat-handoff-icon { display:grid; place-items:center; width:44px; height:44px; border-radius:12px; background:#214231; font-size:23px; }
+.chat-handoff h2 { margin:3px 0 5px; color:#f1f6f2; font-size:21px; }
+.chat-handoff p { max-width:800px; color:#bac9c4; font-size:14px; line-height:1.6; }
+.chat-handoff .btn { white-space:nowrap; }
+.brief-copy-fallback { grid-column:1/-1; width:100%; min-height:150px; padding:12px; border:1px solid #526761; border-radius:10px; background:#101a1d; color:#eff5f2; font:inherit; font-size:14px; line-height:1.55; }
+.situation-extra { display:flex; align-items:center; gap:9px; margin:0 0 8px; padding:12px 3px; }
+.situation-extra > div { display:grid; gap:2px; flex:1; }
+.situation-extra b { color:#d9e5e1; font-size:14px; }
+.situation-extra span { color:#a9b8b8; font-size:13px; }
+
+/* Public reference popups are larger too; unknowns remain explicitly unknown. */
+#countrycard { font-size:14px; }
+#countrycard .profile-note,#countrycard .mil-note,#countrycard .resource-note { font-size:13px; line-height:1.55; }
+#countrycard .profile-metric span { font-size:12px; }
+#countrycard .profile-metric b { font-size:15px; }
+#countrycard .profile-metric small { font-size:12px; }
+#countrycard .mil-row > span,#countrycard .mil-row > b { font-size:13px; }
+#countrycard .mil-row > small { font-size:12px; }
+#countrycard .clean-details > summary,#countrycard .mil-unknown summary { font-size:13px; }
+#countrycard .profile-tab-btn { font-size:12px; padding:8px; }
+
+@media (max-width:900px) {
+  .situation-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .situation-layout { grid-template-columns:1fr; }
+}
+@media (max-width:600px) {
+  #panel .tiny,.tiny { font-size:13px !important; }
+  #panel .small,.small { font-size:15px !important; }
+  .dashboard-heading h1 { font-size:31px; }
+  .situation-kpis { gap:7px; }
+  .situation-kpi { padding:12px; }
+  .situation-kpi span,.situation-kpi small { font-size:12px; }
+  .situation-kpi b { font-size:24px; }
+  .chat-handoff { grid-template-columns:38px 1fr; padding:14px; }
+  .chat-handoff-icon { width:36px; height:36px; font-size:19px; }
+  .chat-handoff h2 { font-size:19px; }
+  .chat-handoff .btn { grid-column:1/-1; width:100%; }
+  .situation-extra { flex-wrap:wrap; }
+  .situation-extra > div { flex-basis:100%; margin-bottom:5px; }
+  .situation-extra .btn { flex:1; padding:8px; font-size:13px; }
+  .tabbtn { font-size:13px; padding:11px 4px; }
+}

@@ -581,8 +581,9 @@ function pickRandomEvents(s){
 }
 
 /* ============================================================
-   ACTIONS — what you can order
-   cost: {money:$B, pc:political capital}
+   ACTIONS — reusable game-scenario mechanics
+   Legacy pc/cd fields remain in data for old saves but do not cap actions.
+   Treasury outlays are scenario consequences, not availability checks.
    ============================================================ */
 const ACTIONS = [
 /* ---------------- ECONOMY ---------------- */
@@ -850,20 +851,14 @@ function recordActionArtifacts(s,a,outcome){
   if (s.projects.length>100) s.projects.pop();
 }
 
-/* action availability & cooldown helpers */
+/* Scenario preconditions; no political-capital, cash-balance or cooldown cap. */
 function actionAvailable(s, a){
   if (s.gameOver) return false;
-  if (a.avail && !a.avail(s)) return false;
-  const cdUntil = s.cooldowns[a.id];
-  if (cdUntil && (s.date.y*12 + s.date.m) < cdUntil) return false;
-  if (a.cost.pc && s.pc < a.cost.pc) return false;
-  if (a.cost.money && s.countries.PAK.reserves < a.cost.money) return false;
-  return true;
+  return !a.avail || !!a.avail(s);
 }
 function doAction(s, a){
-  s.pc -= a.cost.pc || 0;
+  // Legacy political-capital and cooldown fields are ignored; spending affects the scenario only.
   s.countries.PAK.reserves -= a.cost.money || 0;
-  if (a.cd) s.cooldowns[a.id] = s.date.y*12 + s.date.m + a.cd;
   const newsCount = s.news.length;
   a.fx(s);
   const outcome = s.news.length>newsCount && s.news[0] ? s.news[0].t : a.desc;

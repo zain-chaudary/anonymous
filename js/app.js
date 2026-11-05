@@ -66,7 +66,7 @@ function showIntro(){
           <li><b>Government</b>: track public support, named officials, finances and adjustable ministry budgets</li>
           <li><b>🗺 World Map</b>: see all countries ranked by power; click any for relations, army, condition</li>
           <li><b>Projects</b>: track launched schemes, modeled public-support outlooks, and fictional game operations</li>
-          <li><b>Orders</b>: describe an idea, review the simulated briefing, then choose whether to issue it</li>
+          <li><b>Situation</b>: see current alerts and recent updates; copy a briefing into Arena AI chat for discussion</li>
           <li><b>End Month</b>: the world simulates and reacts</li>
           <li>Lose by coup, revolution, default, lost war, or nuclear war</li>
         </ul>
