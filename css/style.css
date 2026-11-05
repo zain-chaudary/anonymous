@@ -1038,3 +1038,77 @@ body { font-size:16px; line-height:1.55; }
 .leader-commitment { display:flex; align-items:center; flex-wrap:wrap; gap:7px; margin:5px 0 7px; padding:7px 8px; border:1px solid #3b805a; border-radius:9px; background:#183629; }
 .leader-commitment b { color:#9ce6b9; font-size:12px; letter-spacing:.45px; }
 .leader-commitment span { color:#c7dfd0; font-size:12px; line-height:1.4; }
+
+/* Confidential national digital-suite project and per-product finances. */
+.money-platform-income { display:flex; align-items:center; gap:10px; margin:8px 0 12px; padding:11px 13px; border:1px solid #39775b; border-radius:11px; background:linear-gradient(110deg,#19352a,#1b302c); }
+.money-platform-income > span { display:grid; place-items:center; flex:none; width:34px; height:34px; border-radius:9px; background:#28563d; font-size:19px; }
+.money-platform-income > div { display:grid; gap:2px; }
+.money-platform-income b { color:#cce5d5; font-size:13px; }
+.money-platform-income strong { color:#84e0ad; font-size:18px; }
+.money-platform-income small { color:#a9bdb1; font-size:12px; }
+[data-money-category="digital-platform"] .money-track i { background:#55d4c2; }
+.digital-suite-project { margin:12px 0 14px; padding:19px; border:1px solid #68548c; border-radius:17px; background:radial-gradient(760px 240px at 5% 0%,rgba(128,86,195,.17),transparent 67%),linear-gradient(145deg,#211d31,#19242d 58%,#18272a); box-shadow:0 16px 38px rgba(0,0,0,.23); }
+.digital-suite-heading { display:flex; justify-content:space-between; align-items:center; gap:15px; margin-bottom:14px; }
+.digital-suite-heading h2 { margin:3px 0 4px; color:#f4f1fb; font-size:25px; }
+.digital-suite-heading p { color:#b9b1c9; font-size:14px; }
+.digital-project-badges { display:flex; align-items:center; gap:10px; }
+.digital-secrecy-pill { padding:8px 11px; border:1px solid #8b68b0; border-radius:999px; color:#e2d1ff; background:#39294c; font-size:12px; font-weight:900; white-space:nowrap; }
+.digital-complete-badge { display:grid; place-items:center; flex:none; width:76px; height:76px; border:2px solid #49c78e; border-radius:50%; color:#b1f0cd; background:#183a2c; box-shadow:0 0 22px rgba(73,199,142,.18); }
+.digital-complete-badge b { font-size:23px; line-height:1; }
+.digital-complete-badge span { font-size:9px; font-weight:900; letter-spacing:.7px; }
+.digital-suite-stats { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:9px; margin-bottom:13px; }
+.digital-suite-stats article { min-width:0; padding:12px; border:1px solid #3c4854; border-radius:11px; background:#18242b; }
+.digital-suite-stats article:nth-child(1) { border-color:#775d9a; background:#2a2338; }
+.digital-suite-stats article:nth-child(2) { border-color:#805047; background:#302320; }
+.digital-suite-stats article:nth-child(3) { border-color:#36755b; background:#1b3027; }
+.digital-suite-stats article:nth-child(4) { border-color:#79633d; background:#2c281e; }
+.digital-suite-stats span,.digital-suite-stats small { display:block; color:#b7c1c2; font-size:12px; }
+.digital-suite-stats b { display:block; margin:4px 0; color:#f4f6f2; font-size:21px; }
+.digital-net-stat b { color:#ffb08f; }
+.digital-suite-stats small { line-height:1.4; }
+.digital-app-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:9px; }
+.digital-app-card { min-width:0; padding:13px; border:1px solid #38474d; border-radius:13px; background:#17232a; }
+.digital-app-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.digital-app-icon { display:grid; place-items:center; width:43px; height:43px; border:1px solid #56606c; border-radius:13px; background:linear-gradient(145deg,#454050,#252e35); font-size:23px; }
+.digital-app-ready { color:#9fe1ba; font-size:11px; font-weight:900; }
+.digital-app-card h3 { margin:9px 0 3px; color:#f1f4f1; font-size:18px; }
+.digital-app-card > p { min-height:40px; color:#acbabc; font-size:13px; line-height:1.45; }
+.digital-app-finance { display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-top:10px; }
+.digital-app-finance > div { min-width:0; padding:8px; border:1px solid #34464a; border-radius:9px; background:#121d22; }
+.digital-app-finance span { display:block; color:#aab9b9; font-size:11px; }
+.digital-app-finance b { display:block; margin-top:3px; color:#f2f5f1; font-size:16px; }
+.digital-app-finance > div:last-child b { color:#8bdcb0; }
+.accent-gram .digital-app-icon { border-color:#b8658e; background:linear-gradient(135deg,#654684,#c45c64,#e9a04e); }
+.accent-circle .digital-app-icon { border-color:#5f8ee2; background:linear-gradient(135deg,#2253a3,#4b83d8); }
+.accent-chat .digital-app-icon { border-color:#45a76e; background:linear-gradient(135deg,#17683f,#35b779); }
+.accent-tube .digital-app-icon { border-color:#d76463; background:linear-gradient(135deg,#832d39,#e6534d); }
+.accent-tok .digital-app-icon { border-color:#8278a9; background:linear-gradient(135deg,#20232d,#414958); }
+.accent-search .digital-app-icon { border-color:#59a7b5; background:linear-gradient(135deg,#155b70,#38a8a4); }
+.accent-browse .digital-app-icon { border-color:#55a9c9; background:linear-gradient(135deg,#24528c,#38aeb5); }
+.digital-suite-footnote { margin-top:12px; color:#b7b4c1; font-size:12px; line-height:1.5; }
+.tag-confidential { border-color:#7b60a4; color:#deccff; background:#30243f; }
+@media (max-width:1050px) {
+  .digital-app-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+}
+@media (max-width:760px) {
+  .digital-suite-stats { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .digital-app-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media (max-width:520px) {
+  .digital-suite-project { padding:12px; }
+  .digital-suite-heading { align-items:flex-start; }
+  .digital-suite-heading h2 { font-size:21px; }
+  .digital-project-badges { align-items:flex-end; flex-direction:column; gap:6px; }
+  .digital-secrecy-pill { padding:6px 8px; font-size:10px; }
+  .digital-complete-badge { width:59px; height:59px; }
+  .digital-complete-badge b { font-size:19px; }
+  .digital-complete-badge span { font-size:8px; }
+  .digital-suite-stats { gap:6px; }
+  .digital-suite-stats article { padding:9px; }
+  .digital-suite-stats span,.digital-suite-stats small { font-size:11px; }
+  .digital-suite-stats b { font-size:18px; }
+  .digital-app-grid { grid-template-columns:1fr; }
+  .digital-app-card > p { min-height:auto; }
+  .digital-app-finance span { font-size:12px; }
+  .digital-app-finance b { font-size:17px; }
+}

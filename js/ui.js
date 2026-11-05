@@ -38,23 +38,26 @@ function renderChips(s){
 
 function moneySnapshot(s){
   const P=s.countries.PAK;
-  const taxIncome=G.monthlyRevenue(s), interest=G.monthlyDebtService(s);
-  const spending=G.monthlySpend(s), budgetBalance=taxIncome-spending;
+  const taxIncome=G.monthlyRevenue(s), platformIncome=G.monthlyDigitalSuiteRevenue(s), platformCost=G.monthlyDigitalSuiteCost(s);
+  const governmentIncome=taxIncome+platformIncome, interest=G.monthlyDebtService(s);
+  const spending=G.monthlySpend(s), budgetBalance=governmentIncome-spending;
   const remittances=P.remit/12, exports=P.exports/12;
   const imports=P.imports/12*(s.oil/82)*0.6+P.imports/12*0.4;
   const externalNet=remittances+exports-imports;
-  const debtGuide=Math.max(0,P.gdp*(0.9-P.debtGdp/100));
   const expenses=BUDGET_META.map(item=>({key:item.key,label:item.label,value:Number(s.budget[item.key])||0}));
   expenses.push({key:'debt-service',label:'🌍 External debt interest',value:interest});
+  expenses.push({key:'digital-platform',label:'📱 Digital platform operations',value:platformCost});
   if(s.war) expenses.push({key:'war',label:'⚠️ War costs',value:1.5});
   const posture=(s.militPosture-2)*0.12;
   if(Math.abs(posture)>0.001) expenses.push({key:'border-posture',label:posture>0?'🪖 Higher border readiness':'🪖 Lower border readiness',value:posture,saving:posture<0});
-  return {P,taxIncome,interest,spending,budgetBalance,remittances,exports,imports,externalNet,
-    reserveChange:budgetBalance+externalNet,debtGuide,expenses,importMonths:P.reserves/(P.imports/12),
+  return {P,taxIncome,platformIncome,platformCost,governmentIncome,interest,spending,budgetBalance,remittances,exports,imports,externalNet,
+    reserveChange:budgetBalance+externalNet,expenses,importMonths:P.reserves/(P.imports/12),
     taxPointImpact:P.gdp*0.01/12*(0.8+s.econ.compliance*0.35),
     complianceImpact:P.gdp*(P.taxGdp/100)/12*0.035};
 }
 function signedMoney(value){return `${value>=0?'+':'−'}${fmtB(Math.abs(value))}`;}
+function fmtUSDmillions(value){return `$${Math.round(Number(value)||0).toLocaleString()}M`;}
+function signedUSDmillions(value){return `${value>=0?'+':'−'}${fmtUSDmillions(Math.abs(value))}`;}
 function renderMoneyBoard(s){
   const m=moneySnapshot(s), total=Math.max(0.001,Math.abs(m.spending));
   const percentage=value=>Math.abs(value)/total*100;
@@ -62,27 +65,28 @@ function renderMoneyBoard(s){
     <div class="money-board-title"><div><span class="eyebrow">PAKISTAN · MONEY AT A GLANCE</span><h2>Where the money is going</h2><p>Simple monthly view: government income, spending, foreign-currency flows and debt.</p></div><span class="money-model-pill">🎮 Game estimates · USD</span></div>
     <div class="money-summary-grid">
       <article class="money-stat money-liquid"><span class="money-stat-icon">💱</span><div><span>Foreign-currency reserves</span><b id="money-reserves">${fmtB(m.P.reserves)}</b><small>About ${m.importMonths.toFixed(1)} months of imports · emergency buffer</small></div></article>
-      <article class="money-stat money-budget"><span class="money-stat-icon">🧾</span><div><span>Monthly budget left</span><b id="money-budget-left" class="${m.budgetBalance>=0?'good':'bad'}">${signedMoney(m.budgetBalance)}</b><small>Tax receipts minus all planned spending</small></div></article>
+      <article class="money-stat money-budget"><span class="money-stat-icon">🧾</span><div><span>Monthly budget left</span><b id="money-budget-left" class="${m.budgetBalance>=0?'good':'bad'}">${signedMoney(m.budgetBalance)}</b><small>All modeled revenue minus planned spending</small></div></article>
       <article class="money-stat money-debt"><span class="money-stat-icon">🌍</span><div><span>External debt owed to the world</span><b>${fmtB(m.P.extDebt)}</b><small>Debt/GDP ${m.P.debtGdp.toFixed(0)}% · interest ${fmtB(m.interest)}/month · ${fmtB(m.interest*12)}/year</small></div></article>
-      <article class="money-stat money-loan"><span class="money-stat-icon">🧭</span><div><span>Borrowing guide · game only</span><b>${fmtB(m.debtGuide)}</b><small>Room to 90% debt/GDP guide at ${m.P.debtGdp.toFixed(0)}% now; not a loan offer</small></div></article>
+      <article class="money-stat money-loan"><span class="money-stat-icon">🧭</span><div><span>Borrowing ceiling</span><b>No fixed limit</b><small>If reserves fall below zero, the game model adds borrowing to external debt</small></div></article>
     </div>
-    <div class="money-arithmetic"><div><span>Tax income / month</span><b id="money-tax-income">${fmtB(m.taxIncome)}</b></div><i>−</i><div><span>Total spending / month</span><b id="money-total-spending">${fmtB(m.spending)}</b></div><i>=</i><div class="money-arithmetic-result"><span>Budget left</span><b id="money-budget-balance" class="${m.budgetBalance>=0?'good':'bad'}">${signedMoney(m.budgetBalance)}</b></div></div>
+    <div class="money-arithmetic"><div><span>All income / month</span><b id="money-government-income">${fmtB(m.governmentIncome)}</b></div><i>−</i><div><span>Total spending / month</span><b id="money-total-spending">${fmtB(m.spending)}</b></div><i>=</i><div class="money-arithmetic-result"><span>Budget left</span><b id="money-budget-balance" class="${m.budgetBalance>=0?'good':'bad'}">${signedMoney(m.budgetBalance)}</b></div></div>
     <div class="money-detail-grid">
       <article class="money-panel money-income-panel">
         <div class="money-panel-title"><div><span class="eyebrow">MONEY COMING IN</span><h3>Income & outside flows</h3></div><span class="money-panel-icon">📥</span></div>
         <div class="money-tax-income"><span class="money-tax-icon">🏛️</span><div><span>Government tax receipts</span><b id="money-tax-receipts">+${fmtB(m.taxIncome)} <small>/ month</small></b><p>All taxes are grouped together in this game model; there is no per-tax breakdown.</p></div></div>
+        <div class="money-platform-income"><span>📱</span><div><b>Digital suite revenue</b><strong id="money-platform-income">+${fmtUSDmillions(m.platformIncome*1000)} / month</strong><small>Projected from the seven new services</small></div></div>
         <div class="money-subhead">Foreign-currency flows · monthly</div>
         <div class="money-flow-grid">
           <div class="money-flow-item inflow"><span>Worker remittances</span><b>+${fmtB(m.remittances)}</b><small>Sent home from abroad</small></div>
           <div class="money-flow-item inflow"><span>Export sales</span><b>+${fmtB(m.exports)}</b><small>Goods and services sold abroad</small></div>
           <div class="money-flow-item outflow"><span>Imports</span><b>−${fmtB(m.imports)}</b><small>Foreign goods and energy bought</small></div>
-          <div class="money-flow-item ${m.externalNet>=0?'net-positive':'net-negative'}"><span>Outside-flow difference</span><b id="money-external-net">${signedMoney(m.externalNet)}</b><small>Before tax budget and debt interest</small></div>
+          <div class="money-flow-item ${m.externalNet>=0?'net-positive':'net-negative'}"><span>Outside-flow difference</span><b id="money-external-net">${signedMoney(m.externalNet)}</b><small>Remittances + exports − imports; separate from budget</small></div>
         </div>
       </article>
       <article class="money-panel money-outflow-panel">
         <div class="money-panel-title"><div><span class="eyebrow">MONEY GOING OUT</span><h3>Monthly spending by category</h3></div><span class="money-panel-icon">📊</span></div>
         <div class="money-spending-total"><span>Total monthly spending</span><b id="money-spending-total">${fmtB(m.spending)}</b></div>
-        <div class="money-category-list">${m.expenses.map(item=>{const share=percentage(item.value);return `<div class="money-category ${item.saving?'money-saving':''}" data-money-category="${esc(item.key)}"><div class="money-category-heading"><span>${item.label}</span><div><b class="money-category-value">${item.saving?'−':''}${fmtB(Math.abs(item.value))}</b><small class="money-category-share">${item.saving?'saving · ':''}${share.toFixed(0)}% of spending</small></div></div><div class="money-track"><i style="width:${item.saving?0:Math.min(100,share)}%"></i></div></div>`;}).join('')}</div>
+        <div class="money-category-list">${m.expenses.map(item=>{const share=percentage(item.value);return `<div class="money-category ${item.saving?'money-saving':''}" data-money-category="${esc(item.key)}"><div class="money-category-heading"><span>${item.label}</span><div><b class="money-category-value">${item.saving?'−':''}${item.key==='digital-platform'?fmtUSDmillions(Math.abs(item.value)*1000):fmtB(Math.abs(item.value))}</b><small class="money-category-share">${item.saving?'saving · ':''}${share.toFixed(0)}% of spending</small></div></div><div class="money-track"><i style="width:${item.saving?0:Math.min(100,share)}%"></i></div></div>`;}).join('')}</div>
         <p class="money-interest-note">Debt interest is an estimate using the game’s 5.5% annual rate. The full debt balance is not due in one month.</p>
       </article>
     </div>
@@ -95,7 +99,7 @@ function renderMoneyBoard(s){
         <article class="money-growth-card saving-growth"><span>✂️ Spending choice</span><b>+$0.10B / month</b><small>Cutting a budget by $0.10B improves the monthly budget by that amount.</small></article>
       </div>
     </section>
-    <details class="money-explainer"><summary>What these numbers mean</summary><p>Reserves are the game’s foreign-currency safety buffer—not a separate pile of tax cash. External debt shows the outstanding balance; the monthly figure is estimated interest, not the full principal payment. The borrowing guide is only a game planning line based on a 90% debt/GDP warning point, not a real or guaranteed loan limit. Tax receipts are one combined estimate. Remittances, exports and imports affect foreign-currency reserves, not tax income.</p></details>
+    <details class="money-explainer"><summary>What these numbers mean</summary><p>Reserves are the game’s foreign-currency safety buffer—not a separate pile of tax cash. External debt shows the outstanding balance; the monthly figure is estimated interest, not the full principal payment. The simulation has no fixed borrowing ceiling: if reserves fall below zero, its simplified monthly accounting adds borrowing to external debt. This is a game rule, not a real-world forecast or loan offer. Tax receipts are one combined estimate. Remittances, exports and imports affect foreign-currency reserves, not tax income.</p></details>
   </section>`;
 }
 function refreshMoneyBoard(s){
@@ -103,7 +107,8 @@ function refreshMoneyBoard(s){
   const m=moneySnapshot(s), total=Math.max(0.001,Math.abs(m.spending));
   const put=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
   const putTone=(id,value)=>{const el=document.getElementById(id);if(el){el.textContent=signedMoney(value);el.classList.remove('good','bad');el.classList.add(value>=0?'good':'bad');}};
-  put('money-tax-income',fmtB(m.taxIncome));put('money-tax-receipts',`+${fmtB(m.taxIncome)} / month`);
+  put('money-government-income',fmtB(m.governmentIncome));put('money-platform-income',`+${fmtUSDmillions(m.platformIncome*1000)} / month`);
+  put('money-tax-receipts',`+${fmtB(m.taxIncome)} / month`);
   put('money-total-spending',fmtB(m.spending));put('money-spending-total',fmtB(m.spending));
   putTone('money-budget-left',m.budgetBalance);putTone('money-budget-balance',m.budgetBalance);putTone('money-reserve-change',m.reserveChange);
   put('money-external-net',signedMoney(m.externalNet));
@@ -111,7 +116,7 @@ function refreshMoneyBoard(s){
     const item=m.expenses.find(x=>x.key===row.dataset.moneyCategory);if(!item)return;
     const share=Math.abs(item.value)/total*100;
     const value=row.querySelector('.money-category-value'),label=row.querySelector('.money-category-share'),bar=row.querySelector('.money-track i');
-    if(value)value.textContent=`${item.saving?'−':''}${fmtB(Math.abs(item.value))}`;
+    if(value)value.textContent=`${item.saving?'−':''}${item.key==='digital-platform'?fmtUSDmillions(Math.abs(item.value)*1000):fmtB(Math.abs(item.value))}`;
     if(label)label.textContent=`${item.saving?'saving · ':''}${share.toFixed(0)}% of spending`;
     if(bar)bar.style.width=`${item.saving?0:Math.min(100,share)}%`;
   });
@@ -133,7 +138,6 @@ function tabGov(s){
     const label = score>=70?'Strong':score>=55?'Constructive':score>=40?'Cautious':'Strained';
     return `<article class="leader-card">
       <div class="leader-card-head"><span>${esc(leader.role)}</span><b>${score.toFixed(0)}<small>/100</small></b></div>
-      <h4>${esc(leader.name)}</h4>
       ${leader.status?`<div class="leader-status">${esc(leader.status)}</div>`:''}
       ${acceptedIds.includes(leader.id)?`<div class="leader-commitment"><b>✓ SCENARIO · AGREED</b><span>Supports the national progress plan</span></div>`:''}
       <div class="leader-relation"><span>In-game standing</span><strong>${label}</strong></div>
@@ -181,8 +185,8 @@ function tabGov(s){
   </section>
 
   <section class="card inner-influence">
-    <div class="section-title"><div><span class="eyebrow">YOUR WORKING CIRCLE</span><h2>Inner Influence</h2><p>Named public officeholders · reference date: ${esc(PAK_INFLUENCE.asOf)}</p></div><span class="leader-count">${PAK_INFLUENCE.institutions.length} institutions · ${PAK_INFLUENCE.regions.length} regional offices</span></div>
-    <div class="influence-disclaimer">The names and offices are public references. “In-game standing” is a fictional relationship score for this scenario—not a factual claim about any real person’s relationship with Zain Chaudary.</div>
+    <div class="section-title"><div><span class="eyebrow">YOUR WORKING CIRCLE</span><h2>Inner Influence</h2><p>Public roles · reference date: ${esc(PAK_INFLUENCE.asOf)}</p></div><span class="leader-count">${PAK_INFLUENCE.institutions.length} institutions · ${PAK_INFLUENCE.regions.length} regional offices</span></div>
+    <div class="influence-disclaimer">Only office roles are listed; personal names are omitted. “In-game standing” is a fictional relationship score for this scenario—not a factual claim about any real person’s relationship with Zain Chaudary.</div>
     <div class="meeting-result"><span>🤝</span><div><b>Scenario meeting outcome recorded</b><p>Simulated commitments: ${agreedRoles.join(' · ')}. Other offices have not committed in this scenario.</p></div></div>
     <h3 class="subsection-title">National institutions</h3>
     <div class="leader-grid">${PAK_INFLUENCE.institutions.map(leaderCard).join('')}</div>
@@ -213,7 +217,7 @@ function tabGov(s){
   ${renderProjectPreview(s)}`;
 }
 function balanceLine(s){
-  const bal = G.monthlyRevenue(s) - G.monthlySpend(s);
+  const bal = G.monthlyGovernmentRevenue(s) - G.monthlySpend(s);
   return bal >= 0
     ? `✅ Monthly budget surplus: <b class="good">+${fmtB(bal)}</b> — supports reserves and modeled debt paydown`
     : `⚠ Monthly budget shortfall: <b class="bad">${fmtB(bal)}</b> — reserves cover it first; borrowing may rise if they run short`;
@@ -726,6 +730,16 @@ function renderSchemeCard(project,s,compact=false){
     ${!compact&&project.outcome?`<div class="project-outcome"><b>In-game response</b><span>${esc(project.outcome)}</span></div>`:''}
   </article>`;
 }
+function renderDigitalSuiteProject(s){
+  const project=(s.projects||[]).find(item=>item.id===PAK_DIGITAL_SUITE.id);if(!project)return '';
+  const apps=project.products||[], cost=apps.reduce((sum,app)=>sum+(Number(app.monthlyCostM)||0),0), revenue=apps.reduce((sum,app)=>sum+(Number(app.monthlyRevenueM)||0),0);
+  return `<section class="digital-suite-project">
+    <div class="digital-suite-heading"><div><span class="eyebrow">CONFIDENTIAL GAME SCENARIO · ${esc(project.date||'')}</span><h2>${esc(project.name)}</h2><p>${esc(project.team||'Elite development team')} · built in one month · held for a coordinated launch</p></div><div class="digital-project-badges"><span class="digital-secrecy-pill">🔒 SECRET · ${Number(project.secrecy)||100}%</span><div class="digital-complete-badge"><b>${Number(project.completion)||100}%</b><span>COMPLETE</span></div></div></div>
+    <div class="digital-suite-stats"><article><span>One-time funding</span><b>${fmtB(project.setupCostB)}</b><small>Deducted from national reserves</small></article><article><span>Monthly running cost</span><b>${fmtUSDmillions(cost)}</b><small>All seven services</small></article><article><span>Projected monthly revenue</span><b>${fmtUSDmillions(revenue)}</b><small>Initial scenario estimate</small></article><article class="digital-net-stat"><span>Monthly operating balance</span><b>${signedUSDmillions(revenue-cost)}</b><small>Revenue minus running costs</small></article></div>
+    <div class="digital-app-grid">${apps.map(app=>`<article class="digital-app-card accent-${esc(app.accent)}"><div class="digital-app-head"><span class="digital-app-icon">${app.icon}</span><span class="digital-app-ready">✓ Ready · 100%</span></div><h3>${esc(app.name)}</h3><p>${esc(app.category)}</p><div class="digital-app-finance"><div><span>Cost / month</span><b>${fmtUSDmillions(app.monthlyCostM)}</b></div><div><span>Revenue / month</span><b>${fmtUSDmillions(app.monthlyRevenueM)}</b></div></div></article>`).join('')}</div>
+    <div class="digital-suite-footnote">Fictional game record only: no real developers were hired and no applications were deployed. Product revenue and operating costs are estimates. The $5B scenario build cost is a one-time spend; monthly operations now flow into the national budget.</div>
+  </section>`;
+}
 function renderProjectPreview(s){
   const projects=(s.projects||[]).filter(p=>p.type==='scheme').slice(0,3);
   return `<section class="card project-preview">
@@ -734,14 +748,16 @@ function renderProjectPreview(s){
   </section>`;
 }
 function projectRecordMarkup(record,s){
-  const operation=!!record.simulationOnly;
-  const kind=operation?'GAME SIMULATION':record.type==='scheme'?'SCHEME':'INITIATIVE';
+  const operation=!!record.simulationOnly, technology=record.type==='digital-suite';
+  const kind=operation?'GAME SIMULATION':technology?'CONFIDENTIAL SCENARIO':record.type==='scheme'?'SCHEME':'INITIATIVE';
   return `<article class="country-project-record">
-    <div class="project-record-head"><span class="project-tag ${operation?'tag-sim':''}">${kind}</span><time>${esc(record.date||'')}</time></div>
+    <div class="project-record-head"><span class="project-tag ${operation?'tag-sim':technology?'tag-confidential':''}">${kind}</span><time>${esc(record.date||'')}</time></div>
     <b>${esc(record.name||'Policy')}</b>
     ${!operation&&record.sector?`<small>${esc(record.sector)}</small>`:''}
+    ${technology?`<small>${record.completion}% complete · ${fmtB(record.setupCostB)} build funding · ${fmtUSDmillions(record.monthlyCostM)} monthly cost · ${fmtUSDmillions(record.monthlyRevenueM)} monthly revenue</small>`:''}
     ${record.outcome?`<small class="${operation?'sim-only-outcome':'project-record-outcome'}">In-game response: ${esc(record.outcome)}</small>`:''}
     ${operation?`<small class="sim-only-note">Fictional game record only · no real-world activity or coverage is implied.</small>`:''}
+    ${technology?`<small class="sim-only-note">Fictional scenario record only · no real developers were hired and no applications were deployed.</small>`:''}
   </article>`;
 }
 function projectsByCountry(s){
@@ -783,6 +799,7 @@ function tabProjects(s){
       <div><span class="eyebrow">PLANS · DELIVERY · GAME SIMULATION</span><h1>Projects</h1><p>Track launched schemes, see a cautious support outlook and review projects by country.</p></div>
       <div class="dashboard-heading-actions"><button class="btn" onclick="scrollToGameOperations()">🌐 Game operations</button><button class="btn primary" onclick="copySituation()">📋 Copy situation</button></div>
     </section>
+    ${renderDigitalSuiteProject(s)}
     <section class="project-overview">
       <div class="project-overview-stat"><span>Launched schemes</span><b>${schemes.length}</b><small>Pakistan domestic projects</small></div>
       <div class="project-overview-stat"><span>International initiatives</span><b>${initiatives.length}</b><small>Diplomacy & cooperation</small></div>
@@ -827,9 +844,10 @@ function buildSituationBrief(s){
     `THE GREAT CHANGE — Pakistan situation brief · ${dateStr(s)}`,
     `Public support: ${s.approval.toFixed(0)}% (~${(P.pop*s.approval/100).toFixed(1)}M in-game estimate; not a poll).`,
     `Stability: ${s.stability.toFixed(0)}/100. Foreign-currency reserves: ${fmtB(P.reserves)}. External debt: ${fmtB(P.extDebt)}. GDP: ${fmtB(P.gdp)}. Inflation: ${P.infl.toFixed(1)}%.`,
-    `Modeled growth: ${P.growth.toFixed(1)}%. Monthly tax receipts ${fmtB(money.taxIncome)}, spending ${fmtB(money.spending)}, budget left ${signedMoney(money.budgetBalance)}.`,
+    `Modeled growth: ${P.growth.toFixed(1)}%. Monthly tax receipts ${fmtB(money.taxIncome)} plus digital-service income ${fmtUSDmillions(money.platformIncome*1000)}; spending ${fmtB(money.spending)}, budget left ${signedMoney(money.budgetBalance)}.`,
     `Monthly outside FX flows: remittances +${fmtB(money.remittances)}, exports +${fmtB(money.exports)}, imports −${fmtB(money.imports)}, net ${signedMoney(money.externalNet)} before debt service.`,
-    `External-debt interest estimate: ${fmtB(money.interest)}/month; 90% debt/GDP game-only borrowing guide: ${fmtB(money.debtGuide)}, not a loan offer. Estimated reserve change: ${signedMoney(money.reserveChange)}/month before random events.`,
+    `External-debt interest estimate: ${fmtB(money.interest)}/month; the game simulation has no fixed borrowing ceiling. Estimated reserve change: ${signedMoney(money.reserveChange)}/month before random events.`,
+    `Confidential digital suite: ${((s.projects||[]).find(p=>p.id===PAK_DIGITAL_SUITE.id)?.completion)||0}% complete; $5B one-time build funding, ${fmtUSDmillions(money.platformCost*1000)}/month operating cost, ${fmtUSDmillions(money.platformIncome*1000)}/month projected revenue. Apps: ${PAK_DIGITAL_SUITE.products.map(app=>app.name).join(', ')}.`,
     'Current alerts:',...alerts.map(item=>`- ${item.title}: ${item.text}`),
     'Recent game updates:',...(recent.length?recent:['- No updates yet.']),
     'Recent projects:',...(projects.length?projects:['- No project records yet.']),

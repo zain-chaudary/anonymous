@@ -43,8 +43,12 @@ const stabLabel = v => v>=70?'Stable':v>=55?'Mostly stable':v>=40?'Tense':v>=25?
 
 /* monthly budget math */
 function monthlyRevenue(s){ const P=s.countries.PAK; return P.gdp*(P.taxGdp/100)/12*(0.8+s.econ.compliance*0.35); }
+function digitalSuiteRecord(s){return (s.projects||[]).find(project=>project.id===PAK_DIGITAL_SUITE.id);}
+function monthlyDigitalSuiteCost(s){const p=digitalSuiteRecord(s);return p?(Number(p.monthlyCostM)||0)/1000:0;}
+function monthlyDigitalSuiteRevenue(s){const p=digitalSuiteRecord(s);return p?(Number(p.monthlyRevenueM)||0)/1000:0;}
+function monthlyGovernmentRevenue(s){return monthlyRevenue(s)+monthlyDigitalSuiteRevenue(s);}
 function monthlyDebtService(s){ return s.countries.PAK.extDebt*0.055/12; }
-function monthlySpend(s){ const B=s.budget; return B.defense+B.dev+B.health+B.edu+B.interior+B.subsidy+B.admin+monthlyDebtService(s)+(s.war?1.5:0)+(s.militPosture-2)*0.12; }
+function monthlySpend(s){ const B=s.budget; return B.defense+B.dev+B.health+B.edu+B.interior+B.subsidy+B.admin+monthlyDebtService(s)+monthlyDigitalSuiteCost(s)+(s.war?1.5:0)+(s.militPosture-2)*0.12; }
 
 const INITIAL_INNER_RELATIONS = {
   army:63, air:58, navy:55, bank:52,
@@ -57,7 +61,33 @@ function ensureLeadershipMeeting(s){
   } else if (!Array.isArray(s.leadershipMeeting.accepted)){
     s.leadershipMeeting.accepted=[...LEADERSHIP_MEETING_ACCEPTED];
   }
+  if(!s.leadershipMeeting.scoresRaised){
+    for(const id of s.leadershipMeeting.accepted) if(s.innerInfluence?.relationships) s.innerInfluence.relationships[id]=100;
+    s.leadershipMeeting.scoresRaised=true;
+  }
   return s;
+}
+function ensureDigitalSuiteProject(s){
+  if(!Array.isArray(s.projects))s.projects=[];
+  if(!s.flags||typeof s.flags!=='object')s.flags={};
+  const existing=s.projects.find(project=>project.id===PAK_DIGITAL_SUITE.id);
+  if(!s.flags.pakDigitalSuiteBuilt){
+    if(!existing&&s.countries?.PAK)s.countries.PAK.reserves-=PAK_DIGITAL_SUITE.setupCostB;
+    s.flags.pakDigitalSuiteBuilt=true;
+    s.flags.pakDigitalSuiteDate=existing?.date||dateStr(s);
+  }
+  if(!existing){
+    const monthlyCostM=PAK_DIGITAL_SUITE.products.reduce((sum,app)=>sum+app.monthlyCostM,0);
+    const monthlyRevenueM=PAK_DIGITAL_SUITE.products.reduce((sum,app)=>sum+app.monthlyRevenueM,0);
+    s.projects.unshift({
+      id:PAK_DIGITAL_SUITE.id,date:s.flags.pakDigitalSuiteDate||dateStr(s),completedDate:s.flags.pakDigitalSuiteDate||dateStr(s),
+      name:PAK_DIGITAL_SUITE.name,sector:'Confidential national digital services',type:'digital-suite',countryIso:'PAK',
+      status:'complete',completion:PAK_DIGITAL_SUITE.completion,buildMonths:PAK_DIGITAL_SUITE.buildMonths,secrecy:PAK_DIGITAL_SUITE.secrecy,scenarioOnly:true,
+      setupCostB:PAK_DIGITAL_SUITE.setupCostB,monthlyCostM,monthlyRevenueM,team:'Elite in-game development team',
+      products:JSON.parse(JSON.stringify(PAK_DIGITAL_SUITE.products)),outcome:'Secret one-month in-game build completed at 100%; $5B funded from national reserves.'
+    });
+  }
+  return s.projects.find(project=>project.id===PAK_DIGITAL_SUITE.id);
 }
 function normalizeState(s){
   if (!s.innerInfluence || typeof s.innerInfluence !== 'object') s.innerInfluence = {relationships:{}};
@@ -68,6 +98,7 @@ function normalizeState(s){
   if (!Array.isArray(s.projects)) s.projects = [];
   if (!Array.isArray(s.ops)) s.ops = [];
   ensureLeadershipMeeting(s);
+  ensureDigitalSuiteProject(s);
   return s;
 }
 
@@ -103,8 +134,9 @@ function newGame(){
     countries
   };
   ensureLeadershipMeeting(s);
+  ensureDigitalSuiteProject(s);
   news(s,'November 2026. You assume supreme authority over the Islamic Republic of Pakistan — 241 million people, a $415B economy, 170 nuclear warheads, and more problems than solutions.','big');
-  news(s,'IMF EFF review passed in October. Reserves $15.5B. Rupee 281/USD. Ceasefire with India holding since May 2025 — barely.','info');
+  news(s,'IMF EFF review passed in October. Rupee 281/USD. Ceasefire with India holding since May 2025 — barely.','info');
   news(s,'Game scenario note: relations with military institutions are modeled and will shift with policy choices; this is not a statement from any real officeholder.','warn');
   // US midterm moment (real: Nov 3 2026)
   news(s,'US midterms: Trump\'s Republicans lose the House narrowly; Senate holds 52-48. Foreign policy hardens into pure transactional mode.','info');
@@ -163,7 +195,7 @@ function econTick(s){
   if ((s.countries.SAU.rel.PAK||0) > 70 && chance(0.12)) { P.reserves += rnd(0.3,0.7); }
 
   // budget: revenue vs ministry spending → reserves/debt
-  const revenue = monthlyRevenue(s);
+  const revenue = monthlyGovernmentRevenue(s);
   const spend = monthlySpend(s);
   const bal = revenue - spend;
   P.reserves += bal;
@@ -906,5 +938,5 @@ function endMonth(s){
 /* expose for UI */
 window.G = { newGame, saveGame, loadGame, endMonth, doAction, actionAvailable,
   getState:()=>state, setSelected:v=>selectedISO=v, ACTIONS, EVENTS, news, combatPower, powerScore,
-  monthlyRevenue, monthlySpend, monthlyDebtService, relLabel, stabLabel,
+  monthlyRevenue, monthlyGovernmentRevenue, monthlyDigitalSuiteRevenue, monthlyDigitalSuiteCost, monthlySpend, monthlyDebtService, relLabel, stabLabel,
   getPending:()=>pendingEvents, shiftPending:()=>pendingEvents.shift() };

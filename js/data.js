@@ -591,6 +591,20 @@ const PAK_INFLUENCE = {
   note:'Officeholder names are public references for the stated date. “In-game standing” is a fictional scenario metric, not a measured or factual relationship.'
 };
 
+/* Confidential, fictional digital-services project for the Pakistan scenario. */
+const PAK_DIGITAL_SUITE = {
+  id:'pak-digital-suite-2026', name:'Pakistan Sovereign Digital Suite', setupCostB:5, buildMonths:1, completion:100, secrecy:100, scenarioOnly:true,
+  products:[
+    {id:'pakgram',name:'PAKgram',icon:'📸',category:'Photos, stories & creator profiles',monthlyCostM:35,monthlyRevenueM:20,accent:'gram'},
+    {id:'pakcircle',name:'PAKcircle',icon:'👥',category:'Community pages, groups & social feed',monthlyCostM:40,monthlyRevenueM:22,accent:'circle'},
+    {id:'pakchat',name:'PAKchat',icon:'💬',category:'Private messaging, voice & video calls',monthlyCostM:30,monthlyRevenueM:14,accent:'chat'},
+    {id:'paktube',name:'PAKtube',icon:'▶️',category:'Long-form video & creator channels',monthlyCostM:95,monthlyRevenueM:48,accent:'tube'},
+    {id:'paktok',name:'PAKtok',icon:'🎵',category:'Short videos & creator tools',monthlyCostM:65,monthlyRevenueM:35,accent:'tok'},
+    {id:'paksearch',name:'PAKsearch',icon:'🔎',category:'Web search & local discovery',monthlyCostM:20,monthlyRevenueM:16,accent:'search'},
+    {id:'pakbrowse',name:'PAKbrowse',icon:'🌐',category:'Pakistan-operated web browser',monthlyCostM:15,monthlyRevenueM:10,accent:'browse'}
+  ]
+};
+
 /* Domestic schemes whose future approval effects are only game-model estimates. */
 const PAK_PROJECT_BLUEPRINTS = {
   export_push: {title:'National Export Push', sector:'Jobs & export growth', regionId:null, supportLift:2, horizon:6},
