@@ -50,6 +50,15 @@ const INITIAL_INNER_RELATIONS = {
   army:63, air:58, navy:55, bank:52,
   punjab:55, sindh:49, kp:43, balochistan:38, gb:54, ajk:51
 };
+const LEADERSHIP_MEETING_ACCEPTED = ['army','air','navy','punjab'];
+function ensureLeadershipMeeting(s){
+  if (!s.leadershipMeeting || typeof s.leadershipMeeting!=='object'){
+    s.leadershipMeeting={date:dateStr(s),agenda:'National progress plan',accepted:[...LEADERSHIP_MEETING_ACCEPTED]};
+  } else if (!Array.isArray(s.leadershipMeeting.accepted)){
+    s.leadershipMeeting.accepted=[...LEADERSHIP_MEETING_ACCEPTED];
+  }
+  return s;
+}
 function normalizeState(s){
   if (!s.innerInfluence || typeof s.innerInfluence !== 'object') s.innerInfluence = {relationships:{}};
   if (!s.innerInfluence.relationships || typeof s.innerInfluence.relationships !== 'object') s.innerInfluence.relationships = {};
@@ -58,6 +67,7 @@ function normalizeState(s){
   }
   if (!Array.isArray(s.projects)) s.projects = [];
   if (!Array.isArray(s.ops)) s.ops = [];
+  ensureLeadershipMeeting(s);
   return s;
 }
 
@@ -92,6 +102,7 @@ function newGame(){
     oil: 82,            // $/bbl Brent
     countries
   };
+  ensureLeadershipMeeting(s);
   news(s,'November 2026. You assume supreme authority over the Islamic Republic of Pakistan — 241 million people, a $415B economy, 170 nuclear warheads, and more problems than solutions.','big');
   news(s,'IMF EFF review passed in October. Reserves $15.5B. Rupee 281/USD. Ceasefire with India holding since May 2025 — barely.','info');
   news(s,'Game scenario note: relations with military institutions are modeled and will shift with policy choices; this is not a statement from any real officeholder.','warn');

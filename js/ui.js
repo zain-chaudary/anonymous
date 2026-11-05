@@ -124,6 +124,8 @@ function tabGov(s){
   const support = clamp(s.approval,0,100);
   const supportedPeople = P.pop * support / 100;
   const relations = s.innerInfluence.relationships;
+  const acceptedIds = s.leadershipMeeting?.accepted || [];
+  const agreedRoles = [{id:'army',label:'Army chief'},{id:'air',label:'Air chief'},{id:'navy',label:'Navy chief'},{id:'punjab',label:'Punjab chief minister'}].filter(item=>acceptedIds.includes(item.id)).map(item=>item.label);
   const leaderCard = leader => {
     const rawScore = Number(relations[leader.id]);
     const score = clamp(Number.isFinite(rawScore)?rawScore:50,0,100);
@@ -133,6 +135,7 @@ function tabGov(s){
       <div class="leader-card-head"><span>${esc(leader.role)}</span><b>${score.toFixed(0)}<small>/100</small></b></div>
       <h4>${esc(leader.name)}</h4>
       ${leader.status?`<div class="leader-status">${esc(leader.status)}</div>`:''}
+      ${acceptedIds.includes(leader.id)?`<div class="leader-commitment"><b>✓ SCENARIO · AGREED</b><span>Supports the national progress plan</span></div>`:''}
       <div class="leader-relation"><span>In-game standing</span><strong>${label}</strong></div>
       <div class="bar"><i class="${tone}" style="width:${score}%"></i></div>
       <a class="leader-source" href="${esc(leader.source)}" target="_blank" rel="noopener noreferrer">Public reference ↗</a>
@@ -180,6 +183,7 @@ function tabGov(s){
   <section class="card inner-influence">
     <div class="section-title"><div><span class="eyebrow">YOUR WORKING CIRCLE</span><h2>Inner Influence</h2><p>Named public officeholders · reference date: ${esc(PAK_INFLUENCE.asOf)}</p></div><span class="leader-count">${PAK_INFLUENCE.institutions.length} institutions · ${PAK_INFLUENCE.regions.length} regional offices</span></div>
     <div class="influence-disclaimer">The names and offices are public references. “In-game standing” is a fictional relationship score for this scenario—not a factual claim about any real person’s relationship with Zain Chaudary.</div>
+    <div class="meeting-result"><span>🤝</span><div><b>Scenario meeting outcome recorded</b><p>Simulated commitments: ${agreedRoles.join(' · ')}. Other offices have not committed in this scenario.</p></div></div>
     <h3 class="subsection-title">National institutions</h3>
     <div class="leader-grid">${PAK_INFLUENCE.institutions.map(leaderCard).join('')}</div>
     <div class="section-title regional-title"><div><h3>Provincial & regional leadership</h3><p>Four provinces plus Gilgit-Baltistan and Azad Jammu & Kashmir—the six regions modeled in this game.</p></div></div>

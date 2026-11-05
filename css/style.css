@@ -1030,3 +1030,11 @@ body { font-size:16px; line-height:1.55; }
   .money-stat b.good,.money-stat b.bad { font-size:22px; }
 }
 .money-stat small,.money-flow-item small,.money-category-share,.money-growth-card small,.money-arithmetic span { font-size:12px; }
+
+.meeting-result { display:flex; align-items:center; gap:11px; margin:10px 0 14px; padding:12px 14px; border:1px solid #3a805b; border-radius:12px; background:linear-gradient(100deg,#17392b,#1c3028); }
+.meeting-result > span { flex:none; font-size:22px; }
+.meeting-result b { display:block; color:#a5ecc1; font-size:14px; }
+.meeting-result p { margin-top:3px; color:#d1e4d8; font-size:13px; line-height:1.5; }
+.leader-commitment { display:flex; align-items:center; flex-wrap:wrap; gap:7px; margin:5px 0 7px; padding:7px 8px; border:1px solid #3b805a; border-radius:9px; background:#183629; }
+.leader-commitment b { color:#9ce6b9; font-size:12px; letter-spacing:.45px; }
+.leader-commitment span { color:#c7dfd0; font-size:12px; line-height:1.4; }
