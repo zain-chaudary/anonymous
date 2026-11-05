@@ -723,11 +723,11 @@ const COMPANIES = {
  QIA:{name:'Qatar Investment Authority', flag:'🇶🇦', sector:'Sovereign Wealth', worth:530, rel:55, note:'Renewable energy & LNG-term interest in Pakistan; LNG supply deal anchor.'}
 };
 
-/* ---- MAKKAH DEFENSE PACT (real: signed Sep 2025) ---- */
-ALLIANCES.MPAKT = {name:'Makkah Defense Pact', icon:'🕋', type:'Mutual defense pact (bilateral)', founded:2025,
- hq:'Makkah, Saudi Arabia (signed)', lead:'🇸🇦🇵🇰 Joint — Saudi money, Pakistani army the muscle',
- note:'Signed Sep 2025: aggression against either = aggression against both. De facto extends Pakistani nuclear deterrence over the Kingdom — and Saudi cash into your reserves. The Muslim world\'s one real defense bloc.',
- members:['SAU','PAK']};
+/* Makkah Pact: bilateral Saudi-Pakistan pact; Türkiye is a game-only expansion. */
+ALLIANCES.MPAKT = {name:'Makkah Defense Pact', icon:'🕋', type:'Defense pact · game scenario', founded:2025,
+ hq:'Makkah', lead:'Saudi Arabia & Pakistan',
+ note:'Türkiye is a game-only addition, not a real signatory.',
+ members:['SAU','PAK','TUR']};
 
 /* ---- RESOURCES (what each country mines / has / imports) ---- */
 const RESOURCES = {
@@ -805,7 +805,7 @@ const LEADS = {
  ECO:'Türkiye, Iran, Pakistan', AU:'Rotating chair — big three: Egypt, Nigeria, South Africa',
  ARAB:'Egypt (host) and Saudi Arabia (money)', CSTO:'Russia', AUKUS:'USA', QUAD:'USA',
  G7:'Rotating presidency (2026: France)', CW:'UK (ceremonial: King Charles III)',
- D8:'Türkiye (founder)', MPAKT:'Saudi Arabia and Pakistan (joint)'
+ D8:'Türkiye (founder)', MPAKT:'Saudi Arabia & Pakistan · Türkiye added in-game'
 };
 for (const k in LEADS) if (ALLIANCES[k]) ALLIANCES[k].lead = LEADS[k];
 

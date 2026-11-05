@@ -102,30 +102,30 @@ function tabGov(s){
   </div>
 
   <div class="card">
-    <h3>🎖 Pakistan military — public-source reference</h3>
+    <h3>🪖 Army</h3>
+    <div class="muted tiny">Public estimates · GFP 2026 / SIPRI Jan 2026</div>
     <div class="ministat personnel public-reference">
-      <div>👥 Active force · GFP 2026 <b>${publicPeople(publicMil.active)}</b></div>
-      <div>🎖 Reserve estimate · GFP 2026 <b>${publicPeople(publicMil.reserve)}</b></div>
-      <div>🧑 Annual age cohort · GFP 2026 <b>${publicCount(publicMil.age)}</b></div>
-      <div>🛡 Tanks · GFP 2026 <b>${publicCount(publicMil.land.tanks[0])}</b></div>
-      <div>✈ Aircraft · GFP 2026 <b>${publicCount(publicMil.air.total[0])}</b></div>
-      <div>⚓ Fleet assets · GFP 2026 <b>${publicCount(publicMil.navy.total)}</b></div>
-      <div>☢ Warheads · SIPRI Jan 2026 <b>${publicCount(SIPRI_NUCLEAR_2026.PAK)}</b></div>
+      <div>👥 Active <b>${publicPeople(publicMil.active)}</b></div>
+      <div>🎖 Reserve <b>${publicPeople(publicMil.reserve)}</b></div>
+      <div>🛡 Tanks <b>${publicCount(publicMil.land.tanks[0])}</b></div>
+      <div>✈ Aircraft <b>${publicCount(publicMil.air.total[0])}</b></div>
+      <div>⚓ Navy <b>${publicCount(publicMil.navy.total)}</b></div>
+      <div>☢ Warheads <b>${publicCount(SIPRI_NUCLEAR_2026.PAK)}</b></div>
     </div>
-    <div class="note tiny">Reference estimates are separate from the simulation. The annual age cohort is not the number fit or eligible to enlist; GFP reserve totals exclude paramilitary forces. Open Military for definitions, equipment categories and source links.</div>
-    <h4 class="popsub">🎮 Game scenario baseline (simulation only)</h4>
-    <div class="ministat army">
-      <div>👥 Troops <b>${P.troops.toLocaleString()}k</b></div>
-      <div>🛡 Tanks <b>${P.tanks.toLocaleString()}</b></div>
-      <div>✈ Aircraft <b>${P.aircraft}</b></div>
-      <div>🚢 Ships <b>${P.ships}</b></div>
-      <div>☢ Scenario variable <b>${P.nu}</b></div>
-      <div>💵 Defense budget/yr <b>$${P.defense.toFixed(1)}B</b></div>
-    </div>
-    <div class="frow small"><b>Game readiness</b><span>${(s.readiness*100).toFixed(0)}%</span></div>
-    <div class="bar"><i class="${s.readiness>0.6?'green':'orange'}" style="width:${s.readiness*100}%"></i></div>
-    <div class="frow small"><b>Border posture vs India</b><span>${'▮'.repeat(s.militPosture)}${'▯'.repeat(5-s.militPosture)}</span></div>
-    <div class="muted tiny">These lower-row counts and bars are game mechanics, not current national inventory or readiness.</div>
+    <div class="muted tiny">Reference estimates are separate from the game.</div>
+    <details class="clean-details"><summary>Game scenario</summary>
+      <div class="ministat army">
+        <div>👥 Troops <b>${P.troops.toLocaleString()}k</b></div>
+        <div>🛡 Tanks <b>${P.tanks.toLocaleString()}</b></div>
+        <div>✈ Aircraft <b>${P.aircraft}</b></div>
+        <div>🚢 Ships <b>${P.ships}</b></div>
+        <div>☢ Scenario variable <b>${P.nu}</b></div>
+        <div>💵 Defense/yr <b>$${P.defense.toFixed(1)}B</b></div>
+      </div>
+      <div class="frow small"><b>Game readiness</b><span>${(s.readiness*100).toFixed(0)}%</span></div>
+      <div class="bar"><i class="${s.readiness>0.6?'green':'orange'}" style="width:${s.readiness*100}%"></i></div>
+      <div class="frow small"><b>Border posture</b><span>${'▮'.repeat(s.militPosture)}${'▯'.repeat(5-s.militPosture)}</span></div>
+    </details>
   </div>
 
   ${warcard}
@@ -265,45 +265,36 @@ function showCountryCard(iso){
   const isPAK = iso==='PAK';
   const rel = c.rel && c.rel.PAK !== undefined ? c.rel.PAK : 50;
   const rank = worldRank(s, c);
-  const goldVal = (c.gold||0) * 0.128; // $B @ ~$4,000/oz
   card.innerHTML = `
     <button class="btn mini close" onclick="hideCard()">✕</button>
     <div class="ccrow">
       <div class="ccflag">${c.flag||'🏳'}</div>
       <div>
         <h2>${esc(c.name)} ${isPAK?'<span class="youbadge big">YOU</span>':''}</h2>
-        <div class="muted small">World power rank <b>#${rank}</b> of ${Object.keys(s.countries).length}</div>
+        <div class="muted small">Rank #${rank} of ${Object.keys(s.countries).length}</div>
       </div>
     </div>
-    ${isPAK ? `
-      <div class="frow small"><b>Your approval</b><span class="${s.approval<35?'bad':s.approval>55?'good':'warn'}"><b>${s.approval.toFixed(0)}% support</b></span></div>
-      <div class="bar"><i class="${s.approval<35?'red':s.approval>55?'green':'orange'}" style="width:${s.approval}%"></i></div>
-    ` : `
-      <div class="frow small"><b>Relationship with you</b><span style="color:${relColor(rel)}"><b>${rel.toFixed(0)} — ${G.relLabel(rel)}</b></span></div>
-      <div class="bar"><i style="width:${(rel+100)/2}%;background:${relColor(rel)}"></i></div>
-    `}
-    <div class="ministat">
-      <div>👑 Leader <b class="small">${esc(c.leader||'—')}</b></div>
-      <div>👥 People <b>${c.pop>=1000?(c.pop/1000).toFixed(2)+'B':c.pop.toFixed(1)+'M'}</b></div>
-      <div>💰 Economy <b>${fmtB(c.gdp)}</b></div>
-      <div>🪙 Gold <b>${(c.gold||0).toLocaleString()}t ~$${goldVal.toFixed(1)}B</b></div>
+    <div class="country-status"><span>${isPAK?'Approval':'Relations'}</span><b style="color:${isPAK?(s.approval<35?'var(--red)':s.approval>55?'var(--green)':'var(--amber)'):relColor(rel)}">${isPAK?s.approval.toFixed(0)+'%':G.relLabel(rel)}</b></div>
+    <div class="country-quick-stats">
+      <div><span>People</span><b>${c.pop>=1000?(c.pop/1000).toFixed(2)+'B':c.pop.toFixed(1)+'M'}</b></div>
+      <div><span>GDP</span><b>${fmtB(c.gdp)}</b></div>
     </div>
-    <div class="actions two">
-      <button class="act ops" onclick="openPopup('${iso}','ops')">🕵 Our Operations</button>
-      <button class="act alli" onclick="openPopup('${iso}','alli')">🤝 Alliances</button>
-    </div>
-    <div class="actions">
-      <button class="act mil" onclick="openPopup('${iso}','mil')">🎖 Military</button>
-      <button class="act econ" onclick="openPopup('${iso}','econ')">💰 Economy</button>
+    <div class="country-primary-actions">
+      <button class="act mil" onclick="openPopup('${iso}','mil')">🪖 Army</button>
       <button class="act trade" onclick="openPopup('${iso}','trade')">📦 Trade</button>
-      <button class="act rule" onclick="openPopup('${iso}','rule')">👑 Ruling</button>
     </div>
-    <div class="actions one">
-      <button class="act res" onclick="openPopup('${iso}','res')">⛏ Resources — Minerals, Oil, Uranium</button>
-    </div>
-    <div class="frow small" style="margin-top:10px"><b>Inner condition</b><span class="${(c.st||55)<40?'bad':(c.st||55)>=70?'good':'warn'}"><b>${G.stabLabel(c.st||55)} (${(c.st||55)}/100)</b></span></div>
-    <div class="bar"><i class="${(c.st||55)<40?'red':(c.st||55)>=70?'green':'orange'}" style="width:${c.st||55}%"></i></div>
-    ${isPAK?'<button class="btn primary" style="width:100%;margin-top:12px" onclick="goHome()">🎖 Open My Government →</button>':''}`;
+    <details class="country-more">
+      <summary>More</summary>
+      <div class="country-extra-actions">
+        <button class="act econ" onclick="openPopup('${iso}','econ')">Economy</button>
+        <button class="act rule" onclick="openPopup('${iso}','rule')">Government</button>
+        <button class="act alli" onclick="openPopup('${iso}','alli')">Alliances</button>
+        <button class="act ops" onclick="openPopup('${iso}','ops')">Intel</button>
+        <button class="act res" onclick="openPopup('${iso}','res')">Resources</button>
+      </div>
+      <div class="country-status"><span>Condition</span><b>${G.stabLabel(c.st||55)}</b></div>
+    </details>
+    ${isPAK?'<button class="btn primary country-home" onclick="goHome()">My Government</button>':''}`;
 }
 function chipsSimple(str){
   return `<div class="chiprow">${String(str||'—').split(',').map(g=>`<span class="chipbtn">${esc(g.trim())}</span>`).join('')}</div>`;
@@ -372,8 +363,12 @@ function countryPills(s, list){
 function militaryPopupHtml(s, iso, c, rank){
   const p = MIL_2026[iso];
   if (!p){
-    return `<div class="note">No comparable 2026 public inventory profile is included for ${esc(c.name)}. Unknown figures are not shown as zero; the legacy game baseline is not presented as a real-world estimate.</div>
-      <div class="muted tiny mil-sources">Reference sources: <a href="${MIL_2026_SOURCE.aircraftUrl}" target="_blank" rel="noopener">GFP aircraft totals</a> · <a href="${MIL_2026_SOURCE.tanksUrl}" target="_blank" rel="noopener">GFP tank totals</a> · <a href="${MIL_2026_SOURCE.navyUrl}" target="_blank" rel="noopener">GFP fleet totals</a>.</div>`;
+    return `<div class="country-empty">No public army profile for ${esc(c.name)}. Game figures stay separate.</div>
+      <details class="clean-details"><summary>Sources</summary><div class="clean-links">
+        <a href="${MIL_2026_SOURCE.aircraftUrl}" target="_blank" rel="noopener">Aircraft</a>
+        <a href="${MIL_2026_SOURCE.tanksUrl}" target="_blank" rel="noopener">Tanks</a>
+        <a href="${MIL_2026_SOURCE.navyUrl}" target="_blank" rel="noopener">Navy</a>
+      </div></details>`;
   }
   const nuclear = SIPRI_NUCLEAR_2026[iso];
   const kpis = [
@@ -450,10 +445,22 @@ function militaryPopupHtml(s, iso, c, rank){
   const profileUrl = GFP_PROFILE_SLUG[iso] ? MIL_2026_SOURCE.profileBase+GFP_PROFILE_SLUG[iso] : MIL_2026_SOURCE.aircraftUrl;
 
   return `<div class="mil-kpis">${kpis.map(([label,value])=>`<div class="mil-kpi"><span>${esc(label)}</span><b>${esc(value)}</b></div>`).join('')}</div>
-    <div class="mil-disclaimer">Public estimates · GFP 2026 inventories · SIPRI nuclear estimates (January 2026). GFP “available” numbers are modelled rates, not verified serviceability.</div>
+    <div class="mil-disclaimer">GFP 2026 estimates · SIPRI Jan 2026 warheads · not a readiness score.</div>
     ${milCompare(s,iso)}
-    <div class="mil-grid">${people}${land}${aircraft}${navy}${strategic}${intel}</div>
-    <div class="muted tiny mil-sources">Sources: <a href="${profileUrl}" target="_blank" rel="noopener">GFP ${esc(iso)} 2026 country breakdown</a> · <a href="${MIL_2026_SOURCE.activeUrl}" target="_blank" rel="noopener">personnel</a> · <a href="${MIL_2026_SOURCE.reserveUrl}" target="_blank" rel="noopener">reserves</a> · <a href="${MIL_2026_SOURCE.annualAgeUrl}" target="_blank" rel="noopener">annual age cohort</a> · <a href="${MIL_2026_SOURCE.aircraftUrl}" target="_blank" rel="noopener">aircraft definitions</a> · <a href="${MIL_2026_SOURCE.tanksUrl}" target="_blank" rel="noopener">tanks</a> · <a href="${MIL_2026_SOURCE.navyUrl}" target="_blank" rel="noopener">naval assets</a> · <a href="https://www.sipri.org/visualizations/2026/world-nuclear-forces-january-2026" target="_blank" rel="noopener">SIPRI nuclear estimates</a> · <a href="https://www.iiss.org/publications/the-military-balance/2025/dr-bastian-giegerichs-launch-event-remarks/" target="_blank" rel="noopener">IISS overview</a>.</div>`;
+    <details class="clean-details"><summary>Full army breakdown</summary>
+      <div class="mil-grid">${people}${land}${aircraft}${navy}${strategic}${intel}</div>
+      <details class="clean-details clean-sources"><summary>Sources</summary><div class="clean-links">
+        <a href="${profileUrl}" target="_blank" rel="noopener">GFP ${esc(iso)} profile</a>
+        <a href="${MIL_2026_SOURCE.activeUrl}" target="_blank" rel="noopener">Personnel</a>
+        <a href="${MIL_2026_SOURCE.reserveUrl}" target="_blank" rel="noopener">Reserves</a>
+        <a href="${MIL_2026_SOURCE.annualAgeUrl}" target="_blank" rel="noopener">Age cohort</a>
+        <a href="${MIL_2026_SOURCE.aircraftUrl}" target="_blank" rel="noopener">Aircraft</a>
+        <a href="${MIL_2026_SOURCE.tanksUrl}" target="_blank" rel="noopener">Tanks</a>
+        <a href="${MIL_2026_SOURCE.navyUrl}" target="_blank" rel="noopener">Navy</a>
+        <a href="https://www.sipri.org/visualizations/2026/world-nuclear-forces-january-2026" target="_blank" rel="noopener">SIPRI</a>
+        <a href="https://www.iiss.org/publications/the-military-balance/2025/dr-bastian-giegerichs-launch-event-remarks/" target="_blank" rel="noopener">IISS</a>
+      </div></details>
+    </details>`;
 }
 function fmtMillions(value){
   if (value===null || value===undefined || value==='') return 'Not reported';
@@ -462,6 +469,7 @@ function fmtMillions(value){
 }
 function resourcePopupHtml(iso, c){
   const oil = OIL_PROFILE[iso], ur = URANIUM_2026[iso];
+  const mineralCount = USGS_MINERALS_2026.filter(item=>item.rows[iso]).length;
   const mineralRows = USGS_MINERALS_2026.filter(item=>item.rows[iso]).map(item=>{
     const r=item.rows[iso];
     return `<article class="resource-mineral"><h5>${esc(item.symbol)} · ${esc(item.name)}</h5>
@@ -481,34 +489,46 @@ function resourcePopupHtml(iso, c){
         <span>${esc(oil.productionType||'Domestic production')}</span><b>${esc(dailyText(oil.productionDaily))}<small>${esc(oil.productionYear||'Reference year not stated')}</small></b>
         <span>Crude imports / month</span><b>${esc(flowText(importMonthly))}${oil.importsYear?`<small>${esc(oil.importsYear)}</small>`:''}</b>
         <span>Crude exports / month</span><b>${esc(flowText(exportMonthly))}${oil.exportsYear?`<small>${esc(oil.exportsYear)}</small>`:''}</b></div>
-      <div class="resource-note">${esc(oil.note||'Monthly amounts are 30-day equivalents of the stated annual/daily measure; crude and refined products are separate.')}</div>
-      <small>Source: ${source?`<a href="${source}" target="_blank" rel="noopener">${iso==='PAK'?'Pakistan Ministry of Energy brochure':iso==='IND'?'EIA India country analysis':'World Oil Monitor country summary'}</a>`:'country data'}${tradeSource?` · Trade series: <a href="${tradeSource}" target="_blank" rel="noopener">${iso==='PAK'?'Ministry energy balance':'EIA / national trade data'}</a>`:''}</small></section>`;
-  })() : `<section class="resource-section"><h4>🛢 Oil (crude)</h4><div class="resource-note">No country-specific, comparable proved-reserve and monthly crude-trade series is included for this country. Unknown is not zero; gross import/export flows are not inferred from consumption.</div></section>`;
+      <details class="clean-details"><summary>Notes & sources</summary>
+        <div class="resource-note">${esc(oil.note||'Monthly amounts are 30-day equivalents; crude and refined products are separate.')}</div>
+        <div class="clean-links">${source?`<a href="${source}" target="_blank" rel="noopener">${iso==='PAK'?'Ministry source':iso==='IND'?'EIA India':'Oil profile'}</a>`:''}${tradeSource?`<a href="${tradeSource}" target="_blank" rel="noopener">Trade source</a>`:''}</div>
+      </details></section>`;
+  })() : `<section class="resource-section"><h4>🛢 Oil</h4><div class="resource-note">No comparable country profile here. Unknown, not zero.</div></section>`;
   const uraniumBlock = ur ? `<section class="resource-section"><h4>☢ Uranium</h4>
-    <div class="resource-facts"><span>2024 mine output</span><b>${ur.output===null?'Not separately listed by WNA':`${fmtMillions(ur.output)} tU/year · ~${fmtMillions(ur.output/12)} tU/month (annual average)`}</b>
-      <span>Identified recoverable resources</span><b>${ur.resources===null?'Not separately listed':fmtMillions(ur.resources)+' tU'}</b>
-      <span>Uranium imports / month</span><b>Not reported by the cited WNA country table</b>
-      <span>Uranium exports / month</span><b>Not reported by the cited WNA country table</b></div>
-    <div class="resource-note">Resources are reasonably assured plus inferred at costs up to US$130/kg U (as of 2025-01-01). Mine output is not the same as fuel imports, conversion, enrichment or reactor-fuel deliveries.</div></section>`
-    : `<section class="resource-section"><h4>☢ Uranium</h4><div class="resource-note">No separate national production/resource figure appears in the cited WNA 2024 output / 2025 resource tables. This is not a zero estimate. Country-level uranium import/export flows are not published there.</div></section>`;
+    <div class="resource-facts"><span>2024 mine output</span><b>${ur.output===null?'Not separately listed':fmtMillions(ur.output)+' tU/year'}</b>
+      <span>Identified resources (2025)</span><b>${ur.resources===null?'Not separately listed':fmtMillions(ur.resources)+' tU'}</b>
+      <span>Trade</span><b>Not in cited WNA table</b></div>
+    <details class="clean-details"><summary>Definition</summary><div class="resource-note">Resources: reasonably assured plus inferred at costs up to US$130/kg U (2025-01-01). WNA does not give country trade flows.</div></details></section>`
+    : `<section class="resource-section"><h4>☢ Uranium</h4><div class="resource-note">No separate WNA figure. Unknown, not zero; trade is not reported.</div></section>`;
   const local=(LOCAL_RESOURCE_FACTS[iso]||[]).map(x=>`<article class="resource-mineral local-mineral"><h5>${esc(x.name)}</h5>
     <div class="resource-facts"><span>Output / status</span><b>${esc(x.output)}</b><span>Resource / reserve</span><b>${esc(x.reserve)}</b></div>
     <small>${esc(x.note)}</small></article>`).join('');
   const energyRows = items=>items.map(([name,value])=>`<div class="resource-flow"><span>${esc(name)}</span><b>${Number(value).toFixed(3)} MTOE</b></div>`).join('');
-  const energyBlock = iso==='PAK' ? `<section class="resource-section"><h4>⚡ Pakistan energy balance · ${esc(ENERGY_BALANCE_PAK.year)}</h4>
-    <div class="energy-columns"><div><h5>Indigenous primary supply</h5>${energyRows(ENERGY_BALANCE_PAK.indigenous)}</div>
-      <div><h5>Imports</h5>${energyRows(ENERGY_BALANCE_PAK.imports)}</div></div>
-    <div class="resource-note">MTOE means million tonnes of oil equivalent. These are energy-balance flows, not reserves or installed capacity. ${esc(ENERGY_BALANCE_PAK.gasResource)}</div>
-    <small>Source: <a href="${ENERGY_BALANCE_PAK.source}" target="_blank" rel="noopener">Ministry of Energy (Petroleum Division), 2025 brochure; Energy Year Book 2023–24 map</a>.</small>
+  const energyTotal = items=>items.reduce((sum,[,value])=>sum+Number(value),0).toFixed(3);
+  const energyBlock = iso==='PAK' ? `<section class="resource-section"><h4>⚡ Energy · ${esc(ENERGY_BALANCE_PAK.year)}</h4>
+    <div class="resource-snapshot"><div><span>Indigenous</span><b>${energyTotal(ENERGY_BALANCE_PAK.indigenous)} MTOE</b></div><div><span>Imports</span><b>${energyTotal(ENERGY_BALANCE_PAK.imports)} MTOE</b></div></div>
+    <details class="clean-details"><summary>Breakdown & source</summary>
+      <div class="energy-columns"><div><h5>Indigenous</h5>${energyRows(ENERGY_BALANCE_PAK.indigenous)}</div>
+        <div><h5>Imports</h5>${energyRows(ENERGY_BALANCE_PAK.imports)}</div></div>
+      <div class="resource-note">MTOE = million tonnes of oil equivalent; flows, not reserves or installed capacity. ${esc(ENERGY_BALANCE_PAK.gasResource)}</div>
+      <div class="clean-links"><a href="${ENERGY_BALANCE_PAK.source}" target="_blank" rel="noopener">Ministry brochure / Energy Year Book 2023–24</a></div>
+    </details>
   </section>` : '';
-  const note=RESOURCE_NOTES[iso] || 'USGS Mineral Commodity Summaries report selected country estimates. A missing row does not mean zero reserves or zero production.';
+  const note=RESOURCE_NOTES[iso] || 'Missing country rows are not zero.';
+  const mineralDetails = mineralRows || '<div class="resource-note">No listed USGS rows. Unknown, not zero.</div>';
   return `${oilBlock}${uraniumBlock}${energyBlock}
-    <section class="resource-section"><h4>⛏ Selected minerals & precious materials</h4>
-      ${mineralRows?`<div class="resource-mineral-grid">${mineralRows}</div>`:'<div class="resource-note">No country-specific rows for the selected USGS commodities are shown for this country. Missing rows do not mean zero resources or production.</div>'}
-      ${local?`<div class="resource-mineral-grid local-resource-grid">${local}</div>`:''}
-      <div class="resource-note">${esc(note)} USGS dash-marked production entries are shown as zero; “Not available” and absent rows are unknown, not zero. Natural gem-quality diamonds and gemstones are distinct from USGS natural industrial-diamond statistics.</div>
+    <section class="resource-section"><h4>⛏ Minerals</h4>
+      <details class="clean-details"><summary>${mineralCount+((LOCAL_RESOURCE_FACTS[iso]||[]).length)} selected figures</summary>
+        ${mineralRows?`<div class="resource-mineral-grid">${mineralDetails}</div>`:mineralDetails}
+        ${local?`<div class="resource-mineral-grid local-resource-grid">${local}</div>`:''}
+        <div class="resource-note">${esc(note)} USGS dash = zero; “Not available” or a missing row = unknown. Gemstones are separate from industrial diamond data.</div>
+      </details>
     </section>
-    <div class="muted tiny resource-sources">Sources: <a href="${USGS_MCS_2026_URL}" target="_blank" rel="noopener">USGS Mineral Commodity Summaries 2026 (2025 estimates)</a> · <a href="${URANIUM_SOURCE_URL}" target="_blank" rel="noopener">World Nuclear Association / OECD-NEA & IAEA uranium data</a>${iso==='PAK'?` · <a href="https://www.barrick.com/English/operations/mineral-reserves-and-resources/default.aspx" target="_blank" rel="noopener">Barrick Reko Diq reserves</a> · <a href="https://www.secmc.com.pk/" target="_blank" rel="noopener">SECMC Thar coal data</a>`:''}. Oil monthly figures are 30-day equivalents; they are not live meters.</div>`;
+    <details class="clean-details clean-sources"><summary>All sources</summary><div class="clean-links">
+      <a href="${USGS_MCS_2026_URL}" target="_blank" rel="noopener">USGS MCS 2026</a>
+      <a href="${URANIUM_SOURCE_URL}" target="_blank" rel="noopener">WNA uranium tables</a>
+      ${iso==='PAK'?`<a href="https://www.barrick.com/English/operations/mineral-reserves-and-resources/default.aspx" target="_blank" rel="noopener">Barrick / Reko Diq</a><a href="https://www.secmc.com.pk/" target="_blank" rel="noopener">SECMC / Thar</a>`:''}
+    </div></details>`;
 }
 function popHead(kind, flag, name, subtitle){
   return `<div class="pophead ${kind}"><span class="pflag">${flag}</span>
@@ -530,137 +550,104 @@ function openPopup(iso, kind){
   let head='', body='';
   if (kind==='mil'){
     const profile = MIL_2026[iso];
-    head = popHead('mil', c.flag||'🏳', c.name+' — Military',
-      `Game power rank #${rank} · public-source inventory profile ${profile?'available':'limited'}`);
+    head = popHead('mil', c.flag||'🏳', c.name+' · Army',
+      profile?'Public estimates · GFP 2026':'Limited public profile');
     body = militaryPopupHtml(s, iso, c, rank);
   }
   if (kind==='econ'){
-    head = popHead('econ', c.flag||'🏳', c.name+' — Economy', `${c.currency||'—'} currency · ${esc(c.gov||'—')}`);
+    head = popHead('econ', c.flag||'🏳', c.name+' · Economy', 'Game estimate');
     const income = c.gdp*(c.tax||16)/100/12;
     const spend = income + c.gdp*(c.def||4)/100/12;
     const prof = income - spend;
     const goldVal = (c.gold||0)*0.128;
-    body = `
-      <div class="pgrid">
-        ${tile('💰 GDP total', fmtB(c.gdp))}
-        ${tile('📈 Growth', c.growth.toFixed(1)+'%')}
-        ${tile('🔥 Inflation', c.infl.toFixed(1)+'%')}
-        ${tile('💵 Monthly output', fmtB(c.gdp/12))}
-        ${tile('🏛 Govt income / month', fmtB(income))}
-        ${tile('🏛 Govt spending / month', fmtB(spend))}
-        ${tile('📅 Monthly balance', (prof>=0?'+':'')+fmtB(prof), prof>=0?'good':'bad')}
-        ${tile('🏦 FX reserves', c.reserves?fmtB(c.reserves):'—')}
-        ${tile('🪙 Gold reserves', (c.gold||0).toLocaleString()+'t (~$'+goldVal.toFixed(1)+'B)')}
-        ${tile('💳 External debt', c.extDebt>0?fmtB(c.extDebt):'Reserve currency')}
-        ${tile('🧾 Debt installments / month', c.extDebt>0?fmtB(c.extDebt*0.055/12):'—')}
-        ${tile('📊 Tax / GDP', (c.tax||16).toFixed(0)+'%')}
+    body = `<div class="pgrid">
+        ${tile('GDP',fmtB(c.gdp))}
+        ${tile('Growth',c.growth.toFixed(1)+'%')}
+        ${tile('Inflation',c.infl.toFixed(1)+'%')}
+        ${tile('FX reserves',c.reserves?fmtB(c.reserves):'—')}
       </div>
-      <div class="muted tiny">Monthly figures are government-budget estimates (tax take + deficit). Gold valued at $4,000/oz.</div>`;
+      <details class="clean-details"><summary>More figures</summary><div class="pgrid">
+        ${tile('Monthly output',fmtB(c.gdp/12))}
+        ${tile('Govt income',fmtB(income))}
+        ${tile('Govt spending',fmtB(spend))}
+        ${tile('Monthly balance',(prof>=0?'+':'')+fmtB(prof),prof>=0?'good':'bad')}
+        ${tile('Gold reserves',(c.gold||0).toLocaleString()+'t (~$'+goldVal.toFixed(1)+'B)')}
+        ${tile('External debt',c.extDebt>0?fmtB(c.extDebt):'Reserve currency')}
+        ${tile('Debt service',c.extDebt>0?fmtB(c.extDebt*0.055/12):'—')}
+        ${tile('Tax / GDP',(c.tax||16).toFixed(0)+'%')}
+      </div></details>`;
   }
   if (kind==='trade'){
-    head = popHead('trade', c.flag||'🏳', c.name+' — Trade', 'Imports & exports');
-    const exM = c.exports/12, imM = c.imports/12;
+    head = popHead('trade', c.flag||'🏳', c.name+' · Trade', 'Game estimate');
     const bal = c.exports - c.imports;
     const chips = arr => `<div class="chiprow">${String(arr||'Mixed goods').split(',').map(g=>`<span class="chipbtn">${esc(g.trim())}</span>`).join('')}</div>`;
-    body = `
-      <div class="pgrid">
-        ${tile('📦 Exports / year', fmtB(c.exports))}
-        ${tile('📦 Exports / month', fmtB(exM))}
-        ${tile('🚚 Imports / year', fmtB(c.imports))}
-        ${tile('🚚 Imports / month', fmtB(imM))}
-        ${tile('⚖ Trade balance / yr', (bal>=0?'+':'')+fmtB(bal), bal>=0?'good':'bad')}
-        ${tile('🔁 Trade volume / yr', fmtB(c.exports+c.imports))}
+    const partners=String(c.partners||'Global').split(',').map(p=>{
+      const bits=p.trim().split(/\s+/), pct=parseFloat(bits[bits.length-1])||0, nm=pct?bits.slice(0,-1).join(' '):p.trim();
+      return `<div class="frow small"><b>${esc(nm)}</b><span>${pct?pct+'%':''}</span></div>`;
+    }).join('');
+    body = `<div class="pgrid">
+        ${tile('Exports / year',fmtB(c.exports))}
+        ${tile('Imports / year',fmtB(c.imports))}
+        ${tile('Balance / year',(bal>=0?'+':'')+fmtB(bal),bal>=0?'good':'bad')}
+        ${tile('Trade volume',fmtB(c.exports+c.imports))}
       </div>
-      <h4 class="popsub">🚀 Main exports</h4>${chips(c.expGoods)}
-      <h4 class="popsub">🛒 Main imports</h4>${chips(c.impGoods)}
-      <h4 class="popsub">🌍 Trade partners</h4>
-      ${String(c.partners||'Global').split(',').map(p=>{
-        const bits = p.trim().split(/\s+/); const pct = parseFloat(bits[bits.length-1])||0;
-        const nm = bits.slice(0,-1).join(' ');
-        return `<div class="frow small"><b>${esc(nm)}</b><span>${pct}%</span></div><div class="bar thin"><i style="width:${clamp(pct*3,3,100)}%;background:#14b8a6"></i></div>`;
-      }).join('')}`;
+      <details class="clean-details"><summary>Goods & partners</summary>
+        <h4 class="popsub">Exports</h4>${chips(c.expGoods)}
+        <h4 class="popsub">Imports</h4>${chips(c.impGoods)}
+        <h4 class="popsub">Partners</h4>${partners}
+      </details>`;
   }
   if (kind==='ops'){
     const profile=MIL_2026[iso], disclosure=INTEL_DISCLOSURE[iso]||INTEL_DISCLOSURE.DEFAULT;
     const unknown=Object.keys(s.countries).filter(k=>k!==iso);
-    const agencies=(profile&&profile.intel||[]).join('; ')||'No reliable country-specific list in this profile.';
-    const publicPanel=`<div class="ops-public">
-      <h4 class="popsub">Public reporting</h4>
-      ${milValueRow('Publicly named agencies',agencies)}
-      ${milValueRow('Agency staffing / spy headcount','Not publicly established','No complete credible headcount is available; none is estimated here.')}
-      <div class="mil-note">${esc(disclosure.note)}</div>
-      <details class="mil-unknown"><summary>No verified country-coverage entry in this reference set for ${unknown.length} other countries</summary>
-        <p class="muted tiny">This list reflects missing public coverage detail, not a claim that intelligence activity is absent.</p>
+    const agencies=(profile&&profile.intel||[]).join('; ')||'Not listed';
+    const publicPanel=`<details class="clean-details"><summary>Public intelligence</summary>
+      ${milValueRow('Agencies',agencies)}
+      ${milValueRow('Staffing','Not public')}
+      <div class="muted tiny">${esc(disclosure.note)}</div>
+      <details class="mil-unknown"><summary>Country coverage: no verified entries (${unknown.length})</summary>
         <div class="mil-country-list">${countryPills(s,unknown)}</div></details>
-    </div>`;
+    </details>`;
     if (iso==='PAK'){
-      head=popHead('ops',c.flag||'🏳','Pakistan — Intelligence reporting','Public information only · staffing and country coverage are not disclosed');
-      body=publicPanel+`<div class="note tiny">Intel actions in Orders affect only the game simulation; no real-world operations or agent counts are displayed.</div>`;
+      head=popHead('ops',c.flag||'🏳','Pakistan · Intel','Public information');
+      body=publicPanel+`<div class="muted tiny">Game networks are managed in Orders → Intel.</div>`;
     } else {
-      head=popHead('ops',c.flag||'🏳',c.name+' — Intelligence', 'Public reporting is separate from the game network below');
+      head=popHead('ops',c.flag||'🏳',c.name+' · Intel','Game simulation');
       const n=s.intel.networks[iso], lvl=n?n.lvl:0, heat=n?n.heat:0;
-      const status=lvl===0?['NO GAME NETWORK','bad']:lvl>=6?['DEEP GAME NETWORK','good']:lvl>=4?['ESTABLISHED GAME NETWORK','good']:lvl>=2?['ACTIVE GAME NETWORK','warn']:['INITIAL GAME NETWORK','warn'];
+      const status=lvl===0?['NO NETWORK','bad']:lvl>=6?['DEEP','good']:lvl>=4?['ESTABLISHED','good']:lvl>=2?['ACTIVE','warn']:['INITIAL','warn'];
       const ctrl=Math.round(lvl/8*100), assets=lvl*7+(lvl>0?3:0);
-      body=`<div class="ops-sim-banner">GAME SIMULATION ONLY · Network level, exposure, control and simulated asset count are fictional gameplay values, not real-world coverage or staffing.</div>
+      body=`<div class="ops-sim-banner">GAME ONLY</div>
         <div class="opstatus ${status[1]}"><span class="dot"></span> ${status[0]}</div>
-        <div class="pgrid">${tile('🎛 Game control value',ctrl+'%',ctrl>=50?'good':ctrl>=25?'warn':'bad')}${tile('🕶 Simulated assets',lvl?String(assets):'0')}</div>
-        <div class="gauge"><div class="glabel"><span>Game network level</span><span>${lvl}/8</span></div><div class="bar"><i style="width:${Math.max(2,ctrl)}%;background:linear-gradient(90deg,#0f766e,#2dd4bf)"></i></div></div>
-        <div class="gauge"><div class="glabel"><span>Game exposure</span><span class="${heat>6?'bad':heat>3?'warn':'good'}">${heat>6?'HIGH':heat>3?'Elevated':'Calm'}</span></div><div class="bar"><i class="${heat>6?'red':heat>3?'orange':'green'}" style="width:${clamp(heat*10,2,100)}%"></i></div></div>
-        ${publicPanel}
-        <div class="note tiny">Change game values via Orders → Intel. Real country coverage is not represented.</div>`;
+        <div class="pgrid">${tile('Control',ctrl+'%',ctrl>=50?'good':ctrl>=25?'warn':'bad')}${tile('Game assets',lvl?String(assets):'0')}</div>
+        <div class="gauge"><div class="glabel"><span>Network</span><span>${lvl}/8</span></div><div class="bar"><i style="width:${Math.max(2,ctrl)}%;background:linear-gradient(90deg,#0f766e,#2dd4bf)"></i></div></div>
+        <div class="gauge"><div class="glabel"><span>Exposure</span><span class="${heat>6?'bad':heat>3?'warn':'good'}">${heat>6?'HIGH':heat>3?'Elevated':'Calm'}</span></div><div class="bar"><i class="${heat>6?'red':heat>3?'orange':'green'}" style="width:${clamp(heat*10,2,100)}%"></i></div></div>
+        ${publicPanel}`;
     }
   }
   if (kind==='alli'){
-    head = popHead('alli', c.flag||'🏳', c.name+' — Alliances', 'Bloc memberships (Nov 2026)');
-    const inB = Object.entries(ALLIANCES).filter(([k,a])=>a.members.includes(iso));
-    const strip = a => a.members.filter(x=>s.countries[x]).slice(0,8).map(x=>s.countries[x].flag||'🏳').join('') ;
-    body = inB.length ? `
-      ${inB.map(([k,a])=>`
-        <div class="allrow" onclick="openPopup('${k}','alliance')">
-          <span class="aicon">${a.icon}</span>
-          <div class="amain">
-            <b>${esc(a.name)}</b>
-            <div class="muted tiny">${a.type} · ${a.members.length} members · led by ${esc(a.lead)}</div>
-            <div class="flagstrip">${strip(a)}</div>
-          </div>
-          <span class="aopen">expand ›</span>
-        </div>`).join('')}
-      ${iso==='PAK'?'<div class="note">🕋 The Makkah Defense Pact is your crown jewel: Saudi money + your army. SCO puts you in a room with India; OIC gives you the Muslim world\'s mic.</div>'
-        :'<div class="muted tiny" style="margin-top:8px">Click any alliance to expand members, leader & economic shares.</div>'}`
-    : `<div class="note">❌ ${esc(c.name)} belongs to no major bloc — non-aligned or simply ignored.</div>`;
+    head = popHead('alli', c.flag||'🏳', c.name+' · Alliances', 'Member groups');
+    const inB = Object.entries(ALLIANCES).filter(([,a])=>a.members.includes(iso));
+    body = inB.length ? inB.map(([k,a])=>{
+      const members=a.members.filter(x=>s.countries[x]);
+      const flags=members.map(x=>s.countries[x].flag||'🏳').join('');
+      return `<div class="allrow" onclick="openPopup('${k}','alliance')">
+        <span class="aicon">${a.icon}</span><div class="amain"><b>${esc(a.name)}</b>
+          <div class="muted tiny">${members.length} members</div><div class="flagstrip">${flags}</div>
+        </div><span class="aopen">›</span></div>`;
+    }).join('') : '<div class="country-empty">No listed alliances.</div>';
+    if (iso==='PAK') body+=`<div class="muted tiny">Türkiye is a game-only addition to the Makkah pact.</div>`;
   }
   if (kind==='alliance'){
     const a = ALLIANCES[iso];
     if (!a){ closePopup(); return; }
     const mem = a.members.filter(x=>s.countries[x]);
-    const totGdp = mem.reduce((t,x)=>t+s.countries[x].gdp,0) || 1;
-    const sorted = [...mem].sort((x,y)=>s.countries[y].gdp - s.countries[x].gdp);
-    const rels = mem.filter(x=>x!=='PAK' && s.countries[x].rel && s.countries[x].rel.PAK!==undefined);
-    const standing = rels.length ? Math.round(rels.reduce((t,x)=>t+s.countries[x].rel.PAK,0)/rels.length) : null;
-    head = popHead('alliance', a.icon, a.name, `${a.type} · est. ${a.founded} · HQ: ${esc(a.hq)}`);
-    body = `
-      <div class="bigstrip">${mem.map(x=>`<span title="${esc(s.countries[x].name)}">${s.countries[x].flag||'🏳'}</span>`).join('')}</div>
-      <div class="pgrid">
-        ${tile('🚩 Members', mem.length)}
-        ${tile('👑 Led by', a.lead)}
-        ${tile('🤝 Your standing', standing===null?'Member state':standing, standing===null?'good':standing>=40?'good':standing>=0?'warn':'bad')}
-        ${tile('⚖ Top economy', sorted[0] ? s.countries[sorted[0]].flag+' '+s.countries[sorted[0]].name : '—')}
-      </div>
-      <div class="noteline">${esc(a.note)}</div>
-      <h4 class="popsub">🌍 Members by economic weight (share of bloc)</h4>
-      <div class="memgrid">
-      ${sorted.map((x,i)=>{
-        const cc = s.countries[x]; const share = (cc.gdp/totGdp*100);
-        const rl = x==='PAK' ? null : (cc.rel&&cc.rel.PAK!==undefined?cc.rel.PAK:undefined);
-        return `<div class="memrow ${x==='PAK'?'me':''}">
-          <span class="mi">${i+1}</span><span class="mf">${cc.flag}</span>
-          <span class="mn">${esc(cc.name)}${x==='PAK'?' <span class="youbadge">YOU</span>':''}</span>
-          <span class="mg tiny muted">${fmtB(cc.gdp)}</span>
-          <div class="bar thin mb"><i style="width:${clamp(share*2.2,3,100)}%;background:${rl!==undefined?relColor(rl):'#f0b429'}"></i></div>
-          <span class="mp">${share.toFixed(1)}%</span>
-        </div>`;}).join('')}
-      </div>
-      <div class="muted tiny">Lead: ${esc(a.lead)}. Bar color = that country's relations with you.</div>`;
+    head = popHead('alliance', a.icon, a.name, `${mem.length} members · ${a.type}`);
+    body = `<div class="alliance-member-list">${mem.map(x=>
+        `<div class="alliance-member"><span>${s.countries[x].flag||'🏳'}</span><b>${esc(s.countries[x].name)}</b>${x==='PAK'?'<i>YOU</i>':''}</div>`).join('')}
+      </div><details class="clean-details"><summary>About this group</summary>
+        <div class="resource-note">${esc(a.note)}</div>
+        <div class="muted tiny">Lead: ${esc(a.lead)} · Founded ${a.founded}</div>
+      </details>`;
   }
   if (kind==='company'){
     const co = COMPANIES[iso];
@@ -681,7 +668,7 @@ function openPopup(iso, kind){
       <div class="noteline">${esc(co.note)}</div>`;
   }
   if (kind==='res'){
-    head = popHead('res', c.flag||'🏳', c.name+' — Resources', 'Public source estimates · units and years shown · unknown is not zero');
+    head = popHead('res', c.flag||'🏳', c.name+' · Resources', 'Oil · Uranium · Minerals');
     body = resourcePopupHtml(iso, c);
   }
   if (kind==='rule'){
