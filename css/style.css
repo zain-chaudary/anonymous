@@ -174,6 +174,27 @@ input[type=range]::-moz-range-thumb { width:15px; height:15px; border-radius:50%
 .resgrid .tile b { font-size:12.5px; line-height:1.45; color:var(--txt); }
 .resgrid .tile { min-height:56px; }
 
+/* conflicts list */
+.conf { display:flex; gap:10px; align-items:flex-start; padding:7px 0; border-bottom:1px dashed #262d38; }
+.cbadge { flex-shrink:0; font-size:10px; font-weight:900; letter-spacing:.5px; border-radius:7px; padding:3px 9px; margin-top:1px; }
+.cbadge.good { background:rgba(16,185,129,.14); color:#34d399; border:1px solid #2b5f4e; }
+.cbadge.bad { background:rgba(239,68,68,.14); color:#f05252; border:1px solid #6e2a2a; }
+.cbadge.warn { background:rgba(240,180,41,.14); color:#f0b429; border:1px solid #6b5518; }
+.cmain b { font-size:13px; }
+.cmain div { margin-top:1px; }
+
+/* chip buttons (trade goods, imports) */
+.chiprow { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:4px; }
+.chipbtn { background:linear-gradient(180deg,#20242d,#191d24); border:1px solid #2e3542; color:#e9ecf1; font-size:12px; font-weight:600; padding:5px 12px; border-radius:16px; box-shadow:inset 0 1px 0 rgba(255,255,255,.05); }
+
+/* structured resource tiles */
+.rtiles { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-bottom:12px; }
+.rtile { background:linear-gradient(180deg,#171b22,#12151b); border:1px solid #262d38; border-radius:11px; padding:10px 12px; }
+.rtile .rtname { font-size:14px; font-weight:800; color:#f0b429; margin-bottom:6px; }
+.rtile .rtline { display:flex; justify-content:space-between; gap:8px; padding:2.5px 0; border-top:1px dashed #232a35; font-size:11.5px; }
+.rtile .rtline span { color:var(--muted); flex-shrink:0; }
+.rtile .rtline b { text-align:right; font-size:11.5px; color:var(--txt); line-height:1.35; }
+
 /* actions extras */
 .actions.one { grid-template-columns:1fr; }
 .act.res { background:linear-gradient(180deg,#3f6212 0%,#2a4210 100%); border-color:#a3e635; }

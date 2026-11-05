@@ -15,6 +15,8 @@ const BUDGET_META = [
 ];
 
 function esc(x){ return String(x).replace(/</g,'&lt;'); }
+/* clean number style: 1455k troops → "1.46M" */
+const fmtMen = k => k>=1000 ? (k/1000).toFixed(2)+'M' : k+'k';
 function toast(msg){
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
@@ -290,24 +292,27 @@ function showCountryCard(iso){
     <div class="bar"><i class="${(c.st||55)<40?'red':(c.st||55)>=70?'green':'orange'}" style="width:${c.st||55}%"></i></div>
     ${isPAK?'<button class="btn primary" style="width:100%;margin-top:12px" onclick="goHome()">🎖 Open My Government →</button>':''}`;
 }
+function chipsSimple(str){
+  return `<div class="chiprow">${String(str||'—').split(',').map(g=>`<span class="chipbtn">${esc(g.trim())}</span>`).join('')}</div>`;
+}
 function hideCard(){ document.getElementById('countrycard').classList.add('hidden'); }
 function goHome(){ hideCard(); openHome(); switchTab('gov'); }
 
 /* ---------- detail popups ---------- */
-function vsRow(label, mine, theirs, invert=false){
+function vsRow(label, mine, theirs, fmt){
+  const f = fmt || (v=>v.toLocaleString());
   const mx = Math.max(mine, theirs, 1);
   const myPct = clamp(mine/mx*100, 2, 100), thPct = clamp(theirs/mx*100, 2, 100);
   const ratio = mine>0 ? (theirs/mine) : 99;
   let verdict = ratio>1.5 ? `<span class="bad">⚠ ${ratio.toFixed(1)}× stronger than you</span>`
     : ratio>0.8 ? `<span class="warn">≈ equal to you</span>`
     : `<span class="good">✔ ${ratio<0.02?'negligible':(mine/theirs).toFixed(1)+'× weaker than you'}</span>`;
-  if (invert) verdict = '';
   return `
     <div class="vsrow">
       <div class="vslabel">${label}</div>
       <div class="vsbars">
-        <div class="vsbar you"><i style="width:${myPct}%"></i><b>${mine.toLocaleString()}</b><span>YOU</span></div>
-        <div class="vsbar them"><i style="width:${thPct}%"></i><b>${theirs.toLocaleString()}</b><span>THEM</span></div>
+        <div class="vsbar you"><i style="width:${myPct}%"></i><b>${f(mine)}</b><span>YOU</span></div>
+        <div class="vsbar them"><i style="width:${thPct}%"></i><b>${f(theirs)}</b><span>THEM</span></div>
       </div>
       <div class="vsverdict tiny">${verdict}</div>
     </div>`;
@@ -320,11 +325,11 @@ function milCompare(s, iso){
   return `
     <h4 class="popsub">⚔ ${iso==='PAK'? 'You vs India — your rival' : esc(a.name)+' vs '+foeName}</h4>
     ${vsRow('⚔ Power score', Math.round(G.powerScore(a)), Math.round(G.powerScore(b)))}
-    ${vsRow('👥 Troops', a.troops, b.troops)}
+    ${vsRow('👥 Troops', a.troops, b.troops, fmtMen)}
     ${vsRow('🛡 Tanks', a.tanks, b.tanks)}
     ${vsRow('✈ Aircraft', a.aircraft, b.aircraft)}
     ${vsRow('☢ Warheads', a.nu||0, b.nu||0)}
-    <div class="muted tiny" style="margin-bottom:6px">Bars: gold = ${iso==='PAK'?'you':'you'} · grey = ${iso==='PAK'?'India':'them'}. Numbers rounded.</div>`;
+    <div class="muted tiny" style="margin-bottom:6px">Gold bar = you · grey bar = them.</div>`;
 }
 function popHead(kind, flag, name, subtitle){
   return `<div class="pophead ${kind}"><span class="pflag">${flag}</span>
@@ -347,30 +352,24 @@ function openPopup(iso, kind){
   if (kind==='mil'){
     head = popHead('mil', c.flag||'🏳', c.name+' — Military', `Power rank #${rank} · ${c.nu? c.nu+' warheads ☢':'No nukes'} · Agency: ${esc(c.agency||'—')}`);
     const m = c.mil || null;
-    const short = t => (t||'—').split('·')[0].trim();
-    const rest = t => { const p=(t||'').split('·'); return p.length>1 ? p.slice(1).join(' · ').trim() : ''; };
     body = `
       <div class="mtiles">
-        <div class="mtile"><span>👥 Troops</span><b>${c.troops.toLocaleString()}k</b><div class="muted tiny">${m?esc(short(m.r)):'active'}</div></div>
-        <div class="mtile"><span>🛡 Tanks</span><b>${c.tanks.toLocaleString()}</b><div class="muted tiny">${m?esc(short(m.a)):' armored units'}</div></div>
-        <div class="mtile"><span>✈ Fighter Jets</span><b>${c.aircraft.toLocaleString()}</b><div class="muted tiny">${m?esc(short(m.f)):' combat aircraft'}</div></div>
-        <div class="mtile"><span>🚢 Warships</span><b>${(c.ships||0).toLocaleString()}</b><div class="muted tiny">${m?esc(short(m.n)):' vessels'}</div></div>
+        <div class="mtile"><span>👥 Troops</span><b>${fmtMen(c.troops)}</b><div class="muted tiny">${m?esc((m.r||'').split('·')[0].trim()):'active duty'}</div></div>
+        <div class="mtile"><span>🛡 Tanks</span><b>${c.tanks.toLocaleString()}</b><div class="muted tiny">${m?esc((m.a||'—').split('·')[0].trim()):'armored units'}</div></div>
+        <div class="mtile"><span>✈ Fighter Jets</span><b>${c.aircraft.toLocaleString()}</b><div class="muted tiny">${m?esc((m.f||'—').split('·')[0].trim()):'combat aircraft'}</div></div>
+        <div class="mtile"><span>🚢 Warships</span><b>${(c.ships||0).toLocaleString()}</b><div class="muted tiny">${m?esc((m.n||'—').split('·')[0].trim()):'vessels'}</div></div>
       </div>
-      ${m ? `
-      <div class="mdetail">
-        <div class="mrow"><span>🪖 Armor & vehicles</span><p>${esc(m.a)}</p></div>
-        <div class="mrow"><span>✈ Air fleet</span><p>${esc(m.f)}</p></div>
-        <div class="mrow"><span>🚢 Navy</span><p>${esc(m.n)}</p></div>
-        <div class="mrow"><span>🚀 Missiles & strategic</span><p>${esc(m.m)}</p></div>
-      </div>
-      <div class="pgrid">
+      <h4 class="popsub">📜 Last Conflicts — who won</h4>
+      ${(m && m.cf) ? m.cf.slice(0,4).map(cf=>{
+        const badge = cf[2]==='W'?['✔ WON','good']:cf[2]==='L'?['✘ LOST','bad']:['= DRAW','warn'];
+        return `<div class="conf"><span class="cbadge ${badge[1]}">${badge[0]}</span>
+          <div class="cmain"><b>${esc(cf[0])}</b><div class="muted tiny">${esc(cf[1])}${cf[3]?' — '+esc(cf[3]):''}</div></div></div>`;
+      }).join('') : `<div class="noteline">${m?esc(m.x):'No recorded conflicts.'}</div>`}
+      ${m?`<div class="pgrid" style="margin-top:10px">
         ${tile('🎖 Reserves / SF', m.r)}
-        ${tile('🛒 Suppliers', m.s)}
-        ${tile('🔥 Combat record', m.x)}
         ${tile('🌍 Foreign bases', m.b)}
       </div>
-      <div class="note">🧭 ${esc(m.j)}</div>
-      ` : `<div class="note">Limited open-source detail — judge by the numbers.</div>`}
+      <div class="note">🧭 ${esc(m.j)}</div>`:`<div class="note">Limited open-source detail — judge by the numbers.</div>`}
       ${milCompare(s, iso)}`;
   }
   if (kind==='econ'){
@@ -400,6 +399,7 @@ function openPopup(iso, kind){
     head = popHead('trade', c.flag||'🏳', c.name+' — Trade', 'Imports & exports');
     const exM = c.exports/12, imM = c.imports/12;
     const bal = c.exports - c.imports;
+    const chips = arr => `<div class="chiprow">${String(arr||'Mixed goods').split(',').map(g=>`<span class="chipbtn">${esc(g.trim())}</span>`).join('')}</div>`;
     body = `
       <div class="pgrid">
         ${tile('📦 Exports / year', fmtB(c.exports))}
@@ -409,13 +409,13 @@ function openPopup(iso, kind){
         ${tile('⚖ Trade balance / yr', (bal>=0?'+':'')+fmtB(bal), bal>=0?'good':'bad')}
         ${tile('🔁 Trade volume / yr', fmtB(c.exports+c.imports))}
       </div>
-      <h4 class="popsub">🚀 Main exports</h4><div class="noteline">${esc(c.expGoods||'Mixed goods')}</div>
-      <h4 class="popsub">🛒 Main imports</h4><div class="noteline">${esc(c.impGoods||'Machinery & fuel')}</div>
+      <h4 class="popsub">🚀 Main exports</h4>${chips(c.expGoods)}
+      <h4 class="popsub">🛒 Main imports</h4>${chips(c.impGoods)}
       <h4 class="popsub">🌍 Trade partners</h4>
       ${String(c.partners||'Global').split(',').map(p=>{
         const bits = p.trim().split(/\s+/); const pct = parseFloat(bits[bits.length-1])||0;
         const nm = bits.slice(0,-1).join(' ');
-        return `<div class="frow small"><b>${esc(nm)}</b><span>${pct}%</span></div><div class="bar thin"><i style="width:${clamp(pct*3,3,100)}%;background:#2dd4bf"></i></div>`;
+        return `<div class="frow small"><b>${esc(nm)}</b><span>${pct}%</span></div><div class="bar thin"><i style="width:${clamp(pct*3,3,100)}%;background:#14b8a6"></i></div>`;
       }).join('')}`;
   }
   if (kind==='ops'){
@@ -458,7 +458,7 @@ function openPopup(iso, kind){
           <span class="aicon">${a.icon}</span>
           <div class="amain">
             <b>${esc(a.name)}</b>
-            <div class="muted tiny">${a.type} · ${a.members.length} members · lead ${esc(a.lead.split('—')[0].trim())}</div>
+            <div class="muted tiny">${a.type} · ${a.members.length} members · led by ${esc(a.lead)}</div>
             <div class="flagstrip">${strip(a)}</div>
           </div>
           <span class="aopen">expand ›</span>
@@ -480,7 +480,7 @@ function openPopup(iso, kind){
       <div class="bigstrip">${mem.map(x=>`<span title="${esc(s.countries[x].name)}">${s.countries[x].flag||'🏳'}</span>`).join('')}</div>
       <div class="pgrid">
         ${tile('🚩 Members', mem.length)}
-        ${tile('🎯 De facto lead', a.lead.split('—')[0].trim())}
+        ${tile('👑 Led by', a.lead)}
         ${tile('🤝 Your standing', standing===null?'Member state':standing, standing===null?'good':standing>=40?'good':standing>=0?'warn':'bad')}
         ${tile('⚖ Top economy', sorted[0] ? s.countries[sorted[0]].flag+' '+s.countries[sorted[0]].name : '—')}
       </div>
@@ -519,24 +519,24 @@ function openPopup(iso, kind){
       <div class="noteline">${esc(co.note)}</div>`;
   }
   if (kind==='res'){
-    head = popHead('res', c.flag||'🏳', c.name+' — Resources', 'What they mine · hold · import (Nov 2026)');
+    head = popHead('res', c.flag||'🏳', c.name+' — Resources', 'What they mine · export · import (Nov 2026)');
     const r = c.res;
     body = r ? `
-      <div class="resgrid">
-        ${tile('🛢 Oil', r.oil)}
-        ${tile('🔥 Gas', r.gas)}
-        ${tile('⚫ Coal', r.coal)}
-        ${tile('☢ Uranium', r.ur)}
-        ${tile('🪙 Gold', r.gold)}
-        ${tile('🔋 Lithium', r.li)}
-        ${tile('🧲 Rare earths', r.rare)}
-        ${tile('⛏ Other minerals', r.other)}
-      </div>
-      <h4 class="popsub">🚚 Must import</h4>
-      <div class="noteline">${esc(r.imp)}</div>
+      ${r.tiles ? `<div class="rtiles">${r.tiles.map(t=>`
+        <div class="rtile">
+          <div class="rtname">${t[0]} ${esc(t[1])}</div>
+          <div class="rtline"><span>⛏ Mine</span><b>${esc(t[2])}</b></div>
+          <div class="rtline"><span>📤 Export</span><b>${esc(t[3])}</b></div>
+          <div class="rtline"><span>📥 Import</span><b>${esc(t[4])}</b></div>
+        </div>`).join('')}</div>`
+      : `<div class="resgrid">
+        ${tile('🛢 Oil', r.oil)}${tile('🔥 Gas', r.gas)}${tile('⚫ Coal', r.coal)}${tile('☢ Uranium', r.ur)}
+        ${tile('🪙 Gold', r.gold)}${tile('🔋 Lithium', r.li)}${tile('🧲 Rare earths', r.rare)}${tile('⛏ Other', r.other)}
+      </div>`}
+      <h4 class="popsub">🚚 Must import</h4>${chipsSimple(r.imp)}
       <div class="note">🧭 ${esc(r.note)}</div>
       ${iso==='PAK'?'<div class="muted tiny" style="margin-top:6px">💡 Reko Diq + Thar coal are your ticket out of the oil-bill trap. Guard them.</div>':''}`
-    : `<div class="note">No detailed resource data — estimate from economy size: ${fmtB(c.gdp)} GDP, mostly agrarian/service.</div>`;
+    : `<div class="note">No detailed resource data — estimate from economy size: ${fmtB(c.gdp)} GDP.</div>`;
   }
   if (kind==='rule'){
     head = popHead('rule', c.flag||'🏳', c.name+' — Ruling', 'Leadership & governance');
