@@ -1,9 +1,10 @@
 /* ============================================================
-   WORLD MAP v3 — premium canvas renderer
-   Ocean gradient, graticule, glow, zoom-to-cursor, controls
+   WORLD MAP v5 — high-DPI, realistic "war room atlas" style
+   Ocean gradient + light falloff, tinted landmass, glowing
+   coastlines, subtle relation edges, zoom-to-cursor
    ============================================================ */
 let MAP = { canvas:null, ctx:null, features:[], paths:[], meta:[], scale:1, ox:0, oy:0,
-            drag:null, hover:null, ready:false, inited:false };
+            drag:null, hover:null, ready:false, inited:false, style:'atlas', dpr:1 };
 
 function project(lon, lat, W, H){
   const x = (lon + 180) / 360 * W;
@@ -11,16 +12,29 @@ function project(lon, lat, W, H){
   const y = H * (0.5 - Math.log(Math.tan(Math.PI/4 + latRad/2)) / (2*Math.PI)) * 1.30 + H*0.18;
   return [x, y];
 }
-/* content vertical extent at scale 1 ≈ [0.41H, 1.07H] → center offset */
 const WORLD_CY = 0.74;
+
+/* deterministic muted land tint per country (dark realistic atlas) */
+const LAND_TINTS = ['#252f35','#28343a','#2a3833','#2c3a41','#263238','#2b3942','#283640','#24303e','#2b3540','#273339'];
+function natColor(iso){
+  let h=0; for (let i=0;i<iso.length;i++) h=(h*31+iso.charCodeAt(i))>>>0;
+  return LAND_TINTS[h % LAND_TINTS.length];
+}
+function relSoft(r){ /* softened heat fill for "relations" style */
+  const c = relColor(r);
+  const n = parseInt(c.slice(1),16), R=(n>>16)&255, G=(n>>8)&255, B=n&255;
+  const mix = (v)=> Math.round(v*0.62 + 42*0.38);
+  return `rgb(${mix(R)},${mix(G)},${mix(B)})`;
+}
 
 function fitMapCanvas(){
   const wrap = document.getElementById('mapfull');
   const cv = MAP.canvas;
   if (!wrap || !cv) return;
+  const dpr = MAP.dpr = Math.min(window.devicePixelRatio || 1, 2.5);
   const w = Math.max(300, wrap.clientWidth), h = Math.max(300, wrap.clientHeight);
-  if (cv.width !== w || cv.height !== h){
-    cv.width = w; cv.height = h;
+  if (cv.width !== Math.round(w*dpr) || cv.height !== Math.round(h*dpr)){
+    cv.width = Math.round(w*dpr); cv.height = Math.round(h*dpr);
     rebuildPaths();
     if (!MAP.inited){ resetView(); MAP.inited = true; }
     drawMap();
@@ -40,11 +54,12 @@ function focusOn(lon, lat, scale){
   MAP.oy = cv.height/2 - by*MAP.scale;
   clampPan();
 }
-function zoomAt(mx, my, factor){
+function zoomAt(dmx, dmy, factor){ /* device-pixel coords */
+  const cv = MAP.canvas;
   const ns = clamp(MAP.scale*factor, 1, 12);
   const f = ns / MAP.scale;
-  MAP.ox = mx - (mx - MAP.ox)*f;
-  MAP.oy = my - (my - MAP.oy)*f;
+  MAP.ox = dmx - (dmx - MAP.ox)*f;
+  MAP.oy = dmy - (dmy - MAP.oy)*f;
   MAP.scale = ns;
   clampPan();
   drawMap();
@@ -81,6 +96,7 @@ function rebuildPaths(){
 function buildMap(){
   MAP.canvas = document.getElementById('map');
   MAP.ctx = MAP.canvas.getContext('2d');
+  MAP.style = localStorage.getItem('wl_mapstyle') || 'atlas';
   fetch('data/world.geo.json').then(r=>r.json()).then(gj=>{
     MAP.features = gj.features.filter(f=>f.id && f.id !== 'ATA' && f.id !== 'ATF');
     fitMapCanvas();
@@ -91,51 +107,60 @@ function buildMap(){
   });
 
   const cv = MAP.canvas;
-  /* pan */
-  cv.addEventListener('mousedown', e=>{ MAP.drag = {x:e.offsetX, y:e.offsetY, ox:MAP.ox, oy:MAP.oy}; });
+  const d = ()=>MAP.dpr; /* css→device multiplier */
+  cv.addEventListener('mousedown', e=>{ MAP.drag = {x:e.offsetX*d(), y:e.offsetY*d(), ox:MAP.ox, oy:MAP.oy}; });
   window.addEventListener('mouseup', ()=> MAP.drag = null);
   cv.addEventListener('mousemove', e=>{
     if (MAP.drag){
-      MAP.ox = clamp(MAP.drag.ox + (e.offsetX - MAP.drag.x), cv.width*(1-MAP.scale), 0);
-      MAP.oy = MAP.drag.oy + (e.offsetY - MAP.drag.y);
+      MAP.ox = clamp(MAP.drag.ox + (e.offsetX*d() - MAP.drag.x), cv.width*(1-MAP.scale), 0);
+      MAP.oy = MAP.drag.oy + (e.offsetY*d() - MAP.drag.y);
       clampPan(); drawMap(); return;
     }
-    MAP.hover = hitTest(e.offsetX, e.offsetY);
+    MAP.hover = hitTest(e.offsetX*d(), e.offsetY*d());
     const s = G.getState();
     cv.title = MAP.hover ? (s.countries[MAP.hover.id]?.name || MAP.hover.id) : '';
     drawMap();
   });
-  /* click = select */
   cv.addEventListener('click', e=>{
-    if (MAP.drag && (e.offsetX!==MAP.drag.x || e.offsetY!==MAP.drag.y)) return;
-    const hit = hitTest(e.offsetX, e.offsetY);
+    if (MAP.drag && (e.offsetX*d()!==MAP.drag.x || e.offsetY*d()!==MAP.drag.y)) return;
+    const hit = hitTest(e.offsetX*d(), e.offsetY*d());
     if (hit){ showCountryCard(hit.id); }
   });
-  /* zoom to cursor */
   cv.addEventListener('wheel', e=>{
     e.preventDefault();
-    zoomAt(e.offsetX, e.offsetY, e.deltaY < 0 ? 1.2 : 1/1.2);
+    zoomAt(e.offsetX*d(), e.offsetY*d(), e.deltaY < 0 ? 1.2 : 1/1.2);
   }, {passive:false});
-  /* double-click zoom in */
-  cv.addEventListener('dblclick', e=> zoomAt(e.offsetX, e.offsetY, 1.7));
+  cv.addEventListener('dblclick', e=> zoomAt(e.offsetX*d(), e.offsetY*d(), 1.7));
 
-  /* control buttons */
   const zIn = document.getElementById('zin'), zOut = document.getElementById('zout'),
-        zReset = document.getElementById('zreset'), zPak = document.getElementById('zpak');
+        zReset = document.getElementById('zreset'), zPak = document.getElementById('zpak'),
+        zStyle = document.getElementById('zstyle');
   if (zIn) zIn.addEventListener('click', ()=> zoomAt(MAP.canvas.width/2, MAP.canvas.height/2, 1.35));
   if (zOut) zOut.addEventListener('click', ()=> zoomAt(MAP.canvas.width/2, MAP.canvas.height/2, 1/1.35));
   if (zReset) zReset.addEventListener('click', ()=>{ resetView(); drawMap(); });
   if (zPak) zPak.addEventListener('click', ()=>{ focusOn(69.4, 30.1, 3.4); drawMap(); });
+  if (zStyle) zStyle.addEventListener('click', ()=>{
+    MAP.style = MAP.style==='atlas' ? 'relations' : 'atlas';
+    localStorage.setItem('wl_mapstyle', MAP.style);
+    zStyle.textContent = MAP.style==='atlas' ? '🌍' : '🔥';
+    zStyle.title = 'Style: ' + (MAP.style==='atlas' ? 'Atlas (realistic)' : 'Relations heat') + ' — click to switch';
+    const hint = document.getElementById('stylehint');
+    if (hint) hint.textContent = MAP.style==='atlas'
+      ? '🌍 Atlas style — realistic terrain · edge glow = relations'
+      : '🔥 Relations heat — fill color = relations toward you';
+    drawMap();
+  });
+  if (zStyle){ zStyle.textContent = MAP.style==='atlas' ? '🌍' : '🔥'; }
 
   window.addEventListener('resize', ()=>{ if (!document.getElementById('view-map').classList.contains('hidden')) fitMapCanvas(); });
 }
 
-function hitTest(mx, my){
+function hitTest(dmx, dmy){
   const {ctx, paths} = MAP;
   if (!ctx || !paths.length) return null;
   const t = ctx.getTransform();
   ctx.setTransform(1,0,0,1,0,0);
-  const x = (mx - MAP.ox)/MAP.scale, y = (my - MAP.oy)/MAP.scale;
+  const x = (dmx - MAP.ox)/MAP.scale, y = (dmy - MAP.oy)/MAP.scale;
   let found = null;
   for (let i=paths.length-1; i>=0; i--){
     if (ctx.isPointInPath(paths[i], x, y)){ found = {id: MAP.features[i].id}; break; }
@@ -149,97 +174,122 @@ function drawMap(){
   if (!ctx || !features.length || !canvas) return;
   const s = G.getState();
   const W = canvas.width, H = canvas.height;
+  const atlas = MAP.style === 'atlas';
 
   ctx.save();
   ctx.setTransform(1,0,0,1,0,0);
 
-  /* --- ocean: deep slate gradient + vignette --- */
+  /* ---------- OCEAN: deep gradient + radial light + vignette ---------- */
   const og = ctx.createLinearGradient(0, 0, 0, H);
-  og.addColorStop(0, '#0c1420');
-  og.addColorStop(0.5, '#0a101a');
-  og.addColorStop(1, '#0b131f');
+  og.addColorStop(0, '#0a1622');
+  og.addColorStop(0.45, '#0d1d2e');
+  og.addColorStop(1, '#091420');
   ctx.fillStyle = og;
   ctx.fillRect(0,0,W,H);
+  const rg = ctx.createRadialGradient(W*0.5, H*0.45, 10, W*0.5, H*0.45, Math.max(W,H)*0.7);
+  rg.addColorStop(0, 'rgba(60,120,160,0.10)');
+  rg.addColorStop(1, 'rgba(0,0,0,0.22)');
+  ctx.fillStyle = rg;
+  ctx.fillRect(0,0,W,H);
 
-  /* --- graticule (drawn in world space) --- */
+  /* ---------- graticule ---------- */
   ctx.save();
   ctx.translate(MAP.ox, MAP.oy);
   ctx.scale(MAP.scale, MAP.scale);
-  ctx.strokeStyle = 'rgba(148,163,184,0.055)';
+  ctx.strokeStyle = 'rgba(130,160,190,0.05)';
   ctx.lineWidth = 0.7/MAP.scale;
   ctx.beginPath();
   for (let lon=-180; lon<=180; lon+=30){ const [x] = project(lon,0,W,H); ctx.moveTo(x, 0); ctx.lineTo(x, H*1.4); }
   for (let lat=-60; lat<=80; lat+=20){ const [,y] = project(0,lat,W,H); ctx.moveTo(0, y); ctx.lineTo(W, y); }
   ctx.stroke();
-  /* equator emphasis */
-  ctx.strokeStyle = 'rgba(148,163,184,0.10)';
-  ctx.beginPath();
-  const [,eqy] = project(0,0,W,H); ctx.moveTo(0, eqy); ctx.lineTo(W, eqy);
-  ctx.stroke();
   ctx.restore();
 
-  /* --- landmass drop shadow (one soft pass) --- */
+  /* ---------- landmass: soft under-glow (coast light) ---------- */
   ctx.save();
   ctx.translate(MAP.ox, MAP.oy);
   ctx.scale(MAP.scale, MAP.scale);
-  ctx.shadowColor = 'rgba(0,0,0,.55)';
-  ctx.shadowBlur = 10/MAP.scale;
-  ctx.shadowOffsetY = 3/MAP.scale;
-  ctx.fillStyle = '#242b37';
+  ctx.shadowColor = atlas ? 'rgba(90,150,190,0.30)' : 'rgba(0,0,0,0.55)';
+  ctx.shadowBlur = (atlas?7:9)/MAP.scale;
+  ctx.shadowOffsetY = (atlas?1:3)/MAP.scale;
+  ctx.fillStyle = atlas ? '#2b3740' : '#242b37';
   for (let i=0;i<paths.length;i++) ctx.fill(paths[i]);
   ctx.restore();
 
-  /* --- country fills + borders --- */
+  /* ---------- country fills ---------- */
   ctx.save();
   ctx.translate(MAP.ox, MAP.oy);
   ctx.scale(MAP.scale, MAP.scale);
   for (let i=0;i<features.length;i++){
     const f = features[i];
     const c = s.countries[f.id];
-    let fill = '#242b37';
-    if (f.id === 'PAK') fill = '#0da271';
-    else if (c && c.rel && c.rel.PAK !== undefined) fill = relColor(c.rel.PAK);
+    let fill;
+    if (f.id === 'PAK') fill = '#0e8f66';
+    else if (atlas) fill = natColor(f.id);
+    else fill = (c && c.rel && c.rel.PAK !== undefined) ? relSoft(c.rel.PAK) : '#2a3340';
     ctx.fillStyle = fill;
     ctx.fill(paths[i]);
   }
-  /* borders on top, crisp */
-  ctx.strokeStyle = 'rgba(10,14,22,0.85)';
-  ctx.lineWidth = 0.7/MAP.scale;
+  /* internal borders — crisp */
+  ctx.strokeStyle = atlas ? 'rgba(12,18,24,0.85)' : 'rgba(10,14,22,0.85)';
+  ctx.lineWidth = 0.55/MAP.scale;
   for (let i=0;i<paths.length;i++) ctx.stroke(paths[i]);
 
-  /* --- highlights: PAK glow, selection, hover --- */
-  const sel = window._sel;
+  /* coastline accent (atlas): light stroke on outer edge */
+  if (atlas){
+    ctx.strokeStyle = 'rgba(120,170,205,0.28)';
+    ctx.lineWidth = 0.9/MAP.scale;
+    for (let i=0;i<paths.length;i++) ctx.stroke(paths[i]);
+  }
+
+  /* ---------- relation edge glows (atlas mode: subtle) ---------- */
   for (let i=0;i<features.length;i++){
     const f = features[i];
     if (f.id === 'PAK'){
       ctx.save();
-      ctx.shadowColor = 'rgba(16,185,129,.9)'; ctx.shadowBlur = 16/MAP.scale;
-      ctx.strokeStyle = '#f0b429'; ctx.lineWidth = 1.8/MAP.scale;
+      ctx.shadowColor = 'rgba(16,185,129,.9)'; ctx.shadowBlur = 15/MAP.scale;
+      ctx.strokeStyle = '#f0b429'; ctx.lineWidth = 1.7/MAP.scale;
       ctx.stroke(paths[i]);
       ctx.restore();
-    } else if (f.id === sel){
+      continue;
+    }
+    const c = s.countries[f.id];
+    const rel = c && c.rel ? c.rel.PAK : undefined;
+    if (atlas){
+      if (rel !== undefined && rel >= 60){
+        ctx.save();
+        ctx.shadowColor = 'rgba(16,185,129,.55)'; ctx.shadowBlur = 7/MAP.scale;
+        ctx.strokeStyle = 'rgba(52,211,153,.65)'; ctx.lineWidth = 1.1/MAP.scale;
+        ctx.stroke(paths[i]); ctx.restore();
+      } else if (rel !== undefined && rel <= -30){
+        ctx.save();
+        ctx.shadowColor = 'rgba(239,68,68,.55)'; ctx.shadowBlur = 7/MAP.scale;
+        ctx.strokeStyle = 'rgba(240,82,82,.65)'; ctx.lineWidth = 1.1/MAP.scale;
+        ctx.stroke(paths[i]); ctx.restore();
+      }
+    }
+    if (f.id === window._sel){
       ctx.save();
-      ctx.shadowColor = 'rgba(240,180,41,.95)'; ctx.shadowBlur = 14/MAP.scale;
-      ctx.strokeStyle = '#f0b429'; ctx.lineWidth = 2.2/MAP.scale;
+      ctx.shadowColor = 'rgba(240,180,41,.95)'; ctx.shadowBlur = 13/MAP.scale;
+      ctx.strokeStyle = '#f0b429'; ctx.lineWidth = 2.1/MAP.scale;
       ctx.stroke(paths[i]);
       ctx.restore();
     } else if (MAP.hover && MAP.hover.id === f.id){
       ctx.save();
-      ctx.shadowColor = 'rgba(255,255,255,.55)'; ctx.shadowBlur = 8/MAP.scale;
-      ctx.strokeStyle = '#f4f6f9'; ctx.lineWidth = 1.4/MAP.scale;
+      ctx.shadowColor = 'rgba(255,255,255,.5)'; ctx.shadowBlur = 7/MAP.scale;
+      ctx.strokeStyle = '#eef2f7'; ctx.lineWidth = 1.3/MAP.scale;
       ctx.stroke(paths[i]);
       ctx.restore();
     }
   }
   ctx.restore();
 
-  /* --- country name labels (screen space, zoom-aware) --- */
+  /* ---------- labels ---------- */
   if (!MAP.meta || !MAP.meta.length){ ctx.restore(); return; }
   ctx.save();
   ctx.setTransform(1,0,0,1,0,0);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  try { ctx.letterSpacing = '1.2px'; } catch(e){}
+  try { ctx.letterSpacing = '1.1px'; } catch(e){}
   for (let i=0;i<features.length;i++){
     const f = features[i];
     const m = MAP.meta[i];
@@ -249,15 +299,15 @@ function drawMap(){
     const px = m.w * MAP.scale;
     if (MAP.scale < 2.2 && px < 40) continue;
     if (MAP.scale >= 2.2 && px < 13) continue;
-    const size = clamp(9 + MAP.scale*1.3, 9.5, 16);
-    ctx.font = (f.id==='PAK' ? '800 ' : '700 ') + size + 'px "Segoe UI",system-ui,sans-serif';
+    const size = clamp((9 + MAP.scale*1.25) * Math.sqrt(MAP.dpr||1), 10, 19);
+    ctx.font = (f.id==='PAK' ? '800 ' : '650 ') + size + 'px "Segoe UI",system-ui,sans-serif';
     const label = f.id==='PAK' ? '★ PAKISTAN' : m.name.toUpperCase();
     ctx.lineWidth = 3.2;
-    ctx.strokeStyle = 'rgba(8,11,17,.88)';
+    ctx.strokeStyle = 'rgba(6,10,16,.9)';
     ctx.strokeText(label, sx, sy);
-    ctx.fillStyle = f.id==='PAK' ? '#f0b429' : (MAP.hover && MAP.hover.id===f.id ? '#ffffff' : '#c9d2de');
+    ctx.fillStyle = f.id==='PAK' ? '#f0b429' : (MAP.hover && MAP.hover.id===f.id ? '#ffffff' : '#b9c6d4');
     ctx.fillText(label, sx, sy);
   }
   ctx.restore();
-  ctx.restore();   /* close the outer save from draw start */
+  ctx.restore();   /* close outer save */
 }

@@ -64,14 +64,14 @@ window.addEventListener('error', function(e){
         <button id="zout" title="Zoom out">−</button>
         <button id="zreset" title="World view">⌂</button>
         <button id="zpak" title="Go to Pakistan">★</button>
+        <button id="zstyle" title="Style: Atlas (realistic) — click to switch">🌍</button>
       </div>
-      <div class="maplegend">
-        <span><i style="background:#059669"></i> Ally</span>
-        <span><i style="background:#65a30d"></i> Friendly</span>
-        <span><i style="background:#7c7f87"></i> Neutral</span>
-        <span><i style="background:#ea580c"></i> Unfriendly</span>
-        <span><i style="background:#dc2626"></i> Hostile</span>
-        <span><i style="background:#0da271"></i> ★ PAKISTAN (You)</span>
+      <div class="maplegend" id="maplegend">
+        <span><i style="background:#059669"></i> Ally edge</span>
+        <span><i style="background:#dc2626"></i> Hostile edge</span>
+        <span><i style="background:#f0b429"></i> Selected</span>
+        <span><i style="background:#0e8f66"></i> ★ PAKISTAN (You)</span>
+        <span class="tiny muted" id="stylehint">🌍 Atlas style — realistic terrain · edge glow = relations</span>
       </div>
       <div id="countrycard" class="hidden"></div>
     </div>
