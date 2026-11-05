@@ -426,16 +426,20 @@ const USGS_MCS_2026_URL = 'https://doi.org/10.3133/mcs2026';
 /* Pakistan project-specific entries, kept separate from national USGS tables. */
 const LOCAL_RESOURCE_FACTS = {
   PAK:[
-    {name:'Reko Diq copper',output:'Not producing; first production targeted for end-2028 (project forecast)',
+    {name:'Reko Diq copper',shortLabel:'RD Cu',shortOutput:'Not producing',shortReserve:'~15 Mt Cu',
+      output:'Not producing; first production targeted for end-2028 (project forecast)',
       reserve:'~15 million metric tons contained copper; probable reserves, 100% project basis, 2025 feasibility',
       note:'Barrick 50%; Pakistan federal/provincial interests together 50%. Project reserve is not current national mine output.'},
-    {name:'Reko Diq gold',output:'Not producing; first production targeted for end-2028 (project forecast)',
+    {name:'Reko Diq gold',shortLabel:'RD Au',shortOutput:'Not producing',shortReserve:'~26 Moz Au',
+      output:'Not producing; first production targeted for end-2028 (project forecast)',
       reserve:'~26 million troy ounces; probable reserves, 100% project basis, 2025 feasibility',
       note:'Same copper-gold orebody/project as the copper line above; not an independent mine.'},
-    {name:'Thar coal',output:'SECMC Block II stated annual mine capacity: 7.6 million tonnes/year (capacity, not actual annual output)',
+    {name:'Thar coal',shortLabel:'Thar',shortOutput:'7.6 Mt/yr capacity',shortReserve:'~175 Bt in-place',
+      output:'SECMC Block II stated annual mine capacity: 7.6 million tonnes/year (capacity, not actual annual output)',
       reserve:'Company/industry estimate ~175 billion tonnes in-place across Thar; not equivalent to proved recoverable reserves. Block II 2012–13 study: 2.039 billion tonnes resource, 1.57 billion tonnes described as mineable.',
       note:'Keep in-place geological resource, project resource and national proved reserves distinct.'},
-    {name:'Other Pakistani minerals & gems',output:'No comparable national production figures included here',
+    {name:'Other Pakistani minerals & gems',shortLabel:'Other',shortOutput:'Not listed',shortReserve:'No national total',
+      output:'No comparable national production figures included here',
       reserve:'Rock salt, gypsum, chromite, iron ore and gemstones are reported; no unsupported country-wide reserve totals are added.',
       note:'Gem-quality emerald, ruby, topaz and other stones are not covered by the industrial-diamond table.'}
   ]

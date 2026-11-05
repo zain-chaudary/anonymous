@@ -303,164 +303,106 @@ function hideCard(){ document.getElementById('countrycard').classList.add('hidde
 function goHome(){ hideCard(); openHome(); switchTab('gov'); }
 
 /* ---------- detail popups ---------- */
-function vsRow(label, you, them, fmt){
-  const f = fmt || (v=>v.toLocaleString());
-  const mx = Math.max(you, them, 1);
-  const myPct = clamp(you/mx*100, 2, 100), thPct = clamp(them/mx*100, 2, 100);
-  const ratio = you>0 ? (them/you) : 99;
-  let verdict = ratio>1.5 ? `<span class="bad">⚠ ${ratio.toFixed(1)}× bigger than yours</span>`
-    : ratio>0.8 ? `<span class="warn">≈ equal to yours</span>`
-    : `<span class="good">✔ ${(you/them).toFixed(1)}× yours — you lead</span>`;
-  return `
-    <div class="vsrow">
-      <div class="vslabel">${label}</div>
-      <div class="vsbars">
-        <div class="vsbar you"><i style="width:${myPct}%"></i><b>${f(you)}</b><span>YOU (PAK)</span></div>
-        <div class="vsbar them"><i style="width:${thPct}%"></i><b>${f(them)}</b><span>THEM</span></div>
-      </div>
-      <div class="vsverdict tiny">${verdict}</div>
-    </div>`;
-}
-function milCompare(s, iso){
-  const you = MIL_2026.PAK, themIso = iso==='PAK' ? 'IND' : iso, them = MIL_2026[themIso];
-  if (!you || !them) return '';
-  const themCountry = s.countries[themIso];
-  const rows = [
-    vsRow('👥 Active personnel', you.active, them.active, v=>Number(v).toLocaleString('en-US')),
-    vsRow('🛡 Tank inventory', you.land.tanks[0], them.land.tanks[0]),
-    vsRow('✈ All aircraft types', you.air.total[0], them.air.total[0]),
-    vsRow('⚓ Naval assets', you.navy.total, them.navy.total)
-  ];
-  const pakNukes = SIPRI_NUCLEAR_2026.PAK, theirNukes = SIPRI_NUCLEAR_2026[themIso];
-  if (pakNukes && theirNukes) rows.push(vsRow('☢ Warhead estimates', pakNukes, theirNukes));
-  return `<details class="mil-compare"><summary>⚔ Compare Pakistan with ${esc(themCountry ? themCountry.name : themIso)}</summary>
-    ${rows.join('')}<div class="muted tiny">GFP 2026 inventory definitions; gold bar = Pakistan. This is not a combat-readiness comparison.</div>
-  </details>`;
-}
 function publicCount(n){
-  return n===null || n===undefined ? 'Not reliably itemized' : Number(n).toLocaleString('en-US');
+  return n===null || n===undefined ? 'Not listed' : Number(n).toLocaleString('en-US');
 }
 function publicPeople(n){
-  if (n===null || n===undefined) return 'Not reliably reported';
+  if (n===null || n===undefined) return 'Not listed';
   return n>=1000000 ? (n/1000000).toFixed(n>=10000000?1:2)+'M' : Number(n).toLocaleString('en-US');
 }
-function milValueRow(label, value, note=''){
-  const v = value===null || value===undefined || value==='' ? 'Not reliably itemized' : String(value);
-  return `<div class="mil-row"><span>${esc(label)}</span><b>${esc(v)}</b>${note?`<small>${esc(note)}</small>`:''}</div>`;
+function profileMetric(label, value, meta=''){
+  const v=value===null || value===undefined || value==='' ? 'Not listed' : String(value);
+  return `<div class="profile-metric"><span>${esc(label)}</span><b>${esc(v)}</b>${meta?`<small>${esc(meta)}</small>`:''}</div>`;
 }
-function milPairRow(label, pair, note=''){
-  if (!pair) return milValueRow(label, null, note);
-  const stock = publicCount(pair[0]);
-  const readiness = pair[1]===null || pair[1]===undefined ? '' : `<small>GFP modelled available: ${publicCount(pair[1])} — not a measured serviceability count</small>`;
-  return `<div class="mil-row"><span>${esc(label)}</span><b>${stock}</b>${readiness}${note?`<small>${esc(note)}</small>`:''}</div>`;
+function profileMetricGrid(items){ return `<div class="profile-metric-grid">${items.join('')}</div>`; }
+function profileTabButtons(group, items, active){
+  return `<div class="profile-tab-buttons">${items.map(([key,label])=>
+    `<button type="button" class="profile-tab-btn ${key===active?'on':''}" data-profile-button="${group}" data-profile-key="${key}" onclick="showProfileTab('${group}','${key}')">${esc(label)}</button>`).join('')}</div>`;
 }
-function milSection(icon, title, content, cls=''){
-  return `<section class="mil-section ${cls}"><h4>${icon} ${esc(title)}</h4>${content}</section>`;
+function profileTabPanel(group, key, content, active=false){
+  return `<div class="profile-tab-panel${active?'':' hidden'}" data-profile-panel="${group}" data-profile-key="${key}">${content}</div>`;
+}
+function showProfileTab(group, key){
+  document.querySelectorAll(`[data-profile-button="${group}"]`).forEach(button=>
+    button.classList.toggle('on',button.dataset.profileKey===key));
+  document.querySelectorAll(`[data-profile-panel="${group}"]`).forEach(panel=>
+    panel.classList.toggle('hidden',panel.dataset.profileKey!==key));
+}
+function pairMetric(label, pair){
+  if (!Array.isArray(pair)) return profileMetric(label,'Not itemized');
+  const meta=pair[1]===null || pair[1]===undefined ? 'Availability not listed' : `GFP modelled available: ${publicCount(pair[1])}`;
+  return profileMetric(label,publicCount(pair[0]),meta);
 }
 function countryPills(s, list){
-  return (list||[]).filter(k=>s.countries[k]).map(k=>`<span class="mil-country">${s.countries[k].flag||'🏳'} ${esc(s.countries[k].name)}</span>`).join('') || '<span class="muted tiny">None documented in this source set.</span>';
+  return (list||[]).filter(k=>s.countries[k]).map(k=>`<span class="mil-country">${s.countries[k].flag||'🏳'} ${esc(s.countries[k].name)}</span>`).join('') || '<span class="muted tiny">No entries.</span>';
 }
-function militaryPopupHtml(s, iso, c, rank){
-  const p = MIL_2026[iso];
-  if (!p){
-    return `<div class="country-empty">No public army profile for ${esc(c.name)}. Game figures stay separate.</div>
-      <details class="clean-details"><summary>Sources</summary><div class="clean-links">
-        <a href="${MIL_2026_SOURCE.aircraftUrl}" target="_blank" rel="noopener">Aircraft</a>
-        <a href="${MIL_2026_SOURCE.tanksUrl}" target="_blank" rel="noopener">Tanks</a>
-        <a href="${MIL_2026_SOURCE.navyUrl}" target="_blank" rel="noopener">Navy</a>
-      </div></details>`;
-  }
-  const nuclear = SIPRI_NUCLEAR_2026[iso];
-  const kpis = [
-    ['Active force', publicPeople(p.active)],
-    ['Reserve estimate', publicPeople(p.reserve)],
-    ['Tanks (stock)', publicCount(p.land && p.land.tanks && p.land.tanks[0])],
-    ['Aircraft (all types)', publicCount(p.air && p.air.total && p.air.total[0])],
-    ['Naval assets', publicCount(p.navy && p.navy.total)],
-    ['Warhead estimate', nuclear ? publicCount(nuclear) : 'Not in SIPRI table']
-  ];
-  const cohort = milValueRow('Annual population reaching military age (GFP 2026)', publicCount(p.age),
-    'The page does not specify an age band; this is not the number fit, eligible or willing to enlist.');
-  const people = milSection('👥','Personnel',
-    milValueRow('Active military manpower (GFP 2026)', publicPeople(p.active))+
-    milValueRow('Reserve manpower (GFP 2026)', publicPeople(p.reserve), 'Reserve definitions and availability vary by country.')+
-    cohort+
-    milValueRow('Paramilitary / internal security totals','Not combined here','GFP reserve totals exclude paramilitary forces; separate national definitions are inconsistent.'));
-
-  const tiers = p.armorTiers ? `<div class="mil-tier-wrap">
-    ${[['Higher-end systems',p.armorTiers.high],['Main / middle fleet',p.armorTiers.middle],['Older / legacy systems',p.armorTiers.legacy]].map(([label,value])=>
-      `<div class="mil-tier"><span>${esc(label)}</span><b>${esc(value||'Not separately identified')}</b><small>No reliable public count by quality tier; model names are examples, not a readiness assessment.</small></div>`).join('')}
-  </div>` : '';
-  const land = milSection('🛡','Tanks, armored vehicles & artillery',
-    milPairRow('Combat tanks (GFP 2026 stock)',p.land && p.land.tanks)+
-    milPairRow('Armored / support vehicles (GFP category)',p.land && p.land.vehicles,'GFP definition includes APCs, IFVs, MRAPs, cars and support/logistics/engineering vehicles.')+
-    milPairRow('Self-propelled artillery',p.land && p.land.sp)+
-    milPairRow('Towed artillery',p.land && p.land.towed)+
-    milPairRow('Rocket artillery / MLRS',p.land && p.land.mlrs)+tiers+
-    `<div class="mil-note">GFP stock and its standardized availability model are estimates. They do not confirm equipment condition, combat readiness or exact active/storage status.</div>`);
-
-  const a = p.air || {};
-  const aircraft = milSection('✈','Aircraft by role',
-    milPairRow('Aircraft, all types (GFP 2026)',a.total)+
-    milPairRow('Fighters',a.fighters)+
-    milPairRow('Attack aircraft',a.attack)+
-    milValueRow('Dedicated bomber sub-count','Not consistently itemized by GFP 2026; no count inferred','The total-aircraft figure follows GFP’s own category scope.')+
-    milPairRow('Transport aircraft',a.transport)+
-    milPairRow('Trainers',a.trainers)+
-    milPairRow('Special-mission aircraft',a.special,'Includes categories such as airborne early warning, electronic warfare and reconnaissance; radar-only counts are not separated.')+
-    milPairRow('Aerial tankers',a.tankers)+
-    milPairRow('Helicopters',a.helicopters)+
-    milPairRow('Attack helicopters',a.attackHelis)+
-    (p.airTiers?`<div class="mil-tier-wrap">${[['Higher-end examples',p.airTiers.high],['Main fleet examples',p.airTiers.middle],['Older / legacy examples',p.airTiers.legacy]].map(([label,value])=>`<div class="mil-tier"><span>${esc(label)}</span><b>${esc(value||'Not separately identified')}</b><small>No public high/mid/legacy aircraft count by quality tier.</small></div>`).join('')}</div>`:'')+
-    `<div class="mil-note">GFP aircraft total includes fixed-wing and rotary-wing types across services. Uncrewed aircraft are not consistently counted in the same inventory.</div>`);
-
-  const n = p.navy || {};
-  const navyTypes = [
-    ['Traditional aircraft carriers',n.carriers],['Helicopter carriers',n.heloCarriers],
-    ['Destroyers',n.destroyers],['Frigates',n.frigates],['Corvettes',n.corvettes],
-    ['Submarines (all types)',n.submarines],['Patrol vessels',n.patrol],['Mine-warfare vessels',n.mine]
-  ].filter(([,value])=>value!==null && value!==undefined)
-    .map(([label,value])=>milValueRow(label,publicCount(value))).join('');
-  const navy = milSection('⚓','Navy',
-    milValueRow('Total fleet assets (GFP 2026)',publicCount(n.total), 'Includes multiple vessel classes and auxiliaries; fleet size is not a measure of firepower.')+
-    (navyTypes || milValueRow('Class breakdown',null)));
-
-  const strategic = milSection('☢','Strategic weapons',
-    milValueRow('Estimated nuclear inventory (SIPRI, Jan 2026)',nuclear?publicCount(nuclear):'No inventory estimate in SIPRI’s 2026 nine-state table',
-      nuclear?'Total inventory estimate; deployed, stored and retired subtotals are distinct.':'Absence from that table is not a detailed weapon-system inventory.')+
-    milValueRow('Publicly reported systems',p.special||'No verified country-specific summary in this profile.')+
-    `<div class="mil-note">SIPRI figures are independent estimates, not official disclosures; they do not show warhead assignment, serviceability or launch readiness.</div>`);
-
-  const agencies = (p.intel||[]).join('; ');
-  const disclosure = INTEL_DISCLOSURE[iso] || INTEL_DISCLOSURE.DEFAULT;
-  const unknown = Object.keys(s.countries).filter(k=>k!==iso);
-  const intel = milSection('🕵','Special forces & intelligence',
-    milValueRow('Publicly named intelligence agencies',agencies||'No reliable profile list available')+
-    milValueRow('Special operations units',p.elite||'Not reliably itemized')+
-    milValueRow('Agency staffing / spy headcount','Not publicly established','No credible complete headcount is available; no estimate is invented.')+
-    `<div class="mil-note">${esc(disclosure.note)}</div>`+
-    `<details class="mil-unknown"><summary>No verified country-coverage entry in this reference set for ${unknown.length} other countries</summary>
-      <p class="muted tiny">This list reflects missing public coverage detail, not a claim that intelligence activity is absent.</p>
-      <div class="mil-country-list">${countryPills(s,unknown)}</div></details>`);
-  const profileUrl = GFP_PROFILE_SLUG[iso] ? MIL_2026_SOURCE.profileBase+GFP_PROFILE_SLUG[iso] : MIL_2026_SOURCE.aircraftUrl;
-
-  return `<div class="mil-kpis">${kpis.map(([label,value])=>`<div class="mil-kpi"><span>${esc(label)}</span><b>${esc(value)}</b></div>`).join('')}</div>
-    <div class="mil-disclaimer">GFP 2026 estimates · SIPRI Jan 2026 warheads · not a readiness score.</div>
-    ${milCompare(s,iso)}
-    <details class="clean-details"><summary>Full army breakdown</summary>
-      <div class="mil-grid">${people}${land}${aircraft}${navy}${strategic}${intel}</div>
-      <details class="clean-details clean-sources"><summary>Sources</summary><div class="clean-links">
-        <a href="${profileUrl}" target="_blank" rel="noopener">GFP ${esc(iso)} profile</a>
-        <a href="${MIL_2026_SOURCE.activeUrl}" target="_blank" rel="noopener">Personnel</a>
-        <a href="${MIL_2026_SOURCE.reserveUrl}" target="_blank" rel="noopener">Reserves</a>
-        <a href="${MIL_2026_SOURCE.annualAgeUrl}" target="_blank" rel="noopener">Age cohort</a>
-        <a href="${MIL_2026_SOURCE.aircraftUrl}" target="_blank" rel="noopener">Aircraft</a>
-        <a href="${MIL_2026_SOURCE.tanksUrl}" target="_blank" rel="noopener">Tanks</a>
-        <a href="${MIL_2026_SOURCE.navyUrl}" target="_blank" rel="noopener">Navy</a>
-        <a href="https://www.sipri.org/visualizations/2026/world-nuclear-forces-january-2026" target="_blank" rel="noopener">SIPRI</a>
-        <a href="https://www.iiss.org/publications/the-military-balance/2025/dr-bastian-giegerichs-launch-event-remarks/" target="_blank" rel="noopener">IISS</a>
-      </div></details>
-    </details>`;
+function militaryPopupHtml(s, iso, c){
+  const p=MIL_2026[iso];
+  if (!p) return `<div class="country-empty">No public army profile here. Game figures stay separate.</div>
+    <details class="clean-details"><summary>Sources</summary><div class="clean-links">
+      <a href="${MIL_2026_SOURCE.aircraftUrl}" target="_blank" rel="noopener">Aircraft</a>
+      <a href="${MIL_2026_SOURCE.tanksUrl}" target="_blank" rel="noopener">Tanks</a>
+      <a href="${MIL_2026_SOURCE.navyUrl}" target="_blank" rel="noopener">Navy</a>
+    </div></details>`;
+  const nuclear=SIPRI_NUCLEAR_2026[iso], air=p.air||{}, land=p.land||{}, navy=p.navy||{};
+  const overview=profileMetricGrid([
+    profileMetric('Active',publicPeople(p.active),'GFP 2026'),
+    profileMetric('Reserve',publicPeople(p.reserve),'GFP 2026'),
+    profileMetric('Tanks',publicCount(land.tanks&&land.tanks[0]),'GFP 2026'),
+    profileMetric('Aircraft',publicCount(air.total&&air.total[0]),'GFP 2026'),
+    profileMetric('Fleet',publicCount(navy.total),'GFP 2026'),
+    profileMetric('Warheads',nuclear?publicCount(nuclear):'Not listed','SIPRI · Jan 2026'),
+    profileMetric('Annual age cohort',publicCount(p.age),'GFP 2026')
+  ])+'<div class="profile-note">GFP figures are estimates; “available” is modelled, not measured readiness.</div>';
+  const landPanel=profileMetricGrid([
+    pairMetric('Tanks',land.tanks),pairMetric('Armored vehicles',land.vehicles),
+    pairMetric('Self-propelled guns',land.sp),pairMetric('Towed guns',land.towed),
+    pairMetric('Rocket artillery',land.mlrs)
+  ]);
+  const airPanel=profileMetricGrid([
+    pairMetric('All aircraft',air.total),pairMetric('Fighters',air.fighters),
+    pairMetric('Attack aircraft',air.attack),profileMetric('Dedicated bombers','Not itemized'),
+    pairMetric('Transport',air.transport),pairMetric('Trainers',air.trainers),
+    pairMetric('Special mission',air.special),pairMetric('Tankers',air.tankers),
+    pairMetric('Helicopters',air.helicopters),pairMetric('Attack helicopters',air.attackHelis)
+  ])+'<div class="profile-note">GFP aircraft totals exclude UAVs; bomber counts are not consistently listed.</div>';
+  const shipTypes=[['Carriers',navy.carriers],['Helicopter carriers',navy.heloCarriers],['Destroyers',navy.destroyers],
+    ['Frigates',navy.frigates],['Corvettes',navy.corvettes],['Submarines',navy.submarines],
+    ['Patrol vessels',navy.patrol],['Mine warfare',navy.mine]];
+  const navyPanel=profileMetricGrid([profileMetric('All fleet assets',publicCount(navy.total),'GFP 2026'),
+    ...shipTypes.filter(([,value])=>value!==null&&value!==undefined).map(([label,value])=>profileMetric(label,publicCount(value)))]);
+  const strategicPanel=profileMetricGrid([
+    profileMetric('Warhead estimate',nuclear?publicCount(nuclear):'Not listed','SIPRI · Jan 2026'),
+    profileMetric('Publicly reported systems',p.special?'See note':'Not listed')
+  ])+`<details class="clean-details"><summary>Systems note</summary><div class="profile-note">${esc(p.special||'No profile note.')}</div></details>`;
+  const disclosure=INTEL_DISCLOSURE[iso]||INTEL_DISCLOSURE.DEFAULT;
+  const unknown=Object.keys(s.countries).filter(k=>k!==iso);
+  const intelPanel=profileMetricGrid([
+    profileMetric('Public agencies',(p.intel||[]).join(' · ')||'Not listed'),
+    profileMetric('Staffing','Not public')
+  ])+`<div class="profile-note">${esc(disclosure.note)}</div>
+    <details class="clean-details"><summary>Country coverage · no verified entries (${unknown.length})</summary>
+      <div class="mil-country-list">${countryPills(s,unknown)}</div></details>`;
+  const sources=`<div class="clean-links">
+    <a href="${GFP_PROFILE_SLUG[iso]?MIL_2026_SOURCE.profileBase+GFP_PROFILE_SLUG[iso]:MIL_2026_SOURCE.aircraftUrl}" target="_blank" rel="noopener">GFP profile</a>
+    <a href="${MIL_2026_SOURCE.activeUrl}" target="_blank" rel="noopener">Personnel</a>
+    <a href="${MIL_2026_SOURCE.reserveUrl}" target="_blank" rel="noopener">Reserves</a>
+    <a href="${MIL_2026_SOURCE.annualAgeUrl}" target="_blank" rel="noopener">Age cohort</a>
+    <a href="${MIL_2026_SOURCE.aircraftUrl}" target="_blank" rel="noopener">Aircraft</a>
+    <a href="${MIL_2026_SOURCE.tanksUrl}" target="_blank" rel="noopener">Tanks</a>
+    <a href="${MIL_2026_SOURCE.navyUrl}" target="_blank" rel="noopener">Navy</a>
+    <a href="https://www.sipri.org/visualizations/2026/world-nuclear-forces-january-2026" target="_blank" rel="noopener">SIPRI</a>
+  </div>`;
+  const tabs=[['overview','Overview'],['land','Land'],['air','Air'],['navy','Navy'],['strategic','Strategic'],['intel','Intel'],['sources','Sources']];
+  return `<div class="profile-tabs" data-profile-tabs="army">${profileTabButtons('army',tabs,'overview')}
+    ${profileTabPanel('army','overview',overview,true)}
+    ${profileTabPanel('army','land',landPanel)}
+    ${profileTabPanel('army','air',airPanel)}
+    ${profileTabPanel('army','navy',navyPanel)}
+    ${profileTabPanel('army','strategic',strategicPanel)}
+    ${profileTabPanel('army','intel',intelPanel)}
+    ${profileTabPanel('army','sources',sources)}
+  </div>`;
 }
 function fmtMillions(value){
   if (value===null || value===undefined || value==='') return 'Not reported';
@@ -468,67 +410,89 @@ function fmtMillions(value){
   return Number.isFinite(n) ? n.toLocaleString('en-US',{maximumFractionDigits:2}) : 'Not reported';
 }
 function resourcePopupHtml(iso, c){
-  const oil = OIL_PROFILE[iso], ur = URANIUM_2026[iso];
-  const mineralCount = USGS_MINERALS_2026.filter(item=>item.rows[iso]).length;
-  const mineralRows = USGS_MINERALS_2026.filter(item=>item.rows[iso]).map(item=>{
-    const r=item.rows[iso];
-    return `<article class="resource-mineral"><h5>${esc(item.symbol)} · ${esc(item.name)}</h5>
-      <div class="resource-facts"><span>2025 estimated mine output</span><b>${esc(r.prod)}</b>
-        <span>Reserves</span><b>${esc(r.reserve)}</b></div>
-      <small>${esc(item.unit)} · ${esc(item.source)} · reserve definition is commodity-specific.</small></article>`;
-  }).join('');
-  const oilBlock = oil ? (()=>{
-    const monthlyFromDaily = v=>v===null || v===undefined ? null : v*30;
-    const importMonthly=oil.importsMonthly!==undefined ? oil.importsMonthly : monthlyFromDaily(oil.importsDaily);
-    const exportMonthly=oil.exportsMonthly!==undefined ? oil.exportsMonthly : monthlyFromDaily(oil.exportsDaily);
-    const flowText=v=>v===null || v===undefined ? 'Not separately reported in a comparable source' : `~${fmtMillions(v)} million barrels per 30-day month`;
-    const dailyText=v=>v===null || v===undefined ? 'Not reported' : `${fmtMillions(v*1000000)} bbl/day · ~${fmtMillions(monthlyFromDaily(v))} million bbl per 30 days`;
-    const source=OIL_SOURCES[iso], tradeSource=OIL_TRADE_SOURCES[iso];
-    return `<section class="resource-section"><h4>🛢 Oil (crude)</h4>
-      <div class="resource-facts"><span>Proved reserves</span><b>${esc(oil.reserves||'Not reported')}</b>
-        <span>${esc(oil.productionType||'Domestic production')}</span><b>${esc(dailyText(oil.productionDaily))}<small>${esc(oil.productionYear||'Reference year not stated')}</small></b>
-        <span>Crude imports / month</span><b>${esc(flowText(importMonthly))}${oil.importsYear?`<small>${esc(oil.importsYear)}</small>`:''}</b>
-        <span>Crude exports / month</span><b>${esc(flowText(exportMonthly))}${oil.exportsYear?`<small>${esc(oil.exportsYear)}</small>`:''}</b></div>
-      <details class="clean-details"><summary>Notes & sources</summary>
-        <div class="resource-note">${esc(oil.note||'Monthly amounts are 30-day equivalents; crude and refined products are separate.')}</div>
-        <div class="clean-links">${source?`<a href="${source}" target="_blank" rel="noopener">${iso==='PAK'?'Ministry source':iso==='IND'?'EIA India':'Oil profile'}</a>`:''}${tradeSource?`<a href="${tradeSource}" target="_blank" rel="noopener">Trade source</a>`:''}</div>
-      </details></section>`;
-  })() : `<section class="resource-section"><h4>🛢 Oil</h4><div class="resource-note">No comparable country profile here. Unknown, not zero.</div></section>`;
-  const uraniumBlock = ur ? `<section class="resource-section"><h4>☢ Uranium</h4>
-    <div class="resource-facts"><span>2024 mine output</span><b>${ur.output===null?'Not separately listed':fmtMillions(ur.output)+' tU/year'}</b>
-      <span>Identified resources (2025)</span><b>${ur.resources===null?'Not separately listed':fmtMillions(ur.resources)+' tU'}</b>
-      <span>Trade</span><b>Not in cited WNA table</b></div>
-    <details class="clean-details"><summary>Definition</summary><div class="resource-note">Resources: reasonably assured plus inferred at costs up to US$130/kg U (2025-01-01). WNA does not give country trade flows.</div></details></section>`
-    : `<section class="resource-section"><h4>☢ Uranium</h4><div class="resource-note">No separate WNA figure. Unknown, not zero; trade is not reported.</div></section>`;
-  const local=(LOCAL_RESOURCE_FACTS[iso]||[]).map(x=>`<article class="resource-mineral local-mineral"><h5>${esc(x.name)}</h5>
-    <div class="resource-facts"><span>Output / status</span><b>${esc(x.output)}</b><span>Resource / reserve</span><b>${esc(x.reserve)}</b></div>
-    <small>${esc(x.note)}</small></article>`).join('');
-  const energyRows = items=>items.map(([name,value])=>`<div class="resource-flow"><span>${esc(name)}</span><b>${Number(value).toFixed(3)} MTOE</b></div>`).join('');
-  const energyTotal = items=>items.reduce((sum,[,value])=>sum+Number(value),0).toFixed(3);
-  const energyBlock = iso==='PAK' ? `<section class="resource-section"><h4>⚡ Energy · ${esc(ENERGY_BALANCE_PAK.year)}</h4>
-    <div class="resource-snapshot"><div><span>Indigenous</span><b>${energyTotal(ENERGY_BALANCE_PAK.indigenous)} MTOE</b></div><div><span>Imports</span><b>${energyTotal(ENERGY_BALANCE_PAK.imports)} MTOE</b></div></div>
-    <details class="clean-details"><summary>Breakdown & source</summary>
-      <div class="energy-columns"><div><h5>Indigenous</h5>${energyRows(ENERGY_BALANCE_PAK.indigenous)}</div>
-        <div><h5>Imports</h5>${energyRows(ENERGY_BALANCE_PAK.imports)}</div></div>
-      <div class="resource-note">MTOE = million tonnes of oil equivalent; flows, not reserves or installed capacity. ${esc(ENERGY_BALANCE_PAK.gasResource)}</div>
-      <div class="clean-links"><a href="${ENERGY_BALANCE_PAK.source}" target="_blank" rel="noopener">Ministry brochure / Energy Year Book 2023–24</a></div>
-    </details>
-  </section>` : '';
-  const note=RESOURCE_NOTES[iso] || 'Missing country rows are not zero.';
-  const mineralDetails = mineralRows || '<div class="resource-note">No listed USGS rows. Unknown, not zero.</div>';
-  return `${oilBlock}${uraniumBlock}${energyBlock}
-    <section class="resource-section"><h4>⛏ Minerals</h4>
-      <details class="clean-details"><summary>${mineralCount+((LOCAL_RESOURCE_FACTS[iso]||[]).length)} selected figures</summary>
-        ${mineralRows?`<div class="resource-mineral-grid">${mineralDetails}</div>`:mineralDetails}
-        ${local?`<div class="resource-mineral-grid local-resource-grid">${local}</div>`:''}
-        <div class="resource-note">${esc(note)} USGS dash = zero; “Not available” or a missing row = unknown. Gemstones are separate from industrial diamond data.</div>
-      </details>
-    </section>
-    <details class="clean-details clean-sources"><summary>All sources</summary><div class="clean-links">
-      <a href="${USGS_MCS_2026_URL}" target="_blank" rel="noopener">USGS MCS 2026</a>
-      <a href="${URANIUM_SOURCE_URL}" target="_blank" rel="noopener">WNA uranium tables</a>
-      ${iso==='PAK'?`<a href="https://www.barrick.com/English/operations/mineral-reserves-and-resources/default.aspx" target="_blank" rel="noopener">Barrick / Reko Diq</a><a href="https://www.secmc.com.pk/" target="_blank" rel="noopener">SECMC / Thar</a>`:''}
-    </div></details>`;
+  const oil=OIL_PROFILE[iso], uranium=URANIUM_2026[iso];
+  const oilSource=OIL_SOURCES[iso], tradeSource=OIL_TRADE_SOURCES[iso];
+  const monthlyFromDaily=value=>value===null||value===undefined?null:value*30;
+  const flowMonthly=value=>value===null||value===undefined?'Not reported':`~${fmtMillions(value)} M bbl`;
+  let oilPanel;
+  if (oil){
+    const imports=oil.importsMonthly!==undefined?oil.importsMonthly:monthlyFromDaily(oil.importsDaily);
+    const exports=oil.exportsMonthly!==undefined?oil.exportsMonthly:monthlyFromDaily(oil.exportsDaily);
+    const production=oil.productionDaily===null||oil.productionDaily===undefined?'Not reported':`${fmtMillions(oil.productionDaily*1000000)} bbl/day`;
+    oilPanel=profileMetricGrid([
+      profileMetric('Proved reserves',oil.reserves||'Not reported'),
+      profileMetric('Crude production',production,oil.productionYear||'Year not stated'),
+      profileMetric('Crude imports / 30 days',flowMonthly(imports),oil.importsYear||''),
+      profileMetric('Crude exports / 30 days',flowMonthly(exports),oil.exportsYear||'')
+    ])+`<div class="profile-note">Monthly trade values are 30-day equivalents.</div>
+      <details class="clean-details"><summary>Notes</summary><div class="profile-note">${esc(oil.note||'Crude and refined products are separate.')}</div></details>`;
+  } else oilPanel='<div class="country-empty">No comparable oil profile. Unknown, not zero.</div>';
+
+  const uraniumPanel=uranium ? profileMetricGrid([
+    profileMetric('Mine output',uranium.output===null?'Not listed':`${fmtMillions(uranium.output)} tU/year`,'2024'),
+    profileMetric('Identified resources',uranium.resources===null?'Not listed':`${fmtMillions(uranium.resources)} tU`,'2025'),
+    profileMetric('Trade','Not in cited WNA table')
+  ])+`<details class="clean-details"><summary>Definition</summary><div class="profile-note">Resources: reasonably assured plus inferred, up to US$130/kg U.</div></details>`
+    : '<div class="country-empty">No separate WNA figure. Unknown, not zero.</div>';
+
+  const indigenous=ENERGY_BALANCE_PAK.indigenous, imports=ENERGY_BALANCE_PAK.imports;
+  const total=items=>items.reduce((sum,[,value])=>sum+Number(value),0).toFixed(3);
+  const energyRows=items=>items.map(([name,value])=>`<div class="resource-flow"><span>${esc(name)}</span><b>${Number(value).toFixed(3)} MTOE</b></div>`).join('');
+  const energyPanel=iso==='PAK' ? profileMetricGrid([
+    profileMetric('Indigenous supply',`${total(indigenous)} MTOE`,'FY2023–24'),
+    profileMetric('Imports',`${total(imports)} MTOE`,'FY2023–24')
+  ])+`<details class="clean-details"><summary>Itemized balance</summary>
+      <div class="energy-columns"><div><h5>Indigenous</h5>${energyRows(indigenous)}</div><div><h5>Imports</h5>${energyRows(imports)}</div></div>
+      <div class="profile-note">Energy-balance flows, not reserves or capacity. ${esc(ENERGY_BALANCE_PAK.gasResource)}</div>
+      <div class="clean-links"><a href="${ENERGY_BALANCE_PAK.source}" target="_blank" rel="noopener">Ministry source</a></div>
+    </details>` : '<div class="country-empty">Pakistan energy balance only.</div>';
+
+  const usgs=USGS_MINERALS_2026.filter(item=>item.rows[iso]);
+  const local=LOCAL_RESOURCE_FACTS[iso]||[];
+  const mineralTabs=[], mineralPanels=[];
+  usgs.forEach((item,index)=>{
+    const key=`usgs-${index}`, row=item.rows[iso];
+    mineralTabs.push([key,item.symbol]);
+    const panel=profileMetricGrid([
+      profileMetric('Mine output',row.prod,'2025 estimate'),
+      profileMetric('Reserves',row.reserve,item.unit)
+    ])+`<details class="clean-details"><summary>Definition</summary><div class="profile-note">${esc(item.name)} · ${esc(item.unit)} · reserve definition is commodity-specific.</div>
+      <div class="clean-links"><a href="${USGS_MCS_2026_URL}" target="_blank" rel="noopener">USGS MCS 2026</a></div></details>`;
+    mineralPanels.push(profileTabPanel('mineral-items',key,panel,index===0));
+  });
+  local.forEach((item,index)=>{
+    const key=`local-${index}`;
+    const label=item.shortLabel||(['Reko Diq copper','Reko Diq gold','Thar coal','Other Pakistani minerals & gems'][index]||item.name);
+    mineralTabs.push([key,label]);
+    const panel=profileMetricGrid([
+      profileMetric('Output / status',item.shortOutput||item.output),
+      profileMetric('Resource / reserve',item.shortReserve||item.reserve)
+    ])+`<details class="clean-details"><summary>Project note</summary><div class="profile-note">${esc(item.output)} · ${esc(item.reserve)} · ${esc(item.note)}</div></details>`;
+    mineralPanels.push(profileTabPanel('mineral-items',key,panel,usgs.length===0&&index===0));
+  });
+  const resourceNote=RESOURCE_NOTES[iso]||'Missing country rows are not zero.';
+  const mineralPanel=mineralTabs.length ? `<div class="profile-tabs" data-profile-tabs="mineral-items">
+      ${profileTabButtons('mineral-items',mineralTabs,mineralTabs[0][0])}
+      ${mineralPanels.join('')}
+      <div class="profile-note">USGS dash = 0 · “Not available” or missing = unknown.</div>
+      <details class="clean-details"><summary>Notes</summary><div class="profile-note">${esc(resourceNote)} Gemstones are separate from industrial diamond data.</div></details>
+    </div>` : `<div class="country-empty">No listed figures. Unknown, not zero.</div><div class="profile-note">${esc(resourceNote)}</div>`;
+  const sourceLinks=`<div class="clean-links">
+      ${oilSource?`<a href="${oilSource}" target="_blank" rel="noopener">Oil profile</a>`:''}
+      ${tradeSource?`<a href="${tradeSource}" target="_blank" rel="noopener">Oil trade</a>`:''}
+      <a href="${URANIUM_SOURCE_URL}" target="_blank" rel="noopener">WNA uranium</a>
+      <a href="${USGS_MCS_2026_URL}" target="_blank" rel="noopener">USGS minerals</a>
+      ${iso==='PAK'?`<a href="${ENERGY_BALANCE_PAK.source}" target="_blank" rel="noopener">Pakistan energy</a><a href="https://www.barrick.com/English/operations/mineral-reserves-and-resources/default.aspx" target="_blank" rel="noopener">Reko Diq</a><a href="https://www.secmc.com.pk/" target="_blank" rel="noopener">Thar</a>`:''}
+    </div>`;
+  const tabs=[['oil','Oil'],['uranium','Uranium'],...(iso==='PAK'?[['energy','Energy']]:[]),['minerals','Minerals'],['sources','Sources']];
+  return `<div class="profile-tabs" data-profile-tabs="resources">
+    ${profileTabButtons('resources',tabs,'oil')}
+    ${profileTabPanel('resources','oil',oilPanel,true)}
+    ${profileTabPanel('resources','uranium',uraniumPanel)}
+    ${iso==='PAK'?profileTabPanel('resources','energy',energyPanel):''}
+    ${profileTabPanel('resources','minerals',mineralPanel)}
+    ${profileTabPanel('resources','sources',sourceLinks)}
+  </div>`;
 }
 function popHead(kind, flag, name, subtitle){
   return `<div class="pophead ${kind}"><span class="pflag">${flag}</span>
@@ -602,10 +566,9 @@ function openPopup(iso, kind){
     const unknown=Object.keys(s.countries).filter(k=>k!==iso);
     const agencies=(profile&&profile.intel||[]).join('; ')||'Not listed';
     const publicPanel=`<details class="clean-details"><summary>Public intelligence</summary>
-      ${milValueRow('Agencies',agencies)}
-      ${milValueRow('Staffing','Not public')}
-      <div class="muted tiny">${esc(disclosure.note)}</div>
-      <details class="mil-unknown"><summary>Country coverage: no verified entries (${unknown.length})</summary>
+      ${profileMetricGrid([profileMetric('Agencies',agencies),profileMetric('Staffing','Not public')])}
+      <div class="profile-note">${esc(disclosure.note)}</div>
+      <details class="mil-unknown"><summary>Coverage · no verified entries (${unknown.length})</summary>
         <div class="mil-country-list">${countryPills(s,unknown)}</div></details>
     </details>`;
     if (iso==='PAK'){

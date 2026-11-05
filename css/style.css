@@ -347,7 +347,20 @@ input[type=range]::-moz-range-thumb { width:15px; height:15px; border-radius:50%
 .intro-cols h3 { color:#fff; font-size:13px; margin-bottom:6px; }
 .intro-cols ul { padding-left:16px; font-size:12.5px; line-height:1.7; color:#c9d2de; }
 
-/* Compact profile panels: quick numbers first, optional detail below */
+/* Compact profile panels: choose a category, then see its key numbers */
+.profile-tabs { min-width:0; }
+.profile-tab-buttons { display:flex; gap:5px; overflow-x:auto; padding:1px 1px 6px; margin-bottom:8px; scrollbar-width:thin; }
+.profile-tab-btn { flex:0 0 auto; padding:6px 10px; border:1px solid #344152; border-radius:8px; background:#151b23; color:#aeb9c7; cursor:pointer; font-size:10px; font-weight:800; white-space:nowrap; }
+.profile-tab-btn:hover { border-color:#64748b; color:#fff; }
+.profile-tab-btn.on { border-color:#f0b429; background:linear-gradient(180deg,#3a2d10,#251e0e); color:#ffe4a3; }
+.profile-tab-panel { min-width:0; }
+.profile-metric-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; }
+.profile-metric { min-width:0; padding:8px; border:1px solid #293442; border-radius:9px; background:linear-gradient(180deg,#171e27,#121820); }
+.profile-metric span,.profile-metric b,.profile-metric small { display:block; }
+.profile-metric span { color:var(--muted); font-size:9.5px; line-height:1.3; }
+.profile-metric b { margin-top:3px; color:#f2f5f9; font-size:12px; line-height:1.35; overflow-wrap:anywhere; }
+.profile-metric small { margin-top:3px; color:#8793a3; font-size:9px; line-height:1.35; overflow-wrap:anywhere; }
+.profile-note { margin-top:7px; color:#9da9b9; font-size:9.5px; line-height:1.45; }
 .clean-details { margin:8px 0; padding:8px 10px; border:1px solid #2b3542; border-radius:9px; background:#12171e; }
 .clean-details > summary { cursor:pointer; color:#dce5ef; font-size:11px; font-weight:800; }
 .clean-details[open] > summary { margin-bottom:8px; }
