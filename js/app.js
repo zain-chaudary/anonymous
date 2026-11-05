@@ -47,8 +47,8 @@ function showIntro(){
   const modal = document.getElementById('modal');
   modal.innerHTML = `
   <div class="modal-box intro">
-    <h1>🇵🇰 WORLD LEADER 2026</h1>
-    <p class="tag">You are <b>President Zain Chaudary</b> of Pakistan — supreme ruler since <b>November 2026</b>.</p>
+    <h1>🇵🇰 THE GREAT CHANGE</h1>
+    <p class="tag">Directed By Zain Chaudary · You lead Pakistan’s November 2026 game scenario.</p>
     <div class="intro-cols">
       <div>
         <h3>Your inheritance</h3>
@@ -63,9 +63,10 @@ function showIntro(){
       <div>
         <h3>How to rule</h3>
         <ul>
-          <li><b>My Government</b>: set ministry budgets with sliders — balance revenue vs spending</li>
+          <li><b>Government</b>: track public support, named officials, finances and adjustable ministry budgets</li>
           <li><b>🗺 World Map</b>: see all countries ranked by power; click any for relations, army, condition</li>
-          <li><b>Orders</b>: issue directives (cost 💵 + 🏛 political capital)</li>
+          <li><b>Projects</b>: track launched schemes, modeled public-support outlooks, and fictional game operations</li>
+          <li><b>Orders</b>: describe an idea, review the simulated briefing, then choose whether to issue it</li>
           <li><b>End Month</b>: the world simulates and reacts</li>
           <li>Lose by coup, revolution, default, lost war, or nuclear war</li>
         </ul>

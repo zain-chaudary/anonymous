@@ -1,9 +1,14 @@
 /* ============================================================
-   WORLD LEADER 2026 — UI v2
-   Government dashboard + world map + power rankings
+   THE GREAT CHANGE — country dashboard + world map + power rankings
    ============================================================ */
 
-const CATS = ['Economy','Domestic','Military','Intel','Foreign','Nuclear'];
+const ORDER_GROUPS = [
+  {id:'Economy', label:'Economy', cats:['Economy']},
+  {id:'Domestic', label:'Home', cats:['Domestic']},
+  {id:'Military', label:'Defense', cats:['Military','Nuclear']},
+  {id:'Foreign', label:'Diplomacy', cats:['Foreign']},
+  {id:'Projects', label:'Projects & operations', cats:['Intel']}
+];
 const BUDGET_META = [
   {key:'defense',  label:'🪖 Defense',           min:0.2, max:2.0, note:'Army, PAF, Navy, missiles. Drives readiness & power.'},
   {key:'dev',      label:'🏗 Development',        min:0.0, max:1.5, note:'Infrastructure, CPEC projects, energy. Drives growth.'},
@@ -14,7 +19,7 @@ const BUDGET_META = [
   {key:'admin',    label:'🏛 Government & Admin', min:0.2, max:1.2, note:'Salaries, courts, ministries. Cutting too far breeds corruption.'}
 ];
 
-function esc(x){ return String(x).replace(/</g,'&lt;'); }
+function esc(x){ return String(x).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 /* clean number style: 1455k troops → "1.46M" */
 const fmtMen = k => k>=1000 ? (k/1000).toFixed(2)+'M' : k+'k';
 function toast(msg){
@@ -34,142 +39,109 @@ function renderChips(s){
     chip('🏦 Reserves', fmtB(P.reserves), P.reserves<6?'bad':'good') +
     chip('💰 GDP', fmtB(P.gdp)) +
     chip('📈 Inflation', P.infl.toFixed(1)+'%', P.infl>10?'bad':'') +
-    chip('☢', P.nu, 'nuke') +
+    chip('☢ Scenario', P.nu, 'nuke') +
     (s.war ? chip('⚔ WAR', s.countries[s.war.enemy].flag, 'bad') : '');
 }
 
-/* ============ TAB: MY GOVERNMENT ============ */
+/* ============ TAB: GOVERNMENT DASHBOARD ============ */
 function tabGov(s){
   const P = s.countries.PAK;
   const publicMil = MIL_2026.PAK;
-  const supPct = clamp(s.approval, 0, 100);
-  const supM = (supPct/100*P.pop).toFixed(0);
-  const agM = ((100-supPct)/100*P.pop).toFixed(0);
-  const rev = G.monthlyRevenue(s), spend = G.monthlySpend(s), bal = rev - spend;
-  const ds = G.monthlyDebtService(s);
-
+  const support = clamp(s.approval,0,100);
+  const supportedPeople = P.pop * support / 100;
+  const rev = G.monthlyRevenue(s), spend = G.monthlySpend(s), balance = rev-spend;
+  const debtService = G.monthlyDebtService(s);
+  const relations = s.innerInfluence.relationships;
+  const leaderCard = leader => {
+    const rawScore = Number(relations[leader.id]);
+    const score = clamp(Number.isFinite(rawScore)?rawScore:50,0,100);
+    const tone = score>=65?'green':score>=45?'orange':'red';
+    const label = score>=70?'Strong':score>=55?'Constructive':score>=40?'Cautious':'Strained';
+    return `<article class="leader-card">
+      <div class="leader-card-head"><span>${esc(leader.role)}</span><b>${score.toFixed(0)}<small>/100</small></b></div>
+      <h4>${esc(leader.name)}</h4>
+      ${leader.status?`<div class="leader-status">${esc(leader.status)}</div>`:''}
+      <div class="leader-relation"><span>In-game standing</span><strong>${label}</strong></div>
+      <div class="bar"><i class="${tone}" style="width:${score}%"></i></div>
+      <a class="leader-source" href="${esc(leader.source)}" target="_blank" rel="noopener noreferrer">Public reference ↗</a>
+    </article>`;
+  };
   let warcard = '';
   if (s.war){
-    const w = s.war;
-    warcard = `<div class="card warcard"><h3>⚔ WAR vs ${s.countries[w.enemy].flag} ${s.countries[w.enemy].name} — month ${w.months}</h3>
-      <div class="ministat">
-        <div>Your losses <b>${w.lossesYou.toLocaleString()}</b></div>
-        <div>Their losses <b>${w.lossesThem.toLocaleString()}</b></div>
-        <div>World pressure <b class="${w.intlPressure>70?'bad':''}">${w.intlPressure.toFixed(0)}/100</b></div>
-      </div>
-      ${Object.values(w.fronts).map(f=>`
-        <div class="faction"><div class="frow"><b>${f.name}</b><span class="${f.ctl<0.4?'bad':f.ctl>0.6?'good':''}">${(f.ctl*100).toFixed(0)}% yours</span></div>
-        <div class="bar"><i class="${f.ctl<0.4?'red':f.ctl>0.6?'green':'orange'}" style="width:${f.ctl*100}%"></i></div></div>`).join('')}
-      <div class="note">☠ If 3+ fronts collapse, the nuclear brief lands on your desk.</div></div>`;
+    const w=s.war;
+    warcard = `<section class="card warcard"><div class="section-title"><div><span class="eyebrow">ACTIVE CRISIS</span><h2>⚔ War vs ${esc(s.countries[w.enemy].name)}</h2></div><span class="war-month">Month ${w.months}</span></div>
+      <div class="ministat"><div>Your losses <b>${w.lossesYou.toLocaleString()}</b></div><div>Their losses <b>${w.lossesThem.toLocaleString()}</b></div><div>World pressure <b class="${w.intlPressure>70?'bad':'warn'}">${w.intlPressure.toFixed(0)}/100</b></div></div>
+      ${Object.values(w.fronts).map(f=>`<div class="faction"><div class="frow"><b>${esc(f.name)}</b><span class="${f.ctl<0.4?'bad':f.ctl>0.6?'good':'warn'}">${(f.ctl*100).toFixed(0)}% yours</span></div><div class="bar"><i class="${f.ctl<0.4?'red':f.ctl>0.6?'green':'orange'}" style="width:${f.ctl*100}%"></i></div></div>`).join('')}
+      <div class="note">A high-pressure scenario. The game simulates escalation and international response each month.</div></section>`;
   }
-
   return `
-  <div class="card prescard">
-    <div class="presrow">
-      <div class="presflag">🇵🇰</div>
-      <div class="presid">
-        <div class="presname">President <span>Zain Chaudary</span></div>
-        <div class="muted small">Islamic Republic of Pakistan · 241.5M people · Commander-in-Chief</div>
+  <section class="dashboard-heading">
+    <div><span class="eyebrow">PAKISTAN · NATIONAL DASHBOARD</span><h1>Government</h1><p>One clear view of public support, national finances and your team’s in-game standing.</p></div>
+    <div class="dashboard-heading-actions"><button class="btn" onclick="switchTab('projects')">🗂 View projects</button><button class="btn primary" onclick="openOrderGroup('Economy')">＋ Plan a decision</button></div>
+  </section>
+
+  <section class="government-hero">
+    <div class="government-identity"><div class="dashboard-flag">🇵🇰</div><div><span class="eyebrow">PRESIDENT</span><h2>Zain Chaudary</h2><p>Islamic Republic of Pakistan · ${dateStr(s)}</p></div></div>
+    <div class="government-kpis">
+      <div class="government-kpi"><span>Public support</span><b>${support.toFixed(0)}%</b><small>~${supportedPeople.toFixed(1)}M people</small></div>
+      <div class="government-kpi"><span>Stability</span><b>${s.stability.toFixed(0)}<small>/100</small></b><small>${esc(G.stabLabel(s.stability))}</small></div>
+      <div class="government-kpi"><span>Treasury</span><b>${fmtB(P.reserves)}</b><small>available reserves</small></div>
+      <div class="government-kpi"><span>Economy</span><b>${fmtB(P.gdp)}</b><small>${P.growth.toFixed(1)}% modeled growth</small></div>
+    </div>
+    <div class="government-support"><div class="frow"><b>People currently supporting your government</b><span>~${supportedPeople.toFixed(1)}M / ${P.pop.toFixed(1)}M</span></div><div class="bar bigbar"><i class="green" style="width:${support}%"></i></div><small>Approval is a game estimate, not a poll or measured population count.</small></div>
+  </section>
+
+  <section class="quick-links" aria-label="Government shortcuts">
+    <button class="quick-link" onclick="switchTab('projects')"><span>🗂</span><b>Projects</b><small>See schemes & future outlook</small></button>
+    <button class="quick-link" onclick="openOrderGroup('Domestic')"><span>🏠</span><b>Domestic priorities</b><small>Review a policy before issuing</small></button>
+    <button class="quick-link" onclick="openOrderGroup('Projects')"><span>🌐</span><b>Game operations</b><small>Simulation-only records in Projects</small></button>
+  </section>
+
+  <section class="card inner-influence">
+    <div class="section-title"><div><span class="eyebrow">YOUR WORKING CIRCLE</span><h2>Inner Influence</h2><p>Named public officeholders · reference date: ${esc(PAK_INFLUENCE.asOf)}</p></div><span class="leader-count">${PAK_INFLUENCE.institutions.length} institutions · ${PAK_INFLUENCE.regions.length} regional offices</span></div>
+    <div class="influence-disclaimer">The names and offices are public references. “In-game standing” is a fictional relationship score for this scenario—not a factual claim about any real person’s relationship with Zain Chaudary.</div>
+    <h3 class="subsection-title">National institutions</h3>
+    <div class="leader-grid">${PAK_INFLUENCE.institutions.map(leaderCard).join('')}</div>
+    <div class="section-title regional-title"><div><h3>Provincial & regional leadership</h3><p>Four provinces plus Gilgit-Baltistan and Azad Jammu & Kashmir—the six regions modeled in this game.</p></div></div>
+    <div class="leader-grid regional-grid">${PAK_INFLUENCE.regions.map(leaderCard).join('')}</div>
+  </section>
+
+  <div class="dashboard-grid">
+    <section class="card finance-card">
+      <div class="section-title"><div><span class="eyebrow">PUBLIC FINANCES</span><h2>Treasury</h2></div><span class="status-pill ${P.reserves<6?'status-bad':'status-good'}">${P.reserves<6?'Under pressure':'Available'}</span></div>
+      <div class="finance-grid">
+        <div><span>Available reserves</span><b class="${P.reserves<6?'bad':'good'}">${fmtB(P.reserves)}</b></div>
+        <div><span>Debt to repay</span><b class="warn">${fmtB(P.extDebt)}</b></div>
+        <div><span>Debt / GDP</span><b>${P.debtGdp.toFixed(0)}%</b></div>
+        <div><span>Import cover</span><b class="${P.reserves/(P.imports/12)<2?'bad':'good'}">${(P.reserves/(P.imports/12)).toFixed(1)} months</b></div>
       </div>
-      <div class="presdate">${dateStr(s)}</div>
-    </div>
-    <div class="support">
-      <div class="frow"><b>✅ Supporting you</b><span>~${supM}M people (${supPct.toFixed(0)}%)</span></div>
-      <div class="bar bigbar"><i class="green" style="width:${supPct}%"></i></div>
-      <div class="frow"><b>❌ Against you</b><span>~${agM}M people (${(100-supPct).toFixed(0)}%)</span></div>
-      <div class="bar bigbar"><i class="red" style="width:${100-supPct}%"></i></div>
-    </div>
+      <div class="finance-flow"><div><span>Monthly revenue</span><b class="good">+${fmtB(rev)}</b></div><div><span>Monthly spending</span><b class="warn">−${fmtB(spend)}</b></div><div><span>Projected balance</span><b class="${balance>=0?'good':'bad'}">${balance>=0?'+':''}${fmtB(balance)}</b></div></div>
+      <small class="muted">Includes ${fmtB(debtService)} debt interest${s.war?' and modeled war costs':''}. A deficit draws reserves or adds loans.</small>
+    </section>
+    <section class="card internal-card">
+      <div class="section-title"><div><span class="eyebrow">DOMESTIC CONDITIONS</span><h2>National pulse</h2></div><span class="status-pill">${esc(G.stabLabel(s.stability))}</span></div>
+      <h3 class="subsection-title">Pressure groups · game model</h3>
+      <div class="compact-bars">${['TTP','BLA','PTI','SECT'].map(k=>{const f=P.factions[k];return `<div class="compact-bar-row"><div><span>${esc(f.name)}</span><b class="${f.power>50?'bad':f.power>35?'warn':'good'}">${f.power.toFixed(0)}</b></div><div class="bar"><i class="${f.power>50?'red':f.power>35?'orange':'green'}" style="width:${clamp(f.power,0,100)}%"></i></div></div>`;}).join('')}</div>
+      <h3 class="subsection-title">Regional mood · game model</h3>
+      <div class="region-mood-grid">${P.provinces.map(pr=>`<div><span>${esc(pr.name)}</span><b class="${pr.mood<40?'bad':pr.mood>60?'good':'warn'}">${pr.mood.toFixed(0)}</b><div class="bar"><i class="${pr.mood<40?'red':pr.mood>60?'green':'orange'}" style="width:${clamp(pr.mood,0,100)}%"></i></div></div>`).join('')}</div>
+    </section>
   </div>
 
-  <div class="grid2">
-    <div class="card">
-      <h3>🏦 Treasury</h3>
-      <div class="bigstat"><span>Government bank — money you can use</span><b class="${P.reserves<6?'bad':'good'}">${fmtB(P.reserves)}</b></div>
-      <div class="bigstat"><span>Total loans to pay back</span><b class="warn">${fmtB(P.extDebt)}</b></div>
-      <div class="ministat">
-        <div>Debt/GDP <b>${P.debtGdp.toFixed(0)}%</b></div>
-        <div>Reserve cover <b class="${P.reserves/(P.imports/12)<2?'bad':'good'}">${(P.reserves/(P.imports/12)).toFixed(1)} months</b></div>
-        <div>IMF <b>${s.flags.imfActive?'Active':'None'}</b></div>
-      </div>
-    </div>
-    <div class="card">
-      <h3>📅 This Month's Money</h3>
-      <div class="bigstat"><span>Monthly revenue (taxes etc.)</span><b class="good">+${fmtB(rev)}</b></div>
-      <div class="bigstat"><span>Monthly spending (budgets below)</span><b class="warn">−${fmtB(spend)}</b></div>
-      <div class="bigstat"><span>Balance this month</span><b class="${bal>=0?'good':'bad'}">${bal>=0?'+':''}${fmtB(bal)}</b></div>
-      <div class="muted small">incl. debt interest ${fmtB(ds)}${s.war?' + war costs':''}. Surplus pays debt & fills the bank; overdraft = new loans.</div>
-    </div>
-  </div>
-
-  <div class="card">
-    <h3>🪖 Army</h3>
-    <div class="muted tiny">Public estimates · GFP 2026 / SIPRI Jan 2026</div>
-    <div class="ministat personnel public-reference">
-      <div>👥 Active <b>${publicPeople(publicMil.active)}</b></div>
-      <div>🎖 Reserve <b>${publicPeople(publicMil.reserve)}</b></div>
-      <div>🛡 Tanks <b>${publicCount(publicMil.land.tanks[0])}</b></div>
-      <div>✈ Aircraft <b>${publicCount(publicMil.air.total[0])}</b></div>
-      <div>⚓ Navy <b>${publicCount(publicMil.navy.total)}</b></div>
-      <div>☢ Warheads <b>${publicCount(SIPRI_NUCLEAR_2026.PAK)}</b></div>
-    </div>
-    <div class="muted tiny">Reference estimates are separate from the game.</div>
-    <details class="clean-details"><summary>Game scenario</summary>
-      <div class="ministat army">
-        <div>👥 Troops <b>${P.troops.toLocaleString()}k</b></div>
-        <div>🛡 Tanks <b>${P.tanks.toLocaleString()}</b></div>
-        <div>✈ Aircraft <b>${P.aircraft}</b></div>
-        <div>🚢 Ships <b>${P.ships}</b></div>
-        <div>☢ Scenario variable <b>${P.nu}</b></div>
-        <div>💵 Defense/yr <b>$${P.defense.toFixed(1)}B</b></div>
-      </div>
-      <div class="frow small"><b>Game readiness</b><span>${(s.readiness*100).toFixed(0)}%</span></div>
-      <div class="bar"><i class="${s.readiness>0.6?'green':'orange'}" style="width:${s.readiness*100}%"></i></div>
-      <div class="frow small"><b>Border posture</b><span>${'▮'.repeat(s.militPosture)}${'▯'.repeat(5-s.militPosture)}</span></div>
-    </details>
-  </div>
-
-  ${warcard}
-
-  <div class="card">
-    <h3>🎚 Ministry Budgets — monthly ($B) <span class="muted small">drag to change · affects everything</span></h3>
-    <div class="budgets">
-      ${BUDGET_META.map(m=>`
-        <div class="brow">
-          <div class="blabel"><b>${m.label}</b><div class="muted tiny">${m.note}</div></div>
-          <div class="bctl">
-            <button class="btn mini" onclick="bump('${m.key}',-0.05)">−</button>
-            <input type="range" min="${m.min}" max="${m.max}" step="0.01" value="${s.budget[m.key]}"
-                   oninput="setBudget('${m.key}', this.value)">
-            <button class="btn mini" onclick="bump('${m.key}',0.05)">+</button>
-            <b class="bval" id="bv_${m.key}">$${s.budget[m.key].toFixed(2)}B</b>
-          </div>
-        </div>`).join('')}
-      <div class="brow fixed">
-        <div class="blabel"><b>💳 Debt interest (auto)</b><div class="muted tiny">5.5% avg on ${fmtB(P.extDebt)} external debt</div></div>
-        <b class="bval">$${ds.toFixed(2)}B</b>
-      </div>
-    </div>
+  <section class="card budget-card">
+    <div class="section-title"><div><span class="eyebrow">PLAYER CONTROLS</span><h2>Monthly budgets</h2><p>Adjust allocations; the simulation applies them on the next turn.</p></div><span class="budget-unit">$B / month</span></div>
+    <div class="budgets compact-budgets">${BUDGET_META.map(m=>`<div class="brow"><div class="blabel"><b>${m.label}</b><div class="muted tiny">${m.note}</div></div><div class="bctl"><button class="btn mini" aria-label="Decrease ${esc(m.key)} budget" onclick="bump('${m.key}',-0.05)">−</button><input type="range" min="${m.min}" max="${m.max}" step="0.01" value="${s.budget[m.key]}" aria-label="${esc(m.label)} budget" oninput="setBudget('${m.key}',this.value)"><button class="btn mini" aria-label="Increase ${esc(m.key)} budget" onclick="bump('${m.key}',0.05)">+</button><b class="bval" id="bv_${m.key}">$${s.budget[m.key].toFixed(2)}B</b></div></div>`).join('')}</div>
     <div class="balanceline" id="balanceline">${balanceLine(s)}</div>
-  </div>
+  </section>
 
-  <div class="grid2">
-    <div class="card">
-      <h3>🔥 Internal Threats</h3>
-      ${['TTP','BLA','PTI','SECT'].map(k=>{ const f=P.factions[k]; return `
-        <div class="faction">
-          <div class="frow"><b>${esc(f.name)}</b><span class="${f.power>50?'bad':f.power>35?'warn':'good'}">${f.power.toFixed(0)}/100</span></div>
-          <div class="bar"><i class="${f.power>50?'red':f.power>35?'orange':'green'}" style="width:${f.power}%"></i></div>
-        </div>`;}).join('')}
+  <section class="card military-snapshot">
+    <div class="section-title"><div><span class="eyebrow">SEPARATE BASELINES</span><h2>Military snapshot</h2><p>Public estimates and game scenario values are shown separately.</p></div></div>
+    <div class="mil-snapshot-columns">
+      <div class="mil-snapshot-panel public-reference"><span class="snapshot-label">Public reference · estimates</span><div class="snapshot-values"><div>Active <b>${publicPeople(publicMil.active)}</b></div><div>Reserve <b>${publicPeople(publicMil.reserve)}</b></div><div>Tanks <b>${publicCount(publicMil.land.tanks[0])}</b></div><div>Aircraft <b>${publicCount(publicMil.air.total[0])}</b></div><div>Navy <b>${publicCount(publicMil.navy.total)}</b></div><div>Warheads <b>${publicCount(SIPRI_NUCLEAR_2026.PAK)}</b></div></div></div>
+      <div class="mil-snapshot-panel game-reference"><span class="snapshot-label">Game scenario · not readiness data</span><div class="snapshot-values"><div>Troops <b>${P.troops.toLocaleString()}k</b></div><div>Tanks <b>${P.tanks.toLocaleString()}</b></div><div>Aircraft <b>${P.aircraft}</b></div><div>Ships <b>${P.ships}</b></div><div>Scenario variable <b>${P.nu} warheads</b></div><div>Readiness <b>${(s.readiness*100).toFixed(0)}%</b></div></div><small>Game readiness is a modeled gameplay value; serviceability is not available here.</small></div>
     </div>
-    <div class="card">
-      <h3>🤝 Inner Condition of Provinces</h3>
-      ${P.provinces.map(p=>`
-        <div class="faction">
-          <div class="frow"><b>${p.name}</b><span class="${p.mood<40?'bad':p.mood>60?'good':'warn'}">${p.mood<40?'Angry':p.mood>60?'Calm':'Uneasy'} ${p.mood.toFixed(0)}</span></div>
-          <div class="bar"><i class="${p.mood<40?'red':p.mood>60?'green':'orange'}" style="width:${p.mood}%"></i></div>
-        </div>`).join('')}
-    </div>
-  </div>`;
+  </section>
+  ${warcard}
+  ${renderProjectPreview(s)}`;
 }
 function balanceLine(s){
   const bal = G.monthlyRevenue(s) - G.monthlySpend(s);
@@ -289,7 +261,7 @@ function showCountryCard(iso){
         <button class="act econ" onclick="openPopup('${iso}','econ')">Economy</button>
         <button class="act rule" onclick="openPopup('${iso}','rule')">Government</button>
         <button class="act alli" onclick="openPopup('${iso}','alli')">Alliances</button>
-        <button class="act ops" onclick="openPopup('${iso}','ops')">Intel</button>
+        <button class="act ops" onclick="openPopup('${iso}','ops')">Public brief</button>
         <button class="act res" onclick="openPopup('${iso}','res')">Resources</button>
       </div>
       <div class="country-status"><span>Condition</span><b>${G.stabLabel(c.st||55)}</b></div>
@@ -393,7 +365,7 @@ function militaryPopupHtml(s, iso, c){
     <a href="${MIL_2026_SOURCE.navyUrl}" target="_blank" rel="noopener">Navy</a>
     <a href="https://www.sipri.org/visualizations/2026/world-nuclear-forces-january-2026" target="_blank" rel="noopener">SIPRI</a>
   </div>`;
-  const tabs=[['overview','Overview'],['land','Land'],['air','Air'],['navy','Navy'],['strategic','Strategic'],['intel','Intel'],['sources','Sources']];
+  const tabs=[['overview','Overview'],['land','Land'],['air','Air'],['navy','Navy'],['strategic','Strategic'],['intel','Public agencies'],['sources','Sources']];
   return `<div class="profile-tabs" data-profile-tabs="army">${profileTabButtons('army',tabs,'overview')}
     ${profileTabPanel('army','overview',overview,true)}
     ${profileTabPanel('army','land',landPanel)}
@@ -565,26 +537,18 @@ function openPopup(iso, kind){
     const profile=MIL_2026[iso], disclosure=INTEL_DISCLOSURE[iso]||INTEL_DISCLOSURE.DEFAULT;
     const unknown=Object.keys(s.countries).filter(k=>k!==iso);
     const agencies=(profile&&profile.intel||[]).join('; ')||'Not listed';
-    const publicPanel=`<details class="clean-details"><summary>Public intelligence</summary>
+    const publicPanel=`<details class="clean-details"><summary>Public intelligence references</summary>
       ${profileMetricGrid([profileMetric('Agencies',agencies),profileMetric('Staffing','Not public')])}
       <div class="profile-note">${esc(disclosure.note)}</div>
       <details class="mil-unknown"><summary>Coverage · no verified entries (${unknown.length})</summary>
         <div class="mil-country-list">${countryPills(s,unknown)}</div></details>
     </details>`;
     if (iso==='PAK'){
-      head=popHead('ops',c.flag||'🏳','Pakistan · Intel','Public information');
-      body=publicPanel+`<div class="muted tiny">Game networks are managed in Orders → Intel.</div>`;
+      head=popHead('ops',c.flag||'🏳','Pakistan · Public brief','Public reporting & unknowns');
+      body=publicPanel+`<button class="btn" onclick="switchTab('projects')">Open game operations in Projects</button>`;
     } else {
-      head=popHead('ops',c.flag||'🏳',c.name+' · Intel','Game simulation');
-      const n=s.intel.networks[iso], lvl=n?n.lvl:0, heat=n?n.heat:0;
-      const status=lvl===0?['NO NETWORK','bad']:lvl>=6?['DEEP','good']:lvl>=4?['ESTABLISHED','good']:lvl>=2?['ACTIVE','warn']:['INITIAL','warn'];
-      const ctrl=Math.round(lvl/8*100), assets=lvl*7+(lvl>0?3:0);
-      body=`<div class="ops-sim-banner">GAME ONLY</div>
-        <div class="opstatus ${status[1]}"><span class="dot"></span> ${status[0]}</div>
-        <div class="pgrid">${tile('Control',ctrl+'%',ctrl>=50?'good':ctrl>=25?'warn':'bad')}${tile('Game assets',lvl?String(assets):'0')}</div>
-        <div class="gauge"><div class="glabel"><span>Network</span><span>${lvl}/8</span></div><div class="bar"><i style="width:${Math.max(2,ctrl)}%;background:linear-gradient(90deg,#0f766e,#2dd4bf)"></i></div></div>
-        <div class="gauge"><div class="glabel"><span>Exposure</span><span class="${heat>6?'bad':heat>3?'warn':'good'}">${heat>6?'HIGH':heat>3?'Elevated':'Calm'}</span></div><div class="bar"><i class="${heat>6?'red':heat>3?'orange':'green'}" style="width:${clamp(heat*10,2,100)}%"></i></div></div>
-        ${publicPanel}`;
+      head=popHead('ops',c.flag||'🏳',c.name+' · Public brief','Public reporting & unknowns');
+      body=publicPanel+`<div class="muted tiny">Any fictional game-operation meters are grouped under Projects; this public-reference panel does not imply operational coverage.</div>`;
     }
   }
   if (kind==='alli'){
@@ -668,65 +632,274 @@ function closePopup(){
   delete modal.dataset.kind;
 }
 
-/* ============ TAB: ORDERS ============ */
-function tabOrders(s){
-  const activeCat = window._ordersCat || 'Economy';
-  return `
-    <div class="catbar">${CATS.map(c=>`<button class="cat ${c===activeCat?'on':''}" onclick="setCat('${c}')">${c}</button>`).join('')}</div>
-    <div class="orders">
-      ${ACTIONS.filter(a=>a.cat===activeCat).map(a=>{
-        const ok = G.actionAvailable(s,a);
-        const cdUntil = s.cooldowns[a.id];
-        const cd = cdUntil && (s.date.y*12+s.date.m) < cdUntil ? cdUntil - (s.date.y*12+s.date.m) : 0;
-        let tgt = '';
-        if (a.target==='diploTarget'){
-          const opts = Object.keys(s.countries).filter(k=>k!=='PAK').sort((x,y)=>(s.countries[y].gdp)-(s.countries[x].gdp)).slice(0,40);
-          tgt = `<select onchange="setDip(this.value)">${opts.map(k=>`<option value="${k}" ${window._dipTarget===k?'selected':''}>${flag(k)} ${esc(s.countries[k].name)}</option>`).join('')}</select>`;
-        } else if (a.target==='covertTarget'){
-          tgt = `<select onchange="setOp(this.value)">${['IND','AFG','USA','IRN','ISR','GBR','BGD'].filter(k=>s.countries[k]).map(k=>`<option value="${k}" ${window._opTarget===k?'selected':''}>${flag(k)} ${esc(s.countries[k].name)}</option>`).join('')}</select>`;
-        } else if (a.target==='exercisePartner'){
-          tgt = `<select onchange="setEx(this.value)">${['CHN','SAU','TUR','ARE','AZE'].map(k=>`<option value="${k}" ${window._exTarget===k?'selected':''}>${flag(k)} ${esc(s.countries[k].name)}</option>`).join('')}</select>`;
-        }
-        return `
-        <div class="order ${ok?'':'off'}">
-          <div class="orow">
-            <div><b>${esc(a.name)}</b><div class="muted small">${esc(a.desc)}</div>
-            <div class="costs">${a.cost.money?`<span>💵 $${a.cost.money}B</span>`:''}${a.cost.pc?`<span>🏛 ${a.cost.pc} PC</span>`:''}${cd?`<span class="bad">⏳ ${cd}mo</span>`:''}</div></div>
-            <div class="obtn">${tgt}<button class="btn" ${ok?'':'disabled'} onclick="issue('${a.id}')">Issue</button></div>
-          </div>
-        </div>`;
-      }).join('')}
-    </div>`;
+/* ============ PROJECT OUTLOOK ============ */
+function projectProjection(project,s){
+  if (project.type!=='scheme') return '';
+  const P=s.countries.PAK;
+  const now=clamp(s.approval,0,100);
+  const future=clamp(now+(Number(project.supportLift)||0),0,100);
+  const nowPeople=P.pop*now/100, futurePeople=P.pop*future/100;
+  const region=project.regionId && P.provinces.find(p=>p.id===project.regionId);
+  return `<div class="project-forecast">
+    <div><span>Now · national approval</span><b>${now.toFixed(0)}% · ~${nowPeople.toFixed(1)}M people</b></div>
+    <i aria-hidden="true">→</i>
+    <div><span>Modelled in ${project.horizon||6} months</span><b>${future.toFixed(0)}% · ~${futurePeople.toFixed(1)}M people</b></div>
+    <small>${project.supportLift>0?`Scenario estimate: +${project.supportLift} points`:'No modeled change'}${region?` · focused on ${esc(region.name)}`:''}. Not a poll or guarantee.</small>
+  </div>`;
 }
-function setCat(c){ window._ordersCat = c; render(); }
-function setDip(v){ window._dipTarget = v; }
-function setOp(v){ window._opTarget = v; }
-function setEx(v){ window._exTarget = v; }
-function issue(id){
-  const s = G.getState();
-  const a = ACTIONS.find(x=>x.id===id);
-  if (!a || !G.actionAvailable(s,a)) return;
-  if (a.target==='diploTarget'){ if(!window._dipTarget) window._dipTarget='CHN'; s._dipTarget = window._dipTarget; }
-  if (a.target==='covertTarget'){ if(!window._opTarget) window._opTarget='IND'; s._opTarget = window._opTarget; }
-  if (a.target==='exercisePartner'){ if(!window._exTarget) window._exTarget='CHN'; s._exTarget = window._exTarget; }
-  G.doAction(s, a);
-  toast('Order issued: ' + a.name);
-  render();
+function renderSchemeCard(project,s,compact=false){
+  return `<article class="scheme-card ${compact?'scheme-compact':''}">
+    <div class="scheme-card-top"><span class="project-tag">${project.type==='scheme'?'DOMESTIC SCHEME':'INITIATIVE'}</span><span class="scheme-date">${esc(project.date||'')}</span></div>
+    <h3>${esc(project.name)}</h3>
+    <p>${esc(project.sector||'Government initiative')}${project.regionId?` · ${esc((s.countries.PAK.provinces.find(p=>p.id===project.regionId)||{}).name||'Pakistan')}`:''}</p>
+    ${projectProjection(project,s)}
+    ${!compact&&project.outcome?`<div class="project-outcome"><b>In-game response</b><span>${esc(project.outcome)}</span></div>`:''}
+  </article>`;
+}
+function renderProjectPreview(s){
+  const projects=(s.projects||[]).filter(p=>p.type==='scheme').slice(0,3);
+  return `<section class="card project-preview">
+    <div class="section-title"><div><span class="eyebrow">DELIVERY & PUBLIC OUTLOOK</span><h2>Projects by Zain Chaudary</h2><p>Launched schemes and their modelled future national support.</p></div><button class="btn" onclick="switchTab('projects')">All projects ↗</button></div>
+    ${projects.length?`<div class="scheme-grid">${projects.map(p=>renderSchemeCard(p,s,true)).join('')}</div>`:`<div class="project-empty"><div class="empty-icon">＋</div><div><b>No schemes launched yet</b><p>Review a proposal first. Launching is optional; forecasts appear here after you issue a scheme.</p></div><button class="btn primary" onclick="openOrderGroup('Economy')">Review schemes</button></div>`}
+  </section>`;
+}
+function projectRecordMarkup(record,s){
+  const operation=!!record.simulationOnly;
+  const kind=operation?'GAME SIMULATION':record.type==='scheme'?'SCHEME':'INITIATIVE';
+  return `<article class="country-project-record">
+    <div class="project-record-head"><span class="project-tag ${operation?'tag-sim':''}">${kind}</span><time>${esc(record.date||'')}</time></div>
+    <b>${esc(record.name||'Policy')}</b>
+    ${!operation&&record.sector?`<small>${esc(record.sector)}</small>`:''}
+    ${record.outcome?`<small class="${operation?'sim-only-outcome':'project-record-outcome'}">In-game response: ${esc(record.outcome)}</small>`:''}
+    ${operation?`<small class="sim-only-note">Fictional game record only · no real-world activity or coverage is implied.</small>`:''}
+  </article>`;
+}
+function projectsByCountry(s){
+  const groups={};
+  for (const project of (s.projects||[])){
+    const iso=project.countryIso||'PAK';
+    (groups[iso] ||= []).push(project);
+  }
+  for (const op of (s.ops||[])){
+    const iso=op.countryIso||'PAK';
+    (groups[iso] ||= []).push(op);
+  }
+  return Object.entries(groups).sort((a,b)=>{
+    if(a[0]==='PAK') return -1;
+    if(b[0]==='PAK') return 1;
+    return (s.countries[a[0]]?.name||a[0]).localeCompare(s.countries[b[0]]?.name||b[0]);
+  }).map(([iso,records])=>{
+    const country=s.countries[iso];
+    return `<article class="country-project-card">
+      <div class="country-project-head"><span>${country?country.flag:'🏳'} ${esc(country?country.name:iso)}</span><small>${records.length} record${records.length===1?'':'s'}</small></div>
+      <div class="country-project-list">${records.slice(0,5).map(record=>projectRecordMarkup(record,s)).join('')}</div>
+      ${records.length>5?`<small class="muted">+ ${records.length-5} older records</small>`:''}
+    </article>`;
+  }).join('') || `<div class="project-empty"><div class="empty-icon">🗂</div><div><b>No country projects recorded</b><p>Launched schemes and diplomacy/operations records will be grouped here.</p></div></div>`;
+}
+function tabProjects(s){
+  const allProjects=s.projects||[];
+  const schemes=allProjects.filter(p=>p.type==='scheme');
+  const initiatives=allProjects.filter(p=>p.type==='initiative');
+  const ops=s.ops||[];
+  const countryMarkup=projectsByCountry(s);
+  const P=s.countries.PAK;
+  const projected=clamp(s.approval+(schemes[0]?Number(schemes[0].supportLift)||0:0),0,100);
+  return `<section class="dashboard-heading">
+      <div><span class="eyebrow">PLANS · DELIVERY · GAME SIMULATION</span><h1>Projects</h1><p>Track launched schemes, see a cautious support outlook and review projects by country.</p></div>
+      <div class="dashboard-heading-actions"><button class="btn" onclick="openOrderGroup('Projects')">🌐 Game operations</button><button class="btn primary" onclick="openOrderGroup('Economy')">＋ Review a scheme</button></div>
+    </section>
+    <section class="project-overview">
+      <div class="project-overview-stat"><span>Launched schemes</span><b>${schemes.length}</b><small>Pakistan domestic projects</small></div>
+      <div class="project-overview-stat"><span>International initiatives</span><b>${initiatives.length}</b><small>Diplomacy & cooperation</small></div>
+      <div class="project-overview-stat"><span>Game operation records</span><b>${ops.length}</b><small>Simulation only</small></div>
+      <div class="project-overview-stat"><span>National support outlook</span><b>${schemes.length?projected.toFixed(0)+'%':'—'}</b><small>${schemes.length?`~${(P.pop*projected/100).toFixed(1)}M modeled people`:'Launch a scheme to see an estimate'}</small></div>
+    </section>
+    <section class="card project-section">
+      <div class="section-title"><div><span class="eyebrow">PAKISTAN</span><h2>Launched schemes</h2><p>Each forecast is a simple scenario estimate based on current approval—not measured satisfaction.</p></div><button class="btn" onclick="openOrderGroup('Economy')">Browse schemes</button></div>
+      ${schemes.length?`<div class="scheme-grid">${schemes.map(p=>renderSchemeCard(p,s)).join('')}</div>`:`<div class="project-empty"><div class="empty-icon">＋</div><div><b>No schemes launched yet</b><p>Nothing has been launched. Describe a goal or review a proposal; issuing an order is always your choice.</p></div><button class="btn primary" onclick="openOrderGroup('Economy')">Review first scheme</button></div>`}
+    </section>
+    <section class="card project-section">
+      <div class="section-title"><div><span class="eyebrow">BY COUNTRY</span><h2>Projects by Zain Chaudary</h2><p>Domestic schemes and international initiatives grouped by their in-game destination.</p></div></div>
+      ${allProjects.length||ops.length?`<div class="country-project-grid">${countryMarkup}</div>`:`${countryMarkup}`}
+    </section>
+    <section class="card project-section game-operations-section">
+      <div class="section-title"><div><span class="eyebrow">FICTIONAL GAME SYSTEM</span><h2>Operations & network levels</h2><p>Placed in Projects as requested. These are gameplay meters and records, not real intelligence coverage.</p></div><button class="btn" onclick="openOrderGroup('Projects')">Review game operations</button></div>
+      <div class="ops-sim-banner">Simulation only: network levels and exposure are fictional. They do not establish real agents, staffing, access, geographic coverage or ongoing activity.</div>
+      <div class="game-network-grid">${Object.entries(s.intel.networks||{}).map(([iso,n])=>{const c=s.countries[iso];const lvl=clamp(Number(n.lvl)||0,0,8);const heat=clamp(Number(n.heat)||0,0,10);return `<article class="game-network-card"><div><b>${c?c.flag+' '+esc(c.name):esc(iso)}</b><span>Level ${lvl}/8 · exposure ${heat.toFixed(1)}/10</span></div><div class="bar"><i class="${heat>6?'red':'green'}" style="width:${lvl/8*100}%"></i></div></article>`;}).join('')}</div>
+      ${ops.length?`<h3 class="subsection-title">Recent fictional game records</h3><div class="sim-record-list">${ops.slice(0,6).map(op=>projectRecordMarkup(op,s)).join('')}</div>`:`<div class="project-empty compact-empty"><div><b>No game-operation orders issued</b><p>These optional mechanics remain idle unless you choose one.</p></div></div>`}
+      <p class="profile-note">Network level = simulated depth; exposure = simulated heat. Neither is a verified real-world count or country-coverage claim. Public reporting and unknowns remain separate in the country reference panels.</p>
+    </section>`;
 }
 
-/* ============ TAB: INTEL ============ */
-function tabIntel(s){
-  return `
-  <div class="card"><h3>🕵 Intelligence network · game simulation</h3>
-    <div class="ops-sim-banner">These network levels and heat values are fictional gameplay mechanics. They do not describe real agent headcounts, country coverage, or current operations.</div>
-    ${Object.entries(s.intel.networks).map(([k,n])=>{
-      const T = s.countries[k];
-      return `<div class="faction">
-        <div class="frow"><b>${T?T.flag+' '+esc(T.name):k}</b><span>game level ${n.lvl} · game heat ${n.heat.toFixed(1)}</span></div>
-        <div class="bar"><i class="${n.heat>6?'red':'green'}" style="width:${n.lvl*12.5}%"></i></div>
-      </div>`;}).join('')}
-    <div class="note tiny">Game level = simulated network depth. Game heat = simulated exposure. Adjust through Orders → Intel. Public reporting and unknowns are shown separately in country Military/Intelligence popups.</div>
+/* ============ TAB: ORDERS ============ */
+function actionCooldown(s,a){
+  const until=s.cooldowns[a.id], now=s.date.y*12+s.date.m;
+  return until&&now<until?until-now:0;
+}
+function actionBlockReason(s,a){
+  if (s.gameOver) return 'The campaign has ended.';
+  if (a.avail&&!a.avail(s)) return 'The required situation is not in place yet.';
+  const cd=actionCooldown(s,a);
+  if (cd) return `Available again in ${cd} month${cd===1?'':'s'}.`;
+  if (a.cost.money&&s.countries.PAK.reserves<a.cost.money) return `Needs ${fmtB(a.cost.money)} in available reserves.`;
+  if (a.cost.pc&&s.pc<a.cost.pc) return `Needs ${a.cost.pc} political capital.`;
+  return '';
+}
+function actionTargetControl(s,a){
+  let options=[], current='', setter='';
+  if (a.target==='diploTarget'){
+    options=Object.keys(s.countries).filter(k=>k!=='PAK').sort((x,y)=>s.countries[y].gdp-s.countries[x].gdp).slice(0,40);
+    current=window._dipTarget||'CHN'; setter='setDip';
+  } else if (a.target==='covertTarget'){
+    options=['IND','AFG','USA','IRN','ISR','GBR','BGD'].filter(k=>s.countries[k]);
+    current=window._opTarget||'IND'; setter='setOp';
+  } else if (a.target==='exercisePartner'){
+    options=['CHN','SAU','TUR','ARE','AZE'].filter(k=>s.countries[k]);
+    current=window._exTarget||'CHN'; setter='setEx';
+  }
+  if (!options.length) return '';
+  return `<label class="target-picker">Country<select aria-label="Choose country" onchange="${setter}(this.value);refreshBrief()">${options.map(k=>`<option value="${esc(k)}" ${current===k?'selected':''}>${flag(k)} ${esc(s.countries[k].name)}</option>`).join('')}</select></label>`;
+}
+function currentTargetIso(s,a){
+  if(a.target==='diploTarget') return window._dipTarget||'CHN';
+  if(a.target==='covertTarget') return window._opTarget||'IND';
+  if(a.target==='exercisePartner') return window._exTarget||'CHN';
+  return null;
+}
+function simulatedContext(s,a){
+  const P=s.countries.PAK;
+  const parts=[];
+  if(a.cat==='Economy') parts.push(`Reserves are ${fmtB(P.reserves)}; inflation is ${P.infl.toFixed(1)}%. The simulated result depends on the scheme and current fiscal room.`);
+  if(a.cat==='Domestic') parts.push(`Current national approval is ${s.approval.toFixed(0)}% and stability is ${s.stability.toFixed(0)}/100; local mood and security conditions can affect the in-game response.`);
+  if(a.cat==='Military'||a.cat==='Nuclear') parts.push(`The game uses scenario readiness (${(s.readiness*100).toFixed(0)}%) and political capital (${s.pc.toFixed(0)}). This is not a real-world capability or readiness assessment.`);
+  if(a.cat==='Foreign'){
+    const iso=currentTargetIso(s,a), c=iso&&s.countries[iso];
+    if(c&&c.rel&&c.rel.PAK!==undefined) parts.push(`Current modeled relations with ${c.name}: ${c.rel.PAK.toFixed(0)}/100 (${G.relLabel(c.rel.PAK)}).`);
+  }
+  if(a.cat==='Intel') parts.push('This is a fictional game operation. Its outcome is probabilistic and is logged only inside the simulation; it is not a real-world activity or coverage claim.');
+  return parts.join(' ');
+}
+function renderPlannerBriefing(s){
+  const actionId=window._planAction;
+  const notice=window._plannerNotice;
+  if(!actionId) return notice?`<div class="planner-notice"><b>Cabinet desk</b><p>${esc(notice)}</p><small>No order has been issued and the game state is unchanged.</small></div>`:'';
+  const a=ACTIONS.find(item=>item.id===actionId);
+  if(!a) return '';
+  const reason=actionBlockReason(s,a), targetControl=actionTargetControl(s,a);
+  const cost=[a.cost.money?`${fmtB(a.cost.money)} reserves`:null,a.cost.pc?`${a.cost.pc} political capital`:null].filter(Boolean).join(' + ')||'No direct cost';
+  const context=simulatedContext(s,a);
+  const suggestedText=window._orderText?`Your intent: “${esc(window._orderText)}”`:'';
+  return `<div class="planner-briefing">
+    <div class="briefing-head"><div><span class="eyebrow">SIMULATED CABINET BRIEF</span><h3>${esc(a.name)}</h3></div><span class="status-pill ${reason?'status-bad':'status-good'}">${reason?'Not available':'Ready to review'}</span></div>
+    ${suggestedText?`<p class="briefing-intent">${suggestedText}</p>`:''}
+    <div class="briefing-columns"><div><b>Likely in-game trade-off</b><p>${esc(a.desc)}</p></div><div><b>Current context</b><p>${esc(context||'The simulation will use this policy’s scripted effects and current state.')}</p></div></div>
+    <div class="briefing-meta"><span>Estimated cost <b>${esc(cost)}</b></span><span>Approval now <b>${s.approval.toFixed(0)}%</b></span><span>Political capital <b>${s.pc.toFixed(0)}</b></span></div>
+    ${targetControl}
+    ${reason?`<div class="order-blocked">${esc(reason)}</div>`:''}
+    <div class="briefing-actions"><button class="btn primary" ${reason?'disabled':''} onclick="issue('${a.id}')">Issue this order</button><button class="btn" onclick="dismissBrief()">Not now</button></div>
+    <small class="briefing-disclaimer">This is a scripted game briefing, not an AI or real-world policy forecast. Nothing changes until you press “Issue this order”.</small>
   </div>`;
+}
+function tabOrders(s){
+  const activeGroup=ORDER_GROUPS.find(group=>group.id===(window._ordersCat||'Economy'))||ORDER_GROUPS[0];
+  const actions=ACTIONS.filter(a=>activeGroup.cats.includes(a.cat));
+  return `<section class="dashboard-heading orders-heading"><div><span class="eyebrow">OPTIONAL · YOU DECIDE</span><h1>Orders</h1><p>Describe a goal, review the simulated consequences, then decide whether to issue anything.</p></div></section>
+    <section class="planner-card">
+      <div class="planner-intro"><div class="planner-symbol">✦</div><div><h2>What do you want to achieve?</h2><p>The cabinet desk matches your description to a scripted game action. If no match exists, it will say so rather than invent a policy.</p></div></div>
+      <label class="prompt-label" for="policy-prompt">Your intended action</label>
+      <textarea id="policy-prompt" maxlength="320" placeholder="For example: Launch a solar and energy security programme, or open talks with the opposition…" oninput="window._orderText=this.value">${esc(window._orderText||'')}</textarea>
+      <div class="planner-submit-row"><button class="btn primary" onclick="previewPlan()">Get a simulated response</button><span>Draft only · no cost · nothing is issued</span></div>
+      <div id="planner-response">${renderPlannerBriefing(s)}</div>
+    </section>
+    <section class="order-picker-section"><div class="section-title"><div><span class="eyebrow">SCRIPTED OPTIONS</span><h2>Review an order</h2><p>Every action opens a briefing first. There is no one-click issue button.</p></div></div>
+      <div class="order-groupbar">${ORDER_GROUPS.map(group=>`<button class="order-group ${group.id===activeGroup.id?'on':''}" onclick="setCat('${group.id}')">${esc(group.label)}<small>${ACTIONS.filter(a=>group.cats.includes(a.cat)).length}</small></button>`).join('')}</div>
+      <div class="order-grid">${actions.map(a=>{
+        const reason=actionBlockReason(s,a), cost=[a.cost.money?`${fmtB(a.cost.money)}`:null,a.cost.pc?`${a.cost.pc} PC`:null].filter(Boolean).join(' · ')||'No direct cost';
+        return `<article class="order-option ${reason?'order-option-off':''}"><div class="order-option-top"><span class="order-tag">${esc(activeGroup.label)}</span><span class="order-cost">${esc(cost)}</span></div><h3>${esc(a.name)}</h3><p>${esc(a.desc)}</p><div class="order-option-footer">${reason?`<small>${esc(reason)}</small>`:'<small>Review consequences before deciding.</small>'}<button class="btn" onclick="reviewAction('${a.id}')">Review</button></div></article>`;
+      }).join('')}</div>
+    </section>`;
+}
+function inferCountryFromText(text){
+  const lower=String(text||'').toLowerCase(), s=G.getState();
+  const words=lower.split(/[^a-z0-9]+/).filter(Boolean);
+  const mentioned=term=>term.includes(' ')?lower.includes(term):words.includes(term);
+  const entries=Object.entries(s.countries).sort((a,b)=>b[1].name.length-a[1].name.length);
+  for(const [iso,country] of entries){
+    if(lower.includes(country.name.toLowerCase())||mentioned(iso.toLowerCase())) return iso;
+  }
+  const aliases={USA:['us','america','washington'],CHN:['china','beijing'],IND:['india','delhi'],IRN:['iran','tehran'],AFG:['afghan','kabul'],SAU:['saudi','riyadh'],ARE:['uae','emirates'],TUR:['turkey','turkiye'],GBR:['britain','uk','london'],ISR:['israel','tel aviv'],PSE:['palestine','gaza'],BGD:['bangladesh']};
+  for(const [iso,terms] of Object.entries(aliases)) if(terms.some(mentioned)) return iso;
+  return null;
+}
+function previewPlan(){
+  const field=document.getElementById('policy-prompt');
+  const text=(field?field.value:window._orderText||'').trim();
+  window._orderText=text;
+  window._planAction=null;
+  if(!text){window._plannerNotice='Write a short goal first. I will match it only to an existing scripted game action.';render();return;}
+  const lower=text.toLowerCase();
+  const rules=[
+    [/\b(solar|energy|power|electricity|load.?shedding|dam|thar)\b/,'energy_invest'],
+    [/\b(agri|agriculture|farm|farmer|food price|fertili[sz]er|crop|wheat)\b/,'agri_emergency'],
+    [/\b(export|textile|it park|it export|jobs|manufactur)\b/,'export_push'],
+    [/\b(balochistan|baloch|reko diq)\b/,/\b(talk|dialogue|peace|reconcil)\b/.test(lower)?'bla_talks':'bla_dev'],
+    [/\b(pti|opposition|political dialogue|protest)\b/,'pti_talks'],
+    [/\b(kurram|sectarian|jirga)\b/,'sect_jirga'],
+    [/\b(police|judiciary|court|justice reform)\b/,'police_reform'],
+    [/\b(cut taxes|tax relief|lower taxes)\b/,'tax_cut'],
+    [/\b(tax|gst|revenue base)\b/,'tax_up'],
+    [/\b(subsid|fuel price|electricity price)\b/,'subsidy_cut'],
+    [/\b(navy|submarine|hangor)\b/,'hangor'],
+    [/\b(air force|fighter jet|jf.?17|aircraft purchase)\b/,'jf17'],
+    [/\b(defen[cs]e budget|military budget|border posture)\b/,'def_budget_up'],
+    [/\b(imf|tranche)\b/,'imf_tranche'],
+    [/\b(afghan|kabul|ttp sanctuary|ttp)\b/,/\b(trade|transit)\b/.test(lower)?'afg_trade':'afg_pressure'],
+    [/\b(state visit|diplomatic visit|visit)\b/,'visit'],
+    [/\b(india|loc|line of control|backchannel)\b/,/\b(trade|market access|tariff)\b/.test(lower)?'trade_deal':'india_backchannel'],
+    [/\b(trade deal|trade agreement|market access|trade with)\b/,'trade_deal'],
+    [/\b(cyber|covert|secret operation|influence campaign)\b/,'covert_disinfo']
+  ];
+  const match=rules.find(([pattern])=>pattern.test(lower));
+  if(!match){window._plannerNotice='I could not match that request to a specific scripted action. Try a goal such as energy security, agriculture, exports, Balochistan development, dialogue, police reform, diplomacy or defence—or review a listed action below.';render();return;}
+  window._planAction=match[1];
+  window._plannerNotice=null;
+  const selectedAction=ACTIONS.find(a=>a.id===match[1]);
+  const mentionedCountry=inferCountryFromText(text);
+  if(selectedAction&&mentionedCountry){
+    if(selectedAction.target==='diploTarget')window._dipTarget=mentionedCountry;
+    if(selectedAction.target==='covertTarget')window._opTarget=mentionedCountry;
+    if(selectedAction.target==='exercisePartner')window._exTarget=mentionedCountry;
+  }
+  window._ordersCat=ORDER_GROUPS.find(group=>group.cats.includes(selectedAction?.cat))?.id||'Economy';
+  render();
+}
+function dismissBrief(){window._planAction=null;window._plannerNotice=null;render();}
+function reviewAction(id){
+  const a=ACTIONS.find(item=>item.id===id);
+  if(!a)return;
+  window._planAction=id;window._plannerNotice=null;window._orderText='';
+  window._ordersCat=ORDER_GROUPS.find(group=>group.cats.includes(a.cat))?.id||'Economy';
+  render();
+  document.querySelector('.planner-card')?.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function refreshBrief(){const response=document.getElementById('planner-response');if(response)response.innerHTML=renderPlannerBriefing(G.getState());}
+function setCat(category){window._ordersCat=category;render();}
+function openOrderGroup(category){window._ordersCat=category;window._tab='orders';render();}
+function setDip(v){window._dipTarget=v;}
+function setOp(v){window._opTarget=v;}
+function setEx(v){window._exTarget=v;}
+function issue(id){
+  const s=G.getState(),a=ACTIONS.find(item=>item.id===id);
+  if(!a)return;
+  if(!G.actionAvailable(s,a)){toast(actionBlockReason(s,a)||'Order unavailable');return;}
+  if(a.target==='diploTarget'){if(!window._dipTarget)window._dipTarget='CHN';s._dipTarget=window._dipTarget;}
+  if(a.target==='covertTarget'){if(!window._opTarget)window._opTarget='IND';s._opTarget=window._opTarget;}
+  if(a.target==='exercisePartner'){if(!window._exTarget)window._exTarget='CHN';s._exTarget=window._exTarget;}
+  G.doAction(s,a);
+  window._planAction=null;window._plannerNotice=null;window._orderText='';
+  toast('Order issued: '+a.name);
+  render();
 }
 
 /* ============ TAB: NEWS ============ */
@@ -791,9 +964,9 @@ function render(){
   renderChips(s);
   const tab = window._tab || 'gov';
   document.getElementById('panel').innerHTML =
-    tab==='gov'    ? tabGov(s) :
-    tab==='orders' ? tabOrders(s) :
-    tab==='intel'  ? tabIntel(s) :
+    tab==='gov'      ? tabGov(s) :
+    tab==='projects' ? tabProjects(s) :
+    tab==='orders'   ? tabOrders(s) :
     tabNews(s);
   document.querySelectorAll('.tabbtn').forEach(b=>b.classList.toggle('on', b.dataset.tab===tab));
   const tick = document.getElementById('ticker');

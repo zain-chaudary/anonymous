@@ -46,6 +46,21 @@ function monthlyRevenue(s){ const P=s.countries.PAK; return P.gdp*(P.taxGdp/100)
 function monthlyDebtService(s){ return s.countries.PAK.extDebt*0.055/12; }
 function monthlySpend(s){ const B=s.budget; return B.defense+B.dev+B.health+B.edu+B.interior+B.subsidy+B.admin+monthlyDebtService(s)+(s.war?1.5:0)+(s.militPosture-2)*0.12; }
 
+const INITIAL_INNER_RELATIONS = {
+  army:63, air:58, navy:55, bank:52,
+  punjab:55, sindh:49, kp:43, balochistan:38, gb:54, ajk:51
+};
+function normalizeState(s){
+  if (!s.innerInfluence || typeof s.innerInfluence !== 'object') s.innerInfluence = {relationships:{}};
+  if (!s.innerInfluence.relationships || typeof s.innerInfluence.relationships !== 'object') s.innerInfluence.relationships = {};
+  for (const [key,value] of Object.entries(INITIAL_INNER_RELATIONS)){
+    if (!Number.isFinite(Number(s.innerInfluence.relationships[key]))) s.innerInfluence.relationships[key] = value;
+  }
+  if (!Array.isArray(s.projects)) s.projects = [];
+  if (!Array.isArray(s.ops)) s.ops = [];
+  return s;
+}
+
 /* ---------- new game ---------- */
 function newGame(){
   const countries = JSON.parse(JSON.stringify(COUNTRIES));
@@ -65,6 +80,8 @@ function newGame(){
       budget: 0.35,
       networks: { IND:{lvl:3,heat:1}, AFG:{lvl:4,heat:1}, USA:{lvl:2,heat:0}, IRN:{lvl:2,heat:0}, SAU:{lvl:2,heat:0}, GBR:{lvl:1,heat:0} }
     },
+    innerInfluence: {relationships:{...INITIAL_INNER_RELATIONS}},
+    projects: [],
     ops: [],
     war: null,
     flags: {},
@@ -77,7 +94,7 @@ function newGame(){
   };
   news(s,'November 2026. You assume supreme authority over the Islamic Republic of Pakistan — 241 million people, a $415B economy, 170 nuclear warheads, and more problems than solutions.','big');
   news(s,'IMF EFF review passed in October. Reserves $15.5B. Rupee 281/USD. Ceasefire with India holding since May 2025 — barely.','info');
-  news(s,'Field Marshal Asim Munir: "The Army stands with you. Just remember who stands longest." (Test of loyalty ahead.)','warn');
+  news(s,'Game scenario note: relations with military institutions are modeled and will shift with policy choices; this is not a statement from any real officeholder.','warn');
   // US midterm moment (real: Nov 3 2026)
   news(s,'US midterms: Trump\'s Republicans lose the House narrowly; Senate holds 52-48. Foreign policy hardens into pure transactional mode.','info');
   state = s;                    // assign the live game state (UI reads this)
@@ -89,7 +106,7 @@ function saveGame(){ localStorage.setItem('wl2026', JSON.stringify(state)); toas
 function loadGame(){
   const raw = localStorage.getItem('wl2026');
   if (!raw) return false;
-  try { state = JSON.parse(raw); return true; } catch(e){ return false; }
+  try { state = normalizeState(JSON.parse(raw)); return true; } catch(e){ return false; }
 }
 
 /* ============================================================
@@ -758,6 +775,81 @@ const ACTIONS = [
  cd:12, fx:s=>{ news(s,'NCA audit complete: PAL systems, PDR drills and succession protocols refreshed. SPD reassures everyone by saying nothing.','info'); }}
 ];
 
+const FIXED_ACTION_TARGETS = {
+  net_expand_ind:'IND', net_expand_afg:'AFG', net_expand_usa:'USA',
+  liaison_usa:'USA', liaison_chn:'CHN', counterintel:'PAK',
+  india_backchannel:'IND', afg_pressure:'AFG', afg_trade:'AFG',
+  iran_pipe:'IRN', us_coop:'USA', palestine_stance:'PSE'
+};
+function actionTargetCountry(s,a){
+  if (a.target==='covertTarget') return s._opTarget || 'IND';
+  if (a.target==='diploTarget') return s._dipTarget || 'CHN';
+  if (a.target==='exercisePartner') return s._exTarget || 'CHN';
+  return FIXED_ACTION_TARGETS[a.id] || null;
+}
+function bumpInnerRelation(s,key,delta){
+  const relations = s.innerInfluence && s.innerInfluence.relationships;
+  if (!relations || !Number.isFinite(Number(relations[key]))) return;
+  relations[key] = clamp(Number(relations[key]) + delta, 0, 100);
+}
+function updateInnerInfluenceFromAction(s,a){
+  const blueprint = PAK_PROJECT_BLUEPRINTS[a.id];
+  if (blueprint && blueprint.regionId) bumpInnerRelation(s, blueprint.regionId, Math.max(1, blueprint.supportLift/2));
+  if (a.id==='energy_invest' || a.id==='unity_campaign' || a.id==='police_reform'){
+    for (const region of PAK_INFLUENCE.regions) bumpInnerRelation(s, region.id, a.id==='energy_invest'?0.5:0.75);
+  }
+  if (a.cat==='Military'){
+    const boost = a.id==='def_budget_up' ? 4 : 1.5;
+    bumpInnerRelation(s,'army',boost);
+    if (['jf17','airdef','drones','f16_up'].includes(a.id)) bumpInnerRelation(s,'air',3);
+    else if (a.id==='hangor') bumpInnerRelation(s,'navy',4);
+    else { bumpInnerRelation(s,'air',0.5); bumpInnerRelation(s,'navy',0.5); }
+    if (a.cost.money) bumpInnerRelation(s,'bank',-0.5);
+  }
+  if (['tax_up','austerity','imf_tranche','stop_print','privatize'].includes(a.id)) bumpInnerRelation(s,'bank',2.5);
+  if (['tax_cut','money_print','subsidy_cut'].includes(a.id)) bumpInnerRelation(s,'bank',-2);
+  if (a.id==='agri_emergency'){
+    bumpInnerRelation(s,'punjab',2);
+    bumpInnerRelation(s,'sindh',1);
+  }
+  if (a.id==='pti_talks') for (const region of PAK_INFLUENCE.regions) bumpInnerRelation(s,region.id,0.75);
+  if (a.id==='ttp_ops') bumpInnerRelation(s,'kp',-1);
+  if (a.id==='bla_ops') bumpInnerRelation(s,'balochistan',-1);
+}
+function innerInfluenceTick(s){
+  if (!s.innerInfluence || !s.innerInfluence.relationships) return;
+  const r = s.innerInfluence.relationships, P = s.countries.PAK;
+  const defenseDrift = clamp((s.budget.defense-0.72)*0.7,-0.5,0.5);
+  const stabilityDrift = clamp((s.stability-50)*0.012,-0.5,0.5);
+  bumpInnerRelation(s,'army',defenseDrift+stabilityDrift);
+  bumpInnerRelation(s,'air',defenseDrift+(s.readiness-0.65)*0.6);
+  bumpInnerRelation(s,'navy',defenseDrift*0.8);
+  bumpInnerRelation(s,'bank',clamp((P.reserves-15.5)*0.015-Math.max(0,P.infl-7)*0.025,-0.6,0.6));
+  for (const leader of PAK_INFLUENCE.regions){
+    const province = P.provinces.find(p=>p.id===leader.provinceId);
+    if (province) bumpInnerRelation(s,leader.id,clamp((province.mood-50)*0.012,-0.6,0.6));
+  }
+}
+function recordActionArtifacts(s,a,outcome){
+  const targetIso = actionTargetCountry(s,a);
+  if (a.cat==='Intel'){
+    s.ops.unshift({id:`${a.id}-${s.date.y}-${s.date.m}-${s.log.length+1}`, date:dateStr(s), actionId:a.id,
+      name:a.name, countryIso:targetIso || 'PAK', outcome, simulationOnly:true});
+    if (s.ops.length>100) s.ops.pop();
+  }
+  const blueprint = PAK_PROJECT_BLUEPRINTS[a.id];
+  if (blueprint){
+    s.projects.unshift({id:`${a.id}-${s.date.y}-${s.date.m}-${s.log.length+1}`, date:dateStr(s), actionId:a.id,
+      name:blueprint.title, sector:blueprint.sector, type:'scheme', countryIso:'PAK', regionId:blueprint.regionId,
+      approvalAtLaunch:clamp(s.approval,0,100), supportLift:blueprint.supportLift, horizon:blueprint.horizon, outcome});
+  } else if ((a.cat==='Foreign' || a.id==='exercises') && targetIso && targetIso!=='PAK'){
+    s.projects.unshift({id:`${a.id}-${s.date.y}-${s.date.m}-${s.log.length+1}`, date:dateStr(s), actionId:a.id,
+      name:a.name, sector:a.cat==='Foreign'?'Diplomatic initiative':'Joint exercise', type:'initiative',
+      countryIso:targetIso, regionId:null, approvalAtLaunch:clamp(s.approval,0,100), supportLift:0, horizon:0, outcome});
+  }
+  if (s.projects.length>100) s.projects.pop();
+}
+
 /* action availability & cooldown helpers */
 function actionAvailable(s, a){
   if (s.gameOver) return false;
@@ -772,7 +864,11 @@ function doAction(s, a){
   s.pc -= a.cost.pc || 0;
   s.countries.PAK.reserves -= a.cost.money || 0;
   if (a.cd) s.cooldowns[a.id] = s.date.y*12 + s.date.m + a.cd;
+  const newsCount = s.news.length;
   a.fx(s);
+  const outcome = s.news.length>newsCount && s.news[0] ? s.news[0].t : a.desc;
+  updateInnerInfluenceFromAction(s,a);
+  recordActionArtifacts(s,a,outcome);
   s.log.unshift({d:dateStr(s), t:'Issued: ' + a.name});
 }
 
@@ -786,6 +882,7 @@ function endMonth(s){
 
   econTick(s);
   stabTick(s);
+  innerInfluenceTick(s);
   milTick(s);
   intelTick(s);
   aiTick(s);

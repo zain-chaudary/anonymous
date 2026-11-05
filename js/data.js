@@ -570,6 +570,40 @@ for (const k in EXTRA) if (COUNTRIES[k]) Object.assign(COUNTRIES[k], EXTRA[k]);
 /* Merge Pakistan deep state into its country object */
 Object.assign(COUNTRIES.PAK, PAK_STATE);
 
+/* Named officeholders are public-reference data; their relationship scores in
+   the game are modeled values, not claims about real personal relationships. */
+const PAK_INFLUENCE = {
+  asOf: 'November 2026',
+  institutions: [
+    {id:'army', name:'Field Marshal Syed Asim Munir', role:'Chief of Defence Forces & Chief of Army Staff', source:'https://en.wikipedia.org/wiki/Pakistan_Armed_Forces'},
+    {id:'air', name:'Air Chief Marshal Zaheer Ahmed Baber Sidhu', role:'Chief of the Air Staff', source:'https://www.knowledgebylanes.com/services-chiefs-reaffirm-commitment-to-pakistans-defence/'},
+    {id:'navy', name:'Admiral Naveed Ashraf', role:'Chief of the Naval Staff', source:'https://www.radio.gov.pk/04-04-2026/naval-chief-reaffirms-resolve-to-defend-sovereign-seas'},
+    {id:'bank', name:'Jameel Ahmad', role:'Governor, State Bank of Pakistan', source:'https://www.brecorder.com/news/40446351/sbp-chief-highlights-macroeconomic-recovery-since-2022'}
+  ],
+  regions: [
+    {id:'punjab', name:'Maryam Nawaz Sharif', role:'Chief Minister · Punjab', provinceId:'punjab', source:'https://en.wikipedia.org/wiki/2026_in_Pakistan'},
+    {id:'sindh', name:'Murad Ali Shah', role:'Chief Minister · Sindh', provinceId:'sindh', source:'https://en.wikipedia.org/wiki/2026_in_Pakistan'},
+    {id:'kp', name:'Faisal Karim Kundi', role:'Governor & administrator · Khyber Pakhtunkhwa', status:'Governor’s rule reported from October 2026', provinceId:'kp', source:'https://en.wikipedia.org/wiki/2026_in_Pakistan'},
+    {id:'balochistan', name:'Sarfraz Bugti', role:'Chief Minister · Balochistan', provinceId:'balochistan', source:'https://en.wikipedia.org/wiki/2026_in_Pakistan'},
+    {id:'gb', name:'Amjad Hussain Azar', role:'Chief Minister · Gilgit-Baltistan', provinceId:'gb', source:'https://en.wikipedia.org/wiki/Chief_Minister_of_Gilgit-Baltistan'},
+    {id:'ajk', name:'Faisal Mumtaz Rathore', role:'Prime Minister · Azad Jammu & Kashmir', provinceId:'ajk', source:'https://en.wikipedia.org/wiki/List_of_prime_ministers_of_Azad_Kashmir'}
+  ],
+  note:'Officeholder names are public references for the stated date. “In-game standing” is a fictional scenario metric, not a measured or factual relationship.'
+};
+
+/* Domestic schemes whose future approval effects are only game-model estimates. */
+const PAK_PROJECT_BLUEPRINTS = {
+  export_push: {title:'National Export Push', sector:'Jobs & export growth', regionId:null, supportLift:2, horizon:6},
+  agri_emergency: {title:'Agriculture Emergency', sector:'Food security & rural livelihoods', regionId:'punjab', supportLift:3, horizon:3},
+  energy_invest: {title:'Energy Security Program', sector:'Solar, domestic energy & infrastructure', regionId:null, supportLift:3, horizon:6},
+  bla_dev: {title:'Balochistan Development Package', sector:'Local development & public services', regionId:'balochistan', supportLift:4, horizon:6},
+  bla_talks: {title:'Balochistan Reconciliation Track', sector:'Dialogue & regional confidence', regionId:'balochistan', supportLift:2, horizon:3},
+  sect_jirga: {title:'Kurram Peace Jirga', sector:'Community safety & de-escalation', regionId:'kp', supportLift:2, horizon:3},
+  unity_campaign: {title:'National Unity Campaign', sector:'National cohesion', regionId:null, supportLift:1, horizon:3},
+  police_reform: {title:'Police & Judiciary Reform', sector:'Public safety & access to justice', regionId:null, supportLift:2, horizon:6},
+  pti_talks: {title:'National Political Dialogue', sector:'Dialogue & political stability', regionId:null, supportLift:2, horizon:3}
+};
+
 /* Relations color helper for map — refined emerald→red scale */
 const relColor = r => {
   if (r === undefined) return '#242b37';
