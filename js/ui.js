@@ -89,8 +89,8 @@ function renderMoneyBoard(s){
     <div class="money-reserve-outlook"><div><span>After the budget and outside flows</span><small>Estimated monthly change in reserves, before random events</small></div><b id="money-reserve-change" class="${m.reserveChange>=0?'good':'bad'}">${signedMoney(m.reserveChange)}</b></div>
     <section class="money-growth"><div class="money-growth-title"><div><span class="eyebrow">WAYS TO IMPROVE THE POSITION</span><h3>What could bring in more?</h3></div><small>Simple estimates using today’s game numbers</small></div>
       <div class="money-growth-grid">
-        <article class="money-growth-card tax-growth"><span>🏛️ Tax yield</span><b>+${fmtB(m.taxPointImpact)} / month</b><small>For each +1 percentage point in tax-to-GDP, at current compliance.</small></article>
-        <article class="money-growth-card compliance-growth"><span>✅ Tax collection</span><b>+${fmtB(m.complianceImpact)} / month</b><small>If modeled collection compliance improves by 0.10.</small></article>
+        <article class="money-growth-card tax-growth"><span>🏛️ Tax yield</span><b>+${fmtB(m.taxPointImpact)} / month</b><small>At ${m.P.taxGdp.toFixed(1)}% now: each +1 percentage point adds this much, at current compliance.</small></article>
+        <article class="money-growth-card compliance-growth"><span>✅ Tax collection</span><b>+${fmtB(m.complianceImpact)} / month</b><small>If modeled collection compliance improves by 0.10 (10 points); now ${s.econ.compliance.toFixed(2)}.</small></article>
         <article class="money-growth-card export-growth"><span>📦 Exports</span><b>+${fmtB(1/12)} / month</b><small>Foreign-currency inflow for each extra $1B of annual exports.</small></article>
         <article class="money-growth-card saving-growth"><span>✂️ Spending choice</span><b>+$0.10B / month</b><small>Cutting a budget by $0.10B improves the monthly budget by that amount.</small></article>
       </div>
