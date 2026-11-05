@@ -255,6 +255,38 @@ function hideCard(){ document.getElementById('countrycard').classList.add('hidde
 function goHome(){ hideCard(); openHome(); switchTab('gov'); }
 
 /* ---------- detail popups ---------- */
+function vsRow(label, mine, theirs, invert=false){
+  const mx = Math.max(mine, theirs, 1);
+  const myPct = clamp(mine/mx*100, 2, 100), thPct = clamp(theirs/mx*100, 2, 100);
+  const ratio = mine>0 ? (theirs/mine) : 99;
+  let verdict = ratio>1.5 ? `<span class="bad">⚠ ${ratio.toFixed(1)}× stronger than you</span>`
+    : ratio>0.8 ? `<span class="warn">≈ equal to you</span>`
+    : `<span class="good">✔ ${ratio<0.02?'negligible':(mine/theirs).toFixed(1)+'× weaker than you'}</span>`;
+  if (invert) verdict = '';
+  return `
+    <div class="vsrow">
+      <div class="vslabel">${label}</div>
+      <div class="vsbars">
+        <div class="vsbar you"><i style="width:${myPct}%"></i><b>${mine.toLocaleString()}</b><span>YOU</span></div>
+        <div class="vsbar them"><i style="width:${thPct}%"></i><b>${theirs.toLocaleString()}</b><span>THEM</span></div>
+      </div>
+      <div class="vsverdict tiny">${verdict}</div>
+    </div>`;
+}
+function milCompare(s, iso){
+  const c = s.countries[iso], P = s.countries.PAK;
+  const foe = iso==='PAK' ? s.countries.IND : P;
+  const foeName = iso==='PAK' ? 'India (your rival)' : 'Pakistan';
+  const a = iso==='PAK' ? P : c, b = foe;
+  return `
+    <h4 class="popsub">⚔ ${iso==='PAK'? 'You vs India — your rival' : esc(a.name)+' vs '+foeName}</h4>
+    ${vsRow('⚔ Power score', Math.round(G.powerScore(a)), Math.round(G.powerScore(b)))}
+    ${vsRow('👥 Troops', a.troops, b.troops)}
+    ${vsRow('🛡 Tanks', a.tanks, b.tanks)}
+    ${vsRow('✈ Aircraft', a.aircraft, b.aircraft)}
+    ${vsRow('☢ Warheads', a.nu||0, b.nu||0)}
+    <div class="muted tiny" style="margin-bottom:6px">Bars: gold = ${iso==='PAK'?'you':'you'} · grey = ${iso==='PAK'?'India':'them'}. Numbers rounded.</div>`;
+}
 function popHead(kind, flag, name, subtitle){
   return `<div class="pophead ${kind}"><span class="pflag">${flag}</span>
     <div><h2>${esc(name)}</h2><div class="muted tiny">${subtitle}</div></div>
@@ -270,8 +302,9 @@ function openPopup(iso, kind){
   const tile = (k,v,cls='') => `<div class="tile ${cls}"><span>${k}</span><b>${v}</b></div>`;
   let head='', body='';
   if (kind==='mil'){
-    head = popHead('mil', c.flag||'🏳', c.name+' — Military', `World power rank #${rank} · ${c.nu? c.nu+' nuclear warheads ☢':'No nuclear weapons'}`);
+    head = popHead('mil', c.flag||'🏳', c.name+' — Military', `World power rank #${rank} · ${c.nu? c.nu+' nuclear warheads ☢':'No nuclear weapons'} · Agency: ${esc(c.agency||'—')}`);
     const per1000 = (c.troops*1000/(c.pop*1000000)).toFixed(1);
+    const m = c.mil || null;
     body = `
       <div class="pgrid">
         ${tile('👥 Active troops', c.troops.toLocaleString()+'k')}
@@ -283,10 +316,23 @@ function openPopup(iso, kind){
         ${tile('☢ Warheads', c.nu? c.nu+' ☢':'None')}
         ${tile('🧍 Soldiers per 1,000 people', per1000)}
       </div>
-      <div class="frow small"><b>Estimated power score</b><span><b>${Math.round(G.powerScore(c)).toLocaleString()}</b></span></div>
-      <div class="bar"><i style="width:${clamp(G.powerScore(c)/G.powerScore(s.countries.USA)*100,2,100)}%;background:linear-gradient(90deg,#3b82f6,#93c5fd)"></i></div>
-      ${c.milNote?`<div class="note">🎖 ${esc(c.milNote)}</div>`:''}
-      <div class="muted tiny" style="margin-top:8px">Spy agency: ${esc(c.agency||'—')} · Power score = economy + men + tanks + jets + ships + warheads</div>`;
+      ${m ? `
+      <h4 class="popsub">🪖 Army equipment</h4><div class="noteline">${esc(m.a)}</div>
+      <h4 class="popsub">✈ Air Force</h4><div class="noteline">${esc(m.f)}</div>
+      <h4 class="popsub">🚢 Navy</h4><div class="noteline">${esc(m.n)}</div>
+      <h4 class="popsub">🚀 Missiles & Strategic</h4><div class="noteline">${esc(m.m)}</div>
+      <div class="pgrid" style="margin-top:10px">
+        ${tile('🎖 Reserves / SF', m.r)}
+        ${tile('🛒 Main suppliers', m.s)}
+        ${tile('🔥 Combat experience', m.x)}
+        ${tile('🌍 Foreign bases', m.b)}
+      </div>
+      <div class="note">🧭 ${esc(m.j)}</div>
+      ` : `<div class="note">Open-source detail limited for this country — judge by the numbers above.</div>`}
+      ${milCompare(s, iso)}
+      <div class="frow small" style="margin-top:4px"><b>Power score vs world #1 (USA)</b><span><b>${Math.round(G.powerScore(c)).toLocaleString()} / ${Math.round(G.powerScore(s.countries.USA)).toLocaleString()}</b></span></div>
+      <div class="bar"><i style="width:${clamp(G.powerScore(c)/G.powerScore(s.countries.USA)*100,2,100)}%;background:linear-gradient(90deg,#b8860b,#f0b429)"></i></div>
+      ${c.milNote?`<div class="muted tiny" style="margin-top:6px">${esc(c.milNote)}</div>`:''}`;
   }
   if (kind==='econ'){
     head = popHead('econ', c.flag||'🏳', c.name+' — Economy', `${c.currency||'—'} currency · ${esc(c.gov||'—')}`);
