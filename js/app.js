@@ -55,7 +55,7 @@ function showIntro(){
         <ul>
           <li>241M people · $415B economy · 7% inflation</li>
           <li>$15.5B in the government bank · $91B loans to repay</li>
-          <li>654k troops, 3719 tanks, 470 jets, 170 nuclear warheads</li>
+          <li>Game scenario values: 654k troops, 3,719 tanks, 470 aircraft, 170 warheads</li>
           <li>TTP insurgency in KP, BLA in Balochistan</li>
           <li>India hostile · China generous · America transactional</li>
         </ul>
@@ -71,7 +71,7 @@ function showIntro(){
         </ul>
       </div>
     </div>
-    <p class="muted small">Real baseline data: IMF/World Bank/SIPRI/IISS 2025, projected to Nov 2026. Hardcore mode: no undo.</p>
+    <p class="muted small">Starting values are simplified game scenario baselines, not a live national inventory. Public reference data retain their own dates and definitions in the Military and Resources panels and do not alter gameplay counts. Hardcore mode: no undo.</p>
     <button class="btn big primary" onclick="document.getElementById('modal').style.display='none'">Take Power</button>
   </div>`;
   modal.style.display = 'flex';

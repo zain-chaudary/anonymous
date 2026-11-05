@@ -13,7 +13,7 @@ Then open the preview URL.
 
 ## How it works
 - **1 turn = 1 month.** Issue orders (💵 money + 🏛 political capital), then press **End Month** and the world simulates: economy, factions, wars, intelligence, AI countries.
-- **173 countries** with real-world baseline data (IMF WEO, World Bank, SIPRI 2025, IISS Military Balance — projected to Nov 2026).
+- **173 countries** with simplified game baselines. Separate V13 public-reference panels show selected sourced military, resource, oil and energy figures with their own dates and definitions; they do not alter gameplay baselines or mechanics.
 - **Pakistan deep state**: provinces, TTP/BLA/PTI/sectarian factions, ISI networks, advisors (Field Marshal, DG ISI, Finance Minister...), IMF/CPEC/Saudi-pact programs.
 - **Realistic consequences**: default → collapse; coup risk when approval craters; India war → escalation ladder, international pressure, ceasefire mechanics; nuclear use = MAD game over.
 - **Win** by surviving, uniting the country and growing into a top-tier power. **Lose** by coup, revolution, bankruptcy, conquest or nuclear war.
@@ -22,7 +22,8 @@ Then open the preview URL.
 ```
 index.html          — dashboard shell
 css/style.css       — dark war-room theme
-js/data.js          — world data (173 countries), Pakistan deep state
+js/data.js          — game scenario data (173 countries), Pakistan deep state
+js/data-v13.js      — view-only sourced reference figures; does not change simulation data
 js/engine.js        — simulation: economy, stability, war, intel, AI, events
 js/map.js           — canvas world map (pan/zoom/click, relation colors)
 js/ui.js            — panels, orders, event modals, news ticker

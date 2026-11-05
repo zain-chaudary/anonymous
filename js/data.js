@@ -723,20 +723,6 @@ const COMPANIES = {
  QIA:{name:'Qatar Investment Authority', flag:'🇶🇦', sector:'Sovereign Wealth', worth:530, rel:55, note:'Renewable energy & LNG-term interest in Pakistan; LNG supply deal anchor.'}
 };
 
-/* Foreign intelligence activity against/around Pakistan */
-const OPS_AGAINST_US = {
- IND:'RAW: finances BLA/separatist networks, targets CPEC projects — CTD seizures prove funding chains (ACTIVE)',
- AFG:'GDI: shelters TTP leadership on Afghan soil; border firing; Durand Line rejection (HOSTILE)',
- USA:'CIA: liaison channel + pressure ops over Afghan policy & China ties; drone-base asking (DUAL-TRACK)',
- IRN:'MOIS: sectarian recruitment networks in Gilgit-Baltistan & Kurram (WATCHED)',
- GBR:'MI6: political monitoring & diaspora assets in London (PASSIVE)',
- ISR:'Mossad: minimal direct footprint — watches via India liaison (LIMITED)',
- CHN:'MSS: friendly liaison — CPEC security cooperation, joint protocols (ALLIED)',
- SAU:'GIP: funded liaison, joint counter-terror desk (ALLIED)',
- BGD:'DGFI: low-intensity rivalry over border politics & cargo routes (LOW)',
- DEFAULT:'No significant activity detected'
-};
-
 /* ---- MAKKAH DEFENSE PACT (real: signed Sep 2025) ---- */
 ALLIANCES.MPAKT = {name:'Makkah Defense Pact', icon:'🕋', type:'Mutual defense pact (bilateral)', founded:2025,
  hq:'Makkah, Saudi Arabia (signed)', lead:'🇸🇦🇵🇰 Joint — Saudi money, Pakistani army the muscle',

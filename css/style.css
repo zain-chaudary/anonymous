@@ -334,6 +334,59 @@ input[type=range]::-moz-range-thumb { width:15px; height:15px; border-radius:50%
 .intro-cols h3 { color:#fff; font-size:13px; margin-bottom:6px; }
 .intro-cols ul { padding-left:16px; font-size:12.5px; line-height:1.7; color:#c9d2de; }
 
+/* V13 public-reference profiles — kept visually distinct from game values */
+.public-reference > div { background:linear-gradient(180deg,#17221f,#121a18); border-color:#285044; }
+.public-reference > div b { font-size:13px; color:#d7f5e9; }
+.mil-kpis { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; margin-bottom:10px; }
+.mil-kpi { min-width:0; padding:8px; border-radius:9px; border:1px solid #354252; background:linear-gradient(180deg,#1b222c,#141a22); text-align:center; }
+.mil-kpi span { display:block; color:var(--muted); font-size:9.5px; line-height:1.25; }
+.mil-kpi b { display:block; margin-top:4px; font-size:14px; color:#f1c45f; overflow-wrap:anywhere; }
+.mil-disclaimer,.ops-sim-banner { padding:8px 10px; border-radius:9px; background:rgba(240,180,41,.07); border:1px solid rgba(240,180,41,.24); color:#e8d8aa; font-size:10.5px; line-height:1.45; margin:7px 0 10px; }
+.ops-sim-banner { background:rgba(167,139,250,.08); border-color:rgba(167,139,250,.28); color:#ddd2ff; }
+.mil-compare { margin:8px 0 12px; padding:8px 10px; background:#12161c; border:1px solid #303947; border-radius:10px; }
+.mil-compare summary { cursor:pointer; font-size:11.5px; font-weight:800; color:#f0c45f; }
+.mil-compare[open] summary { margin-bottom:7px; }
+.mil-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; align-items:start; }
+.mil-section { min-width:0; padding:9px 10px; border:1px solid #2b3542; border-radius:11px; background:linear-gradient(180deg,#181e27,#131820); }
+.mil-section h4 { margin:0 0 6px; padding-bottom:5px; border-bottom:1px solid #303947; color:#e5edf6; font-size:12px; }
+.mil-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:2px 8px; padding:5px 0; border-bottom:1px dashed #28303a; align-items:start; }
+.mil-row:last-of-type { border-bottom:0; }
+.mil-row > span { color:#c7d1de; font-size:10.5px; line-height:1.35; }
+.mil-row > b { max-width:135px; text-align:right; font-size:10.5px; line-height:1.35; color:#f2f5f9; overflow-wrap:anywhere; }
+.mil-row > small { grid-column:1/-1; font-size:9.5px; line-height:1.4; color:var(--muted); }
+.mil-note { margin-top:7px; padding:6px 8px; border-left:2px solid #667487; border-radius:0 6px 6px 0; background:rgba(148,163,184,.06); color:#aeb9c7; font-size:9.5px; line-height:1.45; }
+.mil-tier-wrap { display:grid; grid-template-columns:1fr; gap:5px; margin:7px 0; }
+.mil-tier { padding:6px 7px; border-radius:7px; background:#10151b; border:1px solid #252e39; }
+.mil-tier span,.mil-tier b,.mil-tier small { display:block; }
+.mil-tier span { color:#9da9b9; font-size:9px; }
+.mil-tier b { margin:2px 0; color:#e2e8f0; font-size:10px; line-height:1.35; }
+.mil-tier small { color:#8793a3; font-size:9px; line-height:1.35; }
+.mil-minihead { margin:8px 0 4px; color:#b8c5d4; font-size:9.5px; font-weight:700; line-height:1.35; }
+.mil-country-list { display:flex; flex-wrap:wrap; gap:4px; margin:4px 0; }
+.mil-country,.mil-agency { display:inline-block; border:1px solid #354252; border-radius:12px; padding:3px 7px; color:#d5deea; background:#111720; font-size:9.5px; }
+.mil-unknown { margin-top:8px; border-top:1px dashed #354252; padding-top:7px; }
+.mil-unknown summary { cursor:pointer; color:#e1bd68; font-size:9.5px; font-weight:700; line-height:1.4; }
+.mil-unknown p { margin:5px 0; }
+.mil-sources,.resource-sources { display:block; margin-top:10px; line-height:1.55; }
+.mil-sources a,.resource-sources a,.resource-section a { color:#8ddbc0; text-decoration:none; }
+.mil-sources a:hover,.resource-sources a:hover,.resource-section a:hover { text-decoration:underline; }
+.resource-section { margin:0 0 11px; padding:10px; border:1px solid #2c3643; border-radius:11px; background:linear-gradient(180deg,#171e27,#131820); }
+.resource-section > h4 { margin:0 0 8px; color:#e6edf5; font-size:12.5px; }
+.resource-facts { display:grid; grid-template-columns:minmax(0,.9fr) minmax(0,1.2fr); gap:5px 9px; }
+.resource-facts > span,.resource-flow > span { color:#aeb9c7; font-size:10.5px; line-height:1.35; }
+.resource-facts > b,.resource-flow > b { min-width:0; text-align:right; color:#e9edf3; font-size:10.5px; line-height:1.4; overflow-wrap:anywhere; }
+.resource-facts b small { display:block; margin-top:2px; color:#8f9baa; font-size:9px; font-weight:400; text-align:right; line-height:1.35; }
+.resource-note { margin-top:7px; padding:6px 8px; border-left:2px solid #83904d; border-radius:0 6px 6px 0; background:rgba(132,148,75,.07); color:#c5d0b2; font-size:9.5px; line-height:1.45; }
+.resource-mineral-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; margin:7px 0; }
+.resource-mineral { min-width:0; padding:8px; border:1px solid #293442; border-radius:8px; background:#10161d; }
+.resource-mineral h5 { margin-bottom:5px; color:#f1c45f; font-size:10.5px; }
+.resource-mineral > small,.resource-section > small { display:block; margin-top:6px; color:#8f9baa; font-size:9px; line-height:1.4; }
+.local-resource-grid { margin-top:9px; }
+.local-mineral h5 { color:#a7e8c8; }
+.energy-columns { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+.energy-columns h5 { margin:4px 0; color:#cbd6e2; font-size:10px; }
+.resource-flow { display:flex; justify-content:space-between; gap:8px; padding:3px 0; border-bottom:1px dashed #28303a; }
+
 /* toast */
 #toast { position:fixed; bottom:50px; left:50%; transform:translateX(-50%) translateY(20px); background:linear-gradient(180deg,#0ea372,#07714e); color:#fff; padding:9px 20px; border-radius:22px; font-size:13px; font-weight:600; opacity:0; transition:.3s; z-index:200; pointer-events:none; box-shadow:0 8px 30px rgba(16,185,129,.45); }
 #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
@@ -346,4 +399,11 @@ input[type=range]::-moz-range-thumb { width:15px; height:15px; border-radius:50%
   #countrycard { width:280px; }
   input[type=range] { width:140px; }
   .actions { grid-template-columns:repeat(2,1fr); }
+}
+@media (max-width: 600px){
+  .mil-grid,.resource-mineral-grid,.energy-columns { grid-template-columns:1fr; }
+  .mil-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .popbody { padding:12px; }
+  .vsrow { grid-template-columns:1fr; }
+  .vsverdict { grid-column:1; }
 }

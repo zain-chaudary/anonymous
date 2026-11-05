@@ -85,25 +85,59 @@ function clampPan(){
   MAP.oy = clamp(MAP.oy, -1.07*H*s, H - 0.41*H*s);
 }
 
+function ringStats(ring, W, H){
+  const pts = ring.map(pt=>project(pt[0],pt[1],W,H));
+  let twiceArea=0, cx=0, cy=0, mx=0, my=0;
+  for (let i=0;i<pts.length;i++){
+    const [x1,y1]=pts[i], [x2,y2]=pts[(i+1)%pts.length];
+    const cross=x1*y2-x2*y1;
+    twiceArea+=cross; cx+=(x1+x2)*cross; cy+=(y1+y2)*cross;
+    mx+=x1; my+=y1;
+  }
+  const signedArea=twiceArea/2;
+  return {
+    area:Math.abs(signedArea),
+    cx:Math.abs(twiceArea)>1e-7?cx/(3*twiceArea):mx/Math.max(pts.length,1),
+    cy:Math.abs(twiceArea)>1e-7?cy/(3*twiceArea):my/Math.max(pts.length,1)
+  };
+}
 function rebuildPaths(){
   const cv = MAP.canvas;
   MAP.meta = [];
   MAP.paths = MAP.features.map(f=>{
     const p = new Path2D();
     const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
-    let sx=0, sy=0, n=0, slon=0, slat=0, minX=1e9, maxX=-1e9, minY=1e9, maxY=-1e9;
+    let minX=Infinity, maxX=-Infinity, minY=Infinity, maxY=-Infinity;
+    let totalArea=0, anchorArea=0, anchorX=0, anchorY=0, slon=0, slat=0, pointCount=0;
     for (const poly of polys){
+      const stats=[];
       for (const ring of poly){
-        ring.forEach((pt,i)=>{
-          const [x,y] = project(pt[0], pt[1], cv.width, cv.height);
+        const pts=ring.map(pt=>project(pt[0],pt[1],cv.width,cv.height));
+        stats.push(ringStats(ring,cv.width,cv.height));
+        pts.forEach(([x,y],i)=>{
           i===0 ? p.moveTo(x,y) : p.lineTo(x,y);
-          sx+=x; sy+=y; slon+=pt[0]; slat+=pt[1]; n++;
           if (x<minX)minX=x; if (x>maxX)maxX=x; if (y<minY)minY=y; if (y>maxY)maxY=y;
         });
         p.closePath();
+        ring.forEach(pt=>{ slon+=pt[0]; slat+=pt[1]; pointCount++; });
+      }
+      const outer=stats[0]||{area:0,cx:0,cy:0};
+      const holes=stats.slice(1);
+      const holeArea=holes.reduce((sum,r)=>sum+r.area,0);
+      const polyArea=Math.max(0,outer.area-holeArea);
+      const cxNumerator=outer.cx*outer.area-holes.reduce((sum,r)=>sum+r.cx*r.area,0);
+      const cyNumerator=outer.cy*outer.area-holes.reduce((sum,r)=>sum+r.cy*r.area,0);
+      totalArea+=polyArea;
+      if (polyArea>anchorArea){
+        anchorArea=polyArea;
+        anchorX=polyArea?cxNumerator/polyArea:outer.cx;
+        anchorY=polyArea?cyNumerator/polyArea:outer.cy;
       }
     }
-    MAP.meta.push({ cx:sx/n, cy:sy/n, lat:slat/n, lon:slon/n, w:maxX-minX, h:maxY-minY, name:(f.properties&&f.properties.name)||f.id });
+    MAP.meta.push({
+      cx:anchorX, cy:anchorY, lat:slat/Math.max(pointCount,1), lon:slon/Math.max(pointCount,1),
+      w:maxX-minX, h:maxY-minY, area:totalArea, name:(f.properties&&f.properties.name)||f.id
+    });
     return p;
   });
 }
@@ -161,8 +195,8 @@ function buildMap(){
     zStyle.title = 'Style: ' + (MAP.style==='atlas' ? 'Atlas (realistic)' : 'Relations heat') + ' — click to switch';
     const hint = document.getElementById('stylehint');
     if (hint) hint.textContent = MAP.style==='atlas'
-      ? '🌍 Atlas style — realistic terrain · edge glow = relations'
-      : '🔥 Relations heat — fill color = relations toward you';
+      ? '🌍 Atlas · country labels scale by visible area; zoom in for small states · edge glow = relations'
+      : '🔥 Relations heat · country labels scale by visible area; zoom in for small states';
     drawMap();
   });
   if (zStyle){ zStyle.textContent = MAP.style==='atlas' ? '🌍' : '🔥'; }
@@ -298,30 +332,55 @@ function drawMap(){
   }
   ctx.restore();
 
-  /* ---------- labels ---------- */
+  /* ---------- area-scaled, collision-aware labels ---------- */
   if (!MAP.meta || !MAP.meta.length){ ctx.restore(); return; }
   ctx.save();
   ctx.setTransform(1,0,0,1,0,0);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  try { ctx.letterSpacing = '1.1px'; } catch(e){}
+  const dpr = Math.max(MAP.dpr||1,1);
+  const smallNames = {
+    USA:'USA', GBR:'UK', ARE:'UAE', COD:'DR Congo', COG:'Congo',
+    PRK:'N. Korea', KOR:'S. Korea', BGD:'Bangladesh',
+    BIH:'Bosnia', MKD:'N. Macedonia', TLS:'Timor-Leste'
+  };
+  const labels=[];
   for (let i=0;i<features.length;i++){
-    const f = features[i];
-    const m = MAP.meta[i];
+    const f=features[i], m=MAP.meta[i];
     if (!m) continue;
-    const sx = m.cx*MAP.scale + MAP.ox, sy = m.cy*MAP.scale + MAP.oy;
-    if (sx < -40 || sx > W+40 || sy < -20 || sy > H+20) continue;
-    const px = m.w * MAP.scale;
-    if (MAP.scale < 2.2 && px < 40) continue;
-    if (MAP.scale >= 2.2 && px < 13) continue;
-    const size = clamp((9 + MAP.scale*1.25) * Math.sqrt(MAP.dpr||1), 10, 19);
-    ctx.font = (f.id==='PAK' ? '800 ' : '650 ') + size + 'px "Segoe UI",system-ui,sans-serif';
-    const label = f.id==='PAK' ? '★ PAKISTAN' : m.name.toUpperCase();
-    ctx.lineWidth = 3.2;
-    ctx.strokeStyle = 'rgba(6,10,16,.9)';
-    ctx.strokeText(label, sx, sy);
-    ctx.fillStyle = f.id==='PAK' ? '#f0b429' : (MAP.hover && MAP.hover.id===f.id ? '#ffffff' : '#b9c6d4');
-    ctx.fillText(label, sx, sy);
+    const sx=m.cx*MAP.scale+MAP.ox, sy=m.cy*MAP.scale+MAP.oy;
+    if (sx < -60*dpr || sx > W+60*dpr || sy < -30*dpr || sy > H+30*dpr) continue;
+    const active=f.id==='PAK' || (MAP.hover&&MAP.hover.id===f.id) || f.id===window._sel;
+    const visibleArea=(m.area||0)*MAP.scale*MAP.scale/(dpr*dpr);
+    /* Small countries appear only once their visible map area can carry a label. */
+    if (!active && visibleArea < 850) continue;
+    const sizeCss=clamp(9+Math.log2(Math.max(MAP.scale,1))*1.35,9,16);
+    const size=sizeCss*dpr;
+    const short=(MAP.scale<2.5 ? smallNames[f.id] : null) || m.name;
+    const label=f.id==='PAK'?'★ PAKISTAN':short.toUpperCase();
+    ctx.font=(active?'800 ':'650 ')+size+'px "Segoe UI",system-ui,sans-serif';
+    const width=ctx.measureText(label).width+6*dpr, height=size*1.35;
+    const countryWidth=m.w*MAP.scale;
+    if (!active && countryWidth < width*0.48) continue;
+    const box={left:sx-width/2, right:sx+width/2, top:sy-height/2, bottom:sy+height/2};
+    if (box.right<0 || box.left>W || box.bottom<0 || box.top>H) continue;
+    const priority=active?(f.id==='PAK'?10000:9000):visibleArea;
+    labels.push({f,m,sx,sy,label,size,box,priority,visibleArea});
+  }
+  labels.sort((a,b)=>b.priority-a.priority || b.visibleArea-a.visibleArea);
+  const placed=[];
+  for (const item of labels){
+    const gap=3*dpr;
+    const collides=placed.some(b=>item.box.left < b.right+gap && item.box.right+gap > b.left &&
+      item.box.top < b.bottom+gap && item.box.bottom+gap > b.top);
+    if (collides) continue;
+    placed.push(item.box);
+    ctx.font=(item.priority>=9000?'800 ':'650 ')+item.size+'px "Segoe UI",system-ui,sans-serif';
+    ctx.lineWidth=Math.max(2,dpr*1.25);
+    ctx.strokeStyle='rgba(6,10,16,.92)';
+    ctx.strokeText(item.label,item.sx,item.sy);
+    ctx.fillStyle=item.f.id==='PAK'?'#f0b429':(MAP.hover&&MAP.hover.id===item.f.id?'#ffffff':'#d6e0e9');
+    ctx.fillText(item.label,item.sx,item.sy);
   }
   ctx.restore();
   ctx.restore();   /* close outer save */
