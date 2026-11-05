@@ -20,6 +20,9 @@ window.addEventListener('DOMContentLoaded', ()=>{
     G.endMonth(G.getState());
     toast(dateStr(G.getState()) + ' — month resolved');
   });
+  document.getElementById('newtab').addEventListener('click', ()=>{
+    window.open(window.location.href, '_blank');
+  });
   document.getElementById('save').addEventListener('click', ()=>{ localStorage.setItem('wl2026', JSON.stringify(G.getState())); toast('Game saved'); });
   document.getElementById('reset').addEventListener('click', ()=>{
     if (confirm('Start a NEW GAME? Current campaign will be deleted.')){
