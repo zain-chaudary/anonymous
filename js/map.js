@@ -15,10 +15,25 @@ function project(lon, lat, W, H){
 const WORLD_CY = 0.74;
 
 /* deterministic muted land tint per country (dark realistic atlas) */
-const LAND_TINTS = ['#252f35','#28343a','#2a3833','#2c3a41','#263238','#2b3942','#283640','#24303e','#2b3540','#273339'];
-function natColor(iso){
-  let h=0; for (let i=0;i<iso.length;i++) h=(h*31+iso.charCodeAt(i))>>>0;
-  return LAND_TINTS[h % LAND_TINTS.length];
+function isoHash(iso){ let h=0; for (let i=0;i<iso.length;i++) h=(h*31+iso.charCodeAt(i))>>>0; return h; }
+/* REALISTIC BIOME COLORS — sand deserts, green rainforest, brown mountains,
+   snow ice caps, temperate greens. Jittered per country so borders read. */
+function biomeColor(lat, lon, iso){
+  const v = (isoHash(iso)%9)-4;   /* -4..4 subtle variation */
+  const sh = (r,g,b)=>`rgb(${clamp(r+v*5,0,255)},${clamp(g+v*5,0,255)},${clamp(b+v*5,0,255)})`;
+  if (lat > 62) return sh(198,206,213);                       /* arctic snow — Greenland, Iceland north */
+  if (lat > 55) return sh(99,112,101);                        /* taiga — Canada, Scandinavia, Siberia */
+  const desert = (lat>13.5 && lat<32.5 && lon>-18 && lon<77)   /* Sahara + Arabia + Thar */
+              || (lat>33 && lat<49 && lon>48 && lon<72)        /* Karakum/Kyzylkum */
+              || (lat>22 && lat<32 && lon>74 && lon<80);       /* Rajasthan side */
+  if (desert) return sh(172,149,106);
+  if (lat>26 && lat<40 && lon>67 && lon<104) return sh(121,109,95);  /* Himalaya + Tibet plateau */
+  const rain = (lat>-13 && lat<7 && lon>-76 && lon<-44)        /* Amazon */
+            || (lat>-9 && lat<9 && lon>7 && lon<33)            /* Congo */
+            || (lat>-9 && lat<8 && lon>94 && lon<146);         /* Indonesia */
+  if (rain) return sh(55,83,52);
+  if (lat>29 && lat<56 && lon>-10 && lon<45) return sh(93,113,86);   /* Europe temperate */
+  return sh(88,107,78);                                        /* default grass/steppe */
 }
 function relSoft(r){ /* softened heat fill for "relations" style */
   const c = relColor(r);
@@ -76,19 +91,19 @@ function rebuildPaths(){
   MAP.paths = MAP.features.map(f=>{
     const p = new Path2D();
     const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
-    let sx=0, sy=0, n=0, minX=1e9, maxX=-1e9, minY=1e9, maxY=-1e9;
+    let sx=0, sy=0, n=0, slon=0, slat=0, minX=1e9, maxX=-1e9, minY=1e9, maxY=-1e9;
     for (const poly of polys){
       for (const ring of poly){
         ring.forEach((pt,i)=>{
           const [x,y] = project(pt[0], pt[1], cv.width, cv.height);
           i===0 ? p.moveTo(x,y) : p.lineTo(x,y);
-          sx+=x; sy+=y; n++;
+          sx+=x; sy+=y; slon+=pt[0]; slat+=pt[1]; n++;
           if (x<minX)minX=x; if (x>maxX)maxX=x; if (y<minY)minY=y; if (y>maxY)maxY=y;
         });
         p.closePath();
       }
     }
-    MAP.meta.push({ cx:sx/n, cy:sy/n, w:maxX-minX, h:maxY-minY, name:(f.properties&&f.properties.name)||f.id });
+    MAP.meta.push({ cx:sx/n, cy:sy/n, lat:slat/n, lon:slon/n, w:maxX-minX, h:maxY-minY, name:(f.properties&&f.properties.name)||f.id });
     return p;
   });
 }
@@ -223,8 +238,8 @@ function drawMap(){
     const f = features[i];
     const c = s.countries[f.id];
     let fill;
-    if (f.id === 'PAK') fill = '#0e8f66';
-    else if (atlas) fill = natColor(f.id);
+    if (f.id === 'PAK') fill = '#6d7b55';
+    else if (atlas) fill = MAP.meta[i] ? biomeColor(MAP.meta[i].lat, MAP.meta[i].lon, f.id) : '#5c6b5e';
     else fill = (c && c.rel && c.rel.PAK !== undefined) ? relSoft(c.rel.PAK) : '#2a3340';
     ctx.fillStyle = fill;
     ctx.fill(paths[i]);
