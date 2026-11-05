@@ -636,3 +636,103 @@ const MILDET = {
 
 /* Merge military intelligence into country objects */
 for (const k in MILDET) if (COUNTRIES[k]) COUNTRIES[k].mil = MILDET[k];
+
+/* Add two small missing countries so alliances resolve */
+COUNTRIES.NZL = { name:'New Zealand', flag:'🇳🇿', minor:true, pop:5.2, gdp:250, growth:2.0, infl:2.5, debtGdp:46, extDebt:90, reserves:20, fx:1.6, currency:'NZD', exports:45, imports:48, defense:3.2, troops:9, tanks:0, aircraft:6, ships:12, nu:0, agency:'NZSIS', leader:'Christopher Luxon', gov:'National Coalition', st:78, rel:{PAK:45}, gold:0, tax:30, def:3, partners:'China 30%, Australia 20%', expGoods:'Dairy, meat, wood', impGoods:'Machinery, oil, cars' };
+COUNTRIES.MNE = { name:'Montenegro', flag:'🇲🇪', minor:true, pop:0.62, gdp:7.5, growth:3.0, infl:4, debtGdp:60, extDebt:5, reserves:1, fx:0.86, currency:'EUR', exports:1, imports:2.6, defense:0.1, troops:2, tanks:30, aircraft:2, ships:2, nu:0, agency:'ANB', leader:'Milo Đukanović era ends — new govt', gov:'Parliamentary Republic', st:68, rel:{PAK:46}, gold:2, tax:25, def:3, partners:'Serbia, Croatia, China', expGoods:'Aluminum, tourism', impGoods:'Food, machinery' };
+COUNTRIES.MLT = { name:'Malta', flag:'🇲🇹', minor:true, pop:0.54, gdp:22, growth:4.5, infl:2.5, debtGdp:52, extDebt:6, reserves:3, fx:0.86, currency:'EUR', exports:4, imports:6, defense:0.06, troops:2, tanks:0, aircraft:2, ships:5, nu:0, agency:'SIS Malta', leader:'Robert Abela', gov:'Labour Party', st:76, rel:{PAK:47}, gold:0, tax:28, def:2, partners:'EU 60%', expGoods:'Electronics, services', impGoods:'Fuel, food' };
+
+/* ---- WORLD ALLIANCES (active, Nov 2026) ---- */
+const ALLIANCES = {
+ NATO:{name:'NATO', icon:'🛡', type:'Military alliance', founded:1949, hq:'Brussels, Belgium', lead:'🇺🇸 USA — SACEUR always American, US pays ~2/3 of capability',
+  note:'Article 5: attack on one = attack on all. 32 members. Finland & Sweden joined after Ukraine.',
+  members:['USA','CAN','GBR','FRA','DEU','ITA','ESP','PRT','NLD','BEL','LUX','DNK','NOR','ISL','GRC','TUR','POL','CZE','SVK','HUN','ROU','BGR','SVN','HRV','ALB','MNE','MKD','EST','LVA','LTU','FIN','SWE']},
+ EU:{name:'European Union', icon:'🇪🇺', type:'Political & economic union', founded:1993, hq:'Brussels', lead:'🇩🇪🇫🇷 Germany & France (Commission: Ursula von der Leyen)',
+  note:'Single market, euro currency, joint trade policy. Brexit removed UK.',
+  members:['FRA','DEU','ITA','ESP','NLD','BEL','PRT','GRC','AUT','IRL','FIN','HRV','SVK','SVN','EST','LVA','LTU','POL','CZE','HUN','ROU','BGR','SWE','DNK','CYP','MLT','LUX']},
+ BRICS:{name:'BRICS+', icon:'🧱', type:'Economic bloc', founded:2009, hq:'— (summits)', lead:'🇨🇳🇷🇺 China & Russia de facto — NDB bank HQ Shanghai',
+  note:'Anti-dollar bloc in formation: 45% of humanity, new development bank, de-dollarization pilots.',
+  members:['BRA','RUS','IND','CHN','ZAF','ETH','IRN','EGY','ARE','IDN','SAU']},
+ SCO:{name:'Shanghai Cooperation Org', icon:'🐉', type:'Eurasian security bloc', founded:2001, hq:'Beijing (RATS: Tashkent)', lead:'🇨🇳 China — with Russia as co-anchor',
+  note:'Counter-terror, energy, military drills. India & Pakistan both members — awkward.',
+  members:['CHN','RUS','IND','PAK','IRN','KAZ','UZB','KGZ','TJK','BLR']},
+ GCC:{name:'Gulf Cooperation Council', icon:'👑', type:'Monarchs\' economic-security union', founded:1981, hq:'Riyadh', lead:'🇸🇦 Saudi Arabia — largest and first among equals',
+  note:'Oil wealth club. Joint military (Peninsula Shield). Pakistan defense pact 2025 ties you in.',
+  members:['SAU','ARE','QAT','KWT','BHR','OMN']},
+ OIC:{name:'Organisation of Islamic Coop', icon:'☪️', type:'Religious-cultural bloc', founded:1969, hq:'Jeddah', lead:'🇸🇦 Saudi influence dominant — rotating secretary general',
+  note:'57 Muslim states. Kashmir & Palestine resolutions. Loud, mostly toothless — but a stage.',
+  members:['SAU','ARE','QAT','KWT','BHR','OMN','JOR','IRQ','IRN','PAK','AFG','BGD','IDN','MYS','NGA','EGY','MAR','DZA','TUN','LBY','SDN','SOM','YEM','PSE','TUR','UZB','KAZ','KGZ','TJK','AZE','LBN','SEN','MLD','MMR','GUY','SUR']},
+ ASEAN:{name:'ASEAN', icon:'🌾', type:'SE Asian union', founded:1967, hq:'Jakarta', lead:'Rotating chair (2026: 🇵🇭 Philippines)',
+  note:'Consensus rule = slow. Biggest success: kept SEA peaceful and trading through every cold war.',
+  members:['IDN','MYS','THA','PHL','VNM','KHM','LAO','BRN','SGP','MMR']},
+ SAARC:{name:'SAARC', icon:'🏔', type:'South Asian union', founded:1985, hq:'Kathmandu', lead:'Rotating — paralyzed by India-Pakistan rivalry',
+  note:'Deadlocked since 2016 — summits cancelled because you and India cannot share a room.',
+  members:['PAK','IND','BGD','LKA','NEP','AFG','BTN','MLD']},
+ ECO:{name:'Economic Cooperation Org', icon:'🔗', type:'Eurasian economic org', founded:1985, hq:'Tehran', lead:'🇹🇷 Türkiye & 🇮🇷 Iran compete for soul; 🇵🇰 the bridge',
+  note:'Successor to CENTO geography: Iran-Türkiye-Pakistan + Central Asia. Trade goals mostly on paper.',
+  members:['PAK','IRN','TUR','KAZ','UZB','KGZ','TJK','AZE','AFG']},
+ AU:{name:'African Union', icon:'🌍', type:'Continental union', founded:2002, hq:'Addis Ababa', lead:'Rotating chair — 🇪🇬🇳🇬🇦🇿🇦 big three compete',
+  note:'55 states. G20 seat won 2023. Peace-funding still depends on outside money.',
+  members:['DZA','MAR','TUN','LBY','EGY','SDN','SSD','ETH','ERI','DJI','SOM','KEN','UGA','TZA','RWA','COD','COG','GAB','CMR','CAF','TCD','NER','NGA','BEN','TGO','GHA','CIV','LBR','SLE','GIN','MRT','SEN','BFA','MLI','ZMB','ZWE','MOZ','MWI','AGO','NAM','BWA','ZAF','LSO','SWZ','MDG','MUS','COM']},
+ ARAB:{name:'Arab League', icon:'🏴', type:'Regional league', founded:1945, hq:'Cairo', lead:'🇪🇬 Egypt hosts; 🇸🇦 money talks',
+  note:'22 Arab states. Syria readmitted 2023. Gaza peace diplomacy runs through this room + GCC.',
+  members:['SAU','ARE','QAT','KWT','BHR','OMN','JOR','IRQ','YEM','PSE','LBN','SYR','EGY','LBY','TUN','DZA','MAR','SDN','SOM','DJI','COM']},
+ CSTO:{name:'CSTO', icon:'🐻', type:'Military alliance', founded:2002, hq:'Moscow', lead:'🇷🇺 Russia — plainly',
+  note:'"NATO of the post-Soviet space." Armenia frozen out after 2020; Kazakhstan quietly distances.',
+  members:['RUS','KAZ','KGZ','TJK','ARM','BLR']},
+ AUKUS:{name:'AUKUS', icon:'🔱', type:'Tech-military pact', founded:2021, hq:'—', lead:'🇺🇸 USA — subs & tech flows to allies',
+  note:'Nuclear subs to Australia by 2030s + hypersonics/undersea tech. Aimed at one country: China.',
+  members:['USA','GBR','AUS']},
+ QUAD:{name:'Quad', icon:'🕸', type:'Strategic dialogue', founded:2007, hq:'—', lead:'🇺🇸 USA — India the heavyweight partner',
+  note:'US-Japan-India-Australia: Indo-Pacific counterweight to China. Vaccines, cables, subs, drills.',
+  members:['USA','JPN','IND','AUS']},
+ G7:{name:'G7', icon:'💸', type:'Rich countries\' club', founded:1975, hq:'—', lead:'Rotating presidency (2026: 🇫🇷 France)',
+  note:'The old money caucus — sanctions architecture for Russia runs through here.',
+  members:['USA','GBR','FRA','DEU','ITA','CAN','JPN']},
+ CW:{name:'Commonwealth', icon:'🌐', type:'Voluntary association', founded:1949, hq:'London', lead:'👑 King Charles III (symbolic) — 🇬🇧 the anchor',
+  note:'56 states, mostly ex-British empire. Soft power, trade preferences, cricket.',
+  members:['GBR','CAN','AUS','NZL','IND','PAK','BGD','LKA','MYS','SGP','BRN','NGA','GHA','KEN','TZA','UGA','ZMB','ZWE','MWI','MOZ','RWA','CMR','TGO','GAB','MUS','MLT','CYP']},
+ D8:{name:'D-8', icon:'☪', type:'Muslim developing-8', founded:1997, hq:'Istanbul', lead:'🇹🇷 Türkiye founded it — Pakistan founding member',
+  note:'Bangladesh-Iran-Türkiye-Indonesia axis of the Muslim middle powers. Trade targets unmet.',
+  members:['TUR','PAK','IDN','IRN','EGY','BGD','NGA','MYS']}
+};
+
+/* ---- GIANT COMPANIES (market cap ~Nov 2026, relationship with Pakistan) ---- */
+const COMPANIES = {
+ ARAMCO:{name:'Saudi Aramco', flag:'🇸🇦', sector:'Oil & Gas', worth:1700, rel:72, note:'Supplies crude to Pakistan; $10B Gwadar/Port Qasim refinery MoU — delayed by security & financing.'},
+ ADNOC:{name:'ADNOC', flag:'🇦🇪', sector:'Oil & Gas', worth:250, rel:66, note:'Annual oil payment facility for Pakistan; potash & desert agriculture talks.'},
+ POWERCHINA:{name:'PowerChina', flag:'🇨🇳', sector:'Energy & Infrastructure', worth:60, rel:80, note:'CPEC backbone builder: Karot & Suki Kinari hydropower, Matiari converter stations.'},
+ CTG:{name:'China Three Gorges', flag:'🇨🇳', sector:'Renewable Energy', worth:90, rel:75, note:'Wind farms in Jhimpir & Gharo, Karot Dam operator — flagship green CPEC investor.'},
+ SGCC:{name:'State Grid of China', flag:'🇨🇳', sector:'Power Transmission', worth:90, rel:78, note:'Built the $1.7B Matiari–Lahore ±660kV HVDC line — Pakistan\'s first private transmission grid.'},
+ HUAWEI:{name:'Huawei', flag:'🇨🇳', sector:'Telecom & Tech', worth:110, rel:68, note:'Runs deep in Pakistani networks (Zong, fiber backbone); smart-city surveillance deals; US sanctions shadow.'},
+ SIEMENS:{name:'Siemens', flag:'🇩🇪', sector:'Industrial & Energy', worth:180, rel:60, note:'Grid equipment, wind turbines, health tech; local manufacturing since decades.'},
+ LOCKHEED:{name:'Lockheed Martin', flag:'🇺🇸', sector:'Defense', worth:130, rel:35, note:'F-16 original manufacturer — but US veto blocks new fighters; sustainment only.'},
+ RTX:{name:'RTX (Raytheon)', flag:'🇺🇸', sector:'Defense', worth:155, rel:30, note:'AIM-9/Sidewinder & AMRAAM supply froze after 2018; radar spares via exemptions.'},
+ BOEING:{name:'Boeing', flag:'🇺🇸', sector:'Aerospace', worth:130, rel:45, note:'PIA\'s 777 long-haul fleet; maintenance & parts contracts.'},
+ AIRBUS:{name:'Airbus', flag:'🇫🇷', sector:'Aerospace', worth:140, rel:50, note:'PIA A320 fleet; talks for A330 MRTT tankers for PAF surfaced 2025.'},
+ TSMC:{name:'TSMC', flag:'🇹🇼', sector:'Semiconductors', worth:900, rel:25, note:'No fabs or design houses in Pakistan — your chips arrive inside imported devices.'},
+ SAMSUNG:{name:'Samsung', flag:'🇰🇷', sector:'Electronics', worth:320, rel:40, note:'Big phone market share; rejected-then-revived local assembly talks in Karachi.'},
+ RELIANCE:{name:'Reliance Industries', flag:'🇮🇳', sector:'Conglomerate', worth:230, rel:5, note:'Indian giant — zero business with Pakistan; energy & telecom empire at home.'},
+ TATA:{name:'Tata Group', flag:'🇮🇳', sector:'Conglomerate', worth:400, rel:5, note:'India\'s biggest house — considers Pakistan a closed market in both directions.'},
+ UNILEVER:{name:'Unilever', flag:'🇬🇧', sector:'FMCG', worth:160, rel:70, note:'Unilever Pakistan: 60+ years, largest consumer goods operation in the country.'},
+ NESTLE:{name:'Nestlé', flag:'🇨🇭', sector:'FMCG', worth:250, rel:62, note:'Nestlé Pakistan: milk collection from 200k farmers, water & nutrition brands.'},
+ CATERPILLAR:{name:'Caterpillar', flag:'🇺🇸', sector:'Heavy Machinery', worth:190, rel:55, note:'Mining fleet at Reko Diq & Thar coal via dealers; construction nationwide.'},
+ GOOGLE:{name:'Alphabet (Google)', flag:'🇺🇸', sector:'Big Tech', worth:2300, rel:58, note:'Fastest-growing YouTube creator economy on earth; ad market; cloud interest blocked by payments issues.'},
+ META:{name:'Meta', flag:'🇺🇸', sector:'Big Tech', worth:1600, rel:55, note:'Facebook/WhatsApp are national communication rails; undersea cable landing at Karachi.'},
+ ADIA:{name:'ADIA (Abu Dhabi Fund)', flag:'🇦🇪', sector:'Sovereign Wealth', worth:1100, rel:60, note:'Holds Pakistani bank deposits & energy stakes; rolled over billions in crises.'},
+ QIA:{name:'Qatar Investment Authority', flag:'🇶🇦', sector:'Sovereign Wealth', worth:530, rel:55, note:'Renewable energy & LNG-term interest in Pakistan; LNG supply deal anchor.'}
+};
+
+/* Foreign intelligence activity against/around Pakistan */
+const OPS_AGAINST_US = {
+ IND:'RAW: finances BLA/separatist networks, targets CPEC projects — CTD seizures prove funding chains (ACTIVE)',
+ AFG:'GDI: shelters TTP leadership on Afghan soil; border firing; Durand Line rejection (HOSTILE)',
+ USA:'CIA: liaison channel + pressure ops over Afghan policy & China ties; drone-base asking (DUAL-TRACK)',
+ IRN:'MOIS: sectarian recruitment networks in Gilgit-Baltistan & Kurram (WATCHED)',
+ GBR:'MI6: political monitoring & diaspora assets in London (PASSIVE)',
+ ISR:'Mossad: minimal direct footprint — watches via India liaison (LIMITED)',
+ CHN:'MSS: friendly liaison — CPEC security cooperation, joint protocols (ALLIED)',
+ SAU:'GIP: funded liaison, joint counter-terror desk (ALLIED)',
+ BGD:'DGFI: low-intensity rivalry over border politics & cargo routes (LOW)',
+ DEFAULT:'No significant activity detected'
+};

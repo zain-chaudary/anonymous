@@ -49,7 +49,12 @@ window.addEventListener('error', function(e){
         <button id="closemap" class="btn">✕ Close</button>
         <h3>🌍 World Powers</h3>
       </div>
-      <input id="ranksearch" type="text" placeholder="Search country…">
+      <select id="rankmode" onchange="setRankMode(this.value)">
+        <option value="countries">🏛 Countries by Power</option>
+        <option value="alliances">🤝 World Alliances</option>
+        <option value="companies">🏢 Giant Companies</option>
+      </select>
+      <input id="ranksearch" type="text" placeholder="Search…">
       <div id="ranklist"></div>
     </aside>
     <div id="mapfull">

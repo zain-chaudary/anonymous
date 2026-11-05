@@ -179,13 +179,44 @@ function bump(k, d){
 
 /* ============ MAP VIEW: RANKED LIST + COUNTRY CARD + POPUPS ============ */
 function renderRankList(s){
+  const mode = window._rankmode || 'countries';
   const q = (window._rankq || '').toLowerCase();
+  const box = document.getElementById('ranklist');
+  if (mode === 'alliances'){
+    const list = Object.entries(ALLIANCES).filter(([k,a])=>!q || a.name.toLowerCase().includes(q));
+    box.innerHTML = list.map(([k,a])=>{
+      const mem = a.members.filter(x=>s.countries[x]);
+      const youIn = a.members.includes('PAK');
+      return `<div class="rankitem" onclick="openPopup('${k}','alliance')">
+        <div class="rflag">${a.icon}</div>
+        <div class="rmain">
+          <div class="rname">${esc(a.name)} ${youIn?'<span class="youbadge">MEMBER</span>':''}</div>
+          <div class="rmeta tiny">${mem.length} members · ${esc(a.type)}</div>
+        </div>
+        <div class="rdot" style="background:#f0b429"></div>
+      </div>`;}).join('') || '<div class="muted small" style="padding:10px">No alliance found.</div>';
+    return;
+  }
+  if (mode === 'companies'){
+    const list = Object.entries(COMPANIES).filter(([k,c])=>!q || c.name.toLowerCase().includes(q))
+      .sort((a,b)=>b[1].worth-a[1].worth);
+    box.innerHTML = list.map(([k,c])=>`
+      <div class="rankitem" onclick="openPopup('${k}','company')">
+        <div class="rflag">${c.flag}</div>
+        <div class="rmain">
+          <div class="rname">${esc(c.name)}</div>
+          <div class="rmeta tiny">${esc(c.sector)} · $${c.worth.toLocaleString()}B</div>
+        </div>
+        <div class="rdot" style="background:${relColor(c.rel)}" title="relationship ${c.rel}"></div>
+      </div>`).join('') || '<div class="muted small" style="padding:10px">No company found.</div>';
+    return;
+  }
   const ranked = Object.entries(s.countries)
     .map(([iso,c])=>({iso, c, score: G.powerScore(c)}))
     .sort((a,b)=>b.score-a.score);
   const top = ranked[0].score || 1;
   const list = ranked.filter(r=>!q || r.c.name.toLowerCase().includes(q));
-  document.getElementById('ranklist').innerHTML = list.map((r,i)=>`
+  box.innerHTML = list.map((r,i)=>`
     <div class="rankitem ${window._sel===r.iso?'sel':''}" onclick="pickCountry('${r.iso}')">
       <div class="rrank">#${i+1}</div>
       <div class="rflag">${r.c.flag||'🏳'}</div>
@@ -197,6 +228,7 @@ function renderRankList(s){
       <div class="rdot" style="background:${relColor(r.c.rel&&r.c.rel.PAK!==undefined?r.c.rel.PAK:50)}" title="relations"></div>
     </div>`).join('');
 }
+function setRankMode(m){ window._rankmode = m; renderRankList(G.getState()); }
 function pickCountry(iso){
   window._sel = iso;
   renderRankList(G.getState());
@@ -238,8 +270,10 @@ function showCountryCard(iso){
       <div>👥 People <b>${c.pop>=1000?(c.pop/1000).toFixed(2)+'B':c.pop.toFixed(1)+'M'}</b></div>
       <div>💰 Economy <b>${fmtB(c.gdp)}</b></div>
       <div>🪙 Gold <b>${(c.gold||0).toLocaleString()}t ~$${goldVal.toFixed(1)}B</b></div>
-      <div>🎖 Troops <b>${c.troops.toLocaleString()}k</b></div>
-      <div>☢ Nukes <b>${c.nu||'0'}</b></div>
+    </div>
+    <div class="actions two">
+      <button class="act ops" onclick="openPopup('${iso}','ops')">🕵 Our Operations</button>
+      <button class="act alli" onclick="openPopup('${iso}','alli')">🤝 Alliances</button>
     </div>
     <div class="actions">
       <button class="act mil" onclick="openPopup('${iso}','mil')">🎖 Military</button>
@@ -294,11 +328,15 @@ function popHead(kind, flag, name, subtitle){
 }
 function openPopup(iso, kind){
   const s = G.getState();
-  const c = s.countries[iso];
-  if (!c) return;
+  const countryKinds = ['mil','econ','trade','rule','ops','alli'];
+  let c = null, rank = 0, rel = 50;
+  if (countryKinds.includes(kind)){
+    c = s.countries[iso];
+    if (!c) return;
+    rank = worldRank(s, c);
+    rel = c.rel && c.rel.PAK !== undefined ? c.rel.PAK : 50;
+  }
   const modal = document.getElementById('modal');
-  const rank = worldRank(s, c);
-  const rel = c.rel && c.rel.PAK !== undefined ? c.rel.PAK : 50;
   const tile = (k,v,cls='') => `<div class="tile ${cls}"><span>${k}</span><b>${v}</b></div>`;
   let head='', body='';
   if (kind==='mil'){
@@ -378,6 +416,105 @@ function openPopup(iso, kind){
         const nm = bits.slice(0,-1).join(' ');
         return `<div class="frow small"><b>${esc(nm)}</b><span>${pct}%</span></div><div class="bar thin"><i style="width:${clamp(pct*3,3,100)}%;background:#2dd4bf"></i></div>`;
       }).join('')}`;
+  }
+  if (kind==='ops'){
+    const m = c.mil;
+    head = popHead('ops', c.flag||'🏳', (iso==='PAK'?'Pakistan — Ops On Your Soil':c.name+' — ISI Operations'), iso==='PAK' ? 'Foreign intelligence activity inside your country' : `Our covert presence & control in ${c.name}`);
+    if (iso === 'PAK'){
+      const foes = ['IND','AFG','USA','GBR','IRN','ISR','CHN','SAU'];
+      body = `
+        <div class="pgrid">
+          ${foes.map(f=>{ const act = (OPS_AGAINST_US[f]||OPS_AGAINST_US.DEFAULT).split('(')[1]?.replace(')','') || 'ACTIVE';
+            return tile(s.countries[f].flag+' '+s.countries[f].agency, act.toLowerCase(), act==='ALLIED'?'good':act==='HOSTILE'?'bad':act==='ACTIVE'?'warn':''); }).join('')}
+        </div>
+        ${foes.map(f=>`<div class="noteline" style="margin-bottom:6px"><b>${s.countries[f].flag} ${s.countries[f].agency}:</b> ${esc((OPS_AGAINST_US[f]||OPS_AGAINST_US.DEFAULT))}</div>`).join('')}
+        <div class="note">🛡 Your shield: Counter-Espionage Sweep (Orders → Intel). Every month, RAW funding seizures happen on their own — or don't.</div>`;
+    } else {
+      const n = s.intel.networks[iso];
+      const lvl = n ? n.lvl : 0, heat = n ? n.heat : 0;
+      const status = lvl===0?'No presence':lvl>=6?'DEEP PENETRATION':lvl>=4?'ESTABLISHED NETWORK':lvl>=2?'ACTIVE NETWORK':'INITIAL ASSETS';
+      const ctrl = Math.round(lvl/8*100);
+      const assets = lvl*7 + (lvl>0?3:0);
+      const recent = s.news.filter(x=>x.t.toLowerCase().includes(c.name.toLowerCase())).slice(0,5);
+      body = `
+        <div class="pgrid">
+          ${tile('📡 Network status', status, lvl>=4?'good':lvl>=2?'warn':'bad')}
+          ${tile('🎛 Control of turf', ctrl+'%', ctrl>=50?'good':ctrl>=25?'warn':'bad')}
+          ${tile('🕶 Assets in country', lvl? '~'+assets : '0')}
+          ${tile('🔥 Exposure risk (heat)', heat.toFixed(1)+'/10', heat>6?'bad':heat>3?'warn':'good')}
+        </div>
+        <div class="frow small"><b>Penetration depth</b><span>level ${lvl}/8</span></div>
+        <div class="bar"><i style="width:${Math.max(2,ctrl)}%;background:linear-gradient(90deg,#0f766e,#2dd4bf)"></i></div>
+        <div class="frow small"><b>Getting burned?</b><span class="${heat>6?'bad':heat>3?'warn':'good'}">${heat>6?'HIGH — network roll-up imminent':heat>3?'Elevated':'Under control'}</span></div>
+        <div class="bar"><i class="${heat>6?'red':heat>3?'orange':'green'}" style="width:${heat*10}%"></i></div>
+        <h4 class="popsub">🕶 Their ops against us</h4>
+        <div class="noteline">${esc(OPS_AGAINST_US[iso]||OPS_AGAINST_US.DEFAULT)}</div>
+        ${recent.length?`<h4 class="popsub">📰 Recent signals</h4>`+recent.map(x=>`<div class="muted tiny" style="margin:3px 0">• ${x.d} — ${esc(x.t)}</div>`).join(''):''}
+        <div class="note tiny">💡 Grow this network: Orders → Intel → Expand Network (${fmtB(0.3)}B + PC). Covert ops raise heat — time lowers it.</div>`;
+    }
+  }
+  if (kind==='alli'){
+    head = popHead('alli', c.flag||'🏳', c.name+' — Alliances', 'Memberships in world blocs (Nov 2026)');
+    const inB = Object.entries(ALLIANCES).filter(([k,a])=>a.members.includes(iso));
+    body = inB.length ? `
+      ${inB.map(([k,a])=>`
+        <div class="allrow" onclick="openPopup('${k}','alliance')">
+          <span class="aicon">${a.icon}</span>
+          <div class="amain"><b>${esc(a.name)}</b><div class="muted tiny">${a.type} · ${a.members.length} members · lead: ${esc(a.lead.split('—')[0].trim())}</div></div>
+          <span class="aopen">expand ›</span>
+        </div>`).join('')}
+      ${iso==='PAK'?'<div class="note">Your seats at the table. SCO gives you a room with India; OIC gives you the Muslim world\'s mic.</div>'
+        :'<div class="muted tiny" style="margin-top:8px">Click any alliance to expand its full membership, leader & power shares.</div>'}`
+    : `<div class="note">❌ ${esc(c.name)} belongs to no major alliance — a lonely flag. Non-aligned or ignored.</div>`;
+  }
+  if (kind==='alliance'){
+    const a = ALLIANCES[iso];
+    if (!a){ closePopup(); return; }
+    const mem = a.members.filter(x=>s.countries[x]);
+    const totGdp = mem.reduce((t,x)=>t+s.countries[x].gdp,0) || 1;
+    const sorted = [...mem].sort((x,y)=>s.countries[y].gdp - s.countries[x].gdp);
+    const rels = mem.filter(x=>x!=='PAK' && s.countries[x].rel && s.countries[x].rel.PAK!==undefined);
+    const standing = rels.length ? Math.round(rels.reduce((t,x)=>t+s.countries[x].rel.PAK,0)/rels.length) : null;
+    head = popHead('alliance', a.icon, a.name, `${a.type} · est. ${a.founded} · HQ: ${esc(a.hq)}`);
+    body = `
+      <div class="pgrid">
+        ${tile('🚩 Members', mem.length + (a.members.length!==mem.length?'':''))}
+        ${tile('🎯 De facto lead', a.lead.split('—')[0].trim())}
+        ${tile('🤝 Your standing', standing===null?'(you are member)':standing, standing===null?'good':standing>=40?'good':standing>=0?'warn':'bad')}
+        ${tile('⚖ Biggest economy', sorted[0] ? s.countries[sorted[0]].flag+' '+s.countries[sorted[0]].name : '—')}
+      </div>
+      <div class="noteline">${esc(a.note)}</div>
+      <h4 class="popsub">🌍 Members by economic weight (share of bloc)</h4>
+      <div class="memgrid">
+      ${sorted.map((x,i)=>{
+        const cc = s.countries[x]; const share = (cc.gdp/totGdp*100);
+        const rl = x==='PAK' ? null : (cc.rel&&cc.rel.PAK!==undefined?cc.rel.PAK:undefined);
+        return `<div class="memrow ${x==='PAK'?'me':''}">
+          <span class="mi">${i+1}</span><span class="mf">${cc.flag}</span>
+          <span class="mn">${esc(cc.name)}${x==='PAK'?' <span class="youbadge">YOU</span>':''}</span>
+          <span class="mg tiny muted">${fmtB(cc.gdp)}</span>
+          <div class="bar thin mb"><i style="width:${clamp(share*2.2,3,100)}%;background:${rl!==undefined?relColor(rl):'#f0b429'}"></i></div>
+          <span class="mp">${share.toFixed(1)}%</span>
+        </div>`;}).join('')}
+      </div>
+      <div class="muted tiny">Lead: ${esc(a.lead)}. Bar color = that country's relations with you.</div>`;
+  }
+  if (kind==='company'){
+    const co = COMPANIES[iso];
+    if (!co){ closePopup(); return; }
+    head = popHead('company', co.flag, co.name, `${co.sector} · HQ ${co.flag}`);
+    body = `
+      <div class="pgrid">
+        ${tile('💼 Sector', co.sector)}
+        ${tile('💵 Worth', co.worth?'$'+co.worth.toLocaleString()+'B':'—')}
+        ${tile('🇵🇰 Your relationship', co.rel, co.rel>=60?'good':co.rel>=30?'warn':'bad')}
+        ${tile('📶 Standing', G.relLabel(co.rel))}
+      </div>
+      <div class="frow small"><b>Relationship with Pakistan</b><span style="color:${relColor(co.rel)}"><b>${co.rel}/100</b></span></div>
+      <div class="bar"><i style="width:${co.rel}%;background:${relColor(co.rel)}"></i></div>
+      <h4 class="popsub">📋 In-country footprint</h4>
+      <div class="noteline">${esc(co.note)}</div>
+      <div class="muted tiny" style="margin-top:8px">💡 Deeper ties (Orders → Foreign) bring investment, tech transfer — and strings attached.</div>`;
   }
   if (kind==='rule'){
     head = popHead('rule', c.flag||'🏳', c.name+' — Ruling', 'Leadership & governance');
