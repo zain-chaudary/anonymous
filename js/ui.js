@@ -102,6 +102,12 @@ function tabGov(s){
 
   <div class="card">
     <h3>🎖 Total Army</h3>
+    <div class="ministat personnel">
+      <div>👥 Active duty <b>${P.milf?P.milf.per[0]:'654k'}</b></div>
+      <div>🎖 Reserves <b>${P.milf?P.milf.per[1]:'~550k'}</b></div>
+      <div>🚔 Paramilitary <b>${P.milf?P.milf.per[2]:'304k'}</b></div>
+      <div>🧍 Available workforce <b>${P.milf?P.milf.per[3]:'~81M'}</b></div>
+    </div>
     <div class="ministat army">
       <div>👥 Troops <b>${P.troops.toLocaleString()}k</b></div>
       <div>🛡 Tanks <b>${P.tanks.toLocaleString()}</b></div>
@@ -299,37 +305,36 @@ function hideCard(){ document.getElementById('countrycard').classList.add('hidde
 function goHome(){ hideCard(); openHome(); switchTab('gov'); }
 
 /* ---------- detail popups ---------- */
-function vsRow(label, mine, theirs, fmt){
+function vsRow(label, you, them, fmt){
   const f = fmt || (v=>v.toLocaleString());
-  const mx = Math.max(mine, theirs, 1);
-  const myPct = clamp(mine/mx*100, 2, 100), thPct = clamp(theirs/mx*100, 2, 100);
-  const ratio = mine>0 ? (theirs/mine) : 99;
-  let verdict = ratio>1.5 ? `<span class="bad">⚠ ${ratio.toFixed(1)}× stronger than you</span>`
-    : ratio>0.8 ? `<span class="warn">≈ equal to you</span>`
-    : `<span class="good">✔ ${ratio<0.02?'negligible':(mine/theirs).toFixed(1)+'× weaker than you'}</span>`;
+  const mx = Math.max(you, them, 1);
+  const myPct = clamp(you/mx*100, 2, 100), thPct = clamp(them/mx*100, 2, 100);
+  const ratio = you>0 ? (them/you) : 99;
+  let verdict = ratio>1.5 ? `<span class="bad">⚠ ${ratio.toFixed(1)}× bigger than yours</span>`
+    : ratio>0.8 ? `<span class="warn">≈ equal to yours</span>`
+    : `<span class="good">✔ ${(you/them).toFixed(1)}× yours — you lead</span>`;
   return `
     <div class="vsrow">
       <div class="vslabel">${label}</div>
       <div class="vsbars">
-        <div class="vsbar you"><i style="width:${myPct}%"></i><b>${f(mine)}</b><span>YOU</span></div>
-        <div class="vsbar them"><i style="width:${thPct}%"></i><b>${f(theirs)}</b><span>THEM</span></div>
+        <div class="vsbar you"><i style="width:${myPct}%"></i><b>${f(you)}</b><span>YOU (PAK)</span></div>
+        <div class="vsbar them"><i style="width:${thPct}%"></i><b>${f(them)}</b><span>THEM</span></div>
       </div>
       <div class="vsverdict tiny">${verdict}</div>
     </div>`;
 }
 function milCompare(s, iso){
-  const c = s.countries[iso], P = s.countries.PAK;
-  const foe = iso==='PAK' ? s.countries.IND : P;
-  const foeName = iso==='PAK' ? 'India (your rival)' : 'Pakistan';
-  const a = iso==='PAK' ? P : c, b = foe;
+  const P = s.countries.PAK;
+  const them = iso==='PAK' ? s.countries.IND : s.countries[iso];
+  const title = iso==='PAK' ? 'You vs India — your rival' : 'Pakistan (YOU) vs '+them.name;
   return `
-    <h4 class="popsub">⚔ ${iso==='PAK'? 'You vs India — your rival' : esc(a.name)+' vs '+foeName}</h4>
-    ${vsRow('⚔ Power score', Math.round(G.powerScore(a)), Math.round(G.powerScore(b)))}
-    ${vsRow('👥 Troops', a.troops, b.troops, fmtMen)}
-    ${vsRow('🛡 Tanks', a.tanks, b.tanks)}
-    ${vsRow('✈ Aircraft', a.aircraft, b.aircraft)}
-    ${vsRow('☢ Warheads', a.nu||0, b.nu||0)}
-    <div class="muted tiny" style="margin-bottom:6px">Gold bar = you · grey bar = them.</div>`;
+    <h4 class="popsub">⚔ ${esc(title)}</h4>
+    ${vsRow('⚔ Power score', Math.round(G.powerScore(P)), Math.round(G.powerScore(them)))}
+    ${vsRow('👥 Active troops', P.troops, them.troops, fmtMen)}
+    ${vsRow('🛡 Tanks', P.tanks, them.tanks)}
+    ${vsRow('✈ Fighter jets', P.aircraft, them.aircraft)}
+    ${vsRow('☢ Warheads', P.nu||0, them.nu||0)}
+    <div class="muted tiny" style="margin-bottom:6px">Gold bar = you (Pakistan) · grey = them.</div>`;
 }
 function popHead(kind, flag, name, subtitle){
   return `<div class="pophead ${kind}"><span class="pflag">${flag}</span>
@@ -351,26 +356,44 @@ function openPopup(iso, kind){
   let head='', body='';
   if (kind==='mil'){
     head = popHead('mil', c.flag||'🏳', c.name+' — Military', `Power rank #${rank} · ${c.nu? c.nu+' warheads ☢':'No nukes'} · Agency: ${esc(c.agency||'—')}`);
-    const m = c.mil || null;
-    body = `
+    const m = c.mil, mf = c.milf;
+    if (mf){
+      const mg = pairs => `<div class="mgrid">${pairs.map(p=>`<div class="mtile2"><span>${p[0]}</span><b>${p[1]}</b></div>`).join('')}</div>`;
+      body = `
+        <div class="msec"><h5>🧍 Personnel</h5>
+        ${mg([['👥 Active duty', mf.per[0]],['🎖 Reserve forces', mf.per[1]],['🚔 Paramilitary', mf.per[2]],['🧍 Available workforce', mf.per[3]]])}</div>
+        <div class="msec"><h5>✈ Air Power</h5>
+        ${mg([['🛩 Fighters/Interceptors', mf.air[0]],['💥 Attack aircraft', mf.air[1]],['💣 Bombers', mf.air[2]],['🚚 Transport aircraft', mf.air[3]],['📡 Special mission & tankers', mf.air[4]],['🚁 Helicopters', mf.air[5]],['🛸 UAVs / Drones', mf.air[6]]])}</div>
+        <div class="msec"><h5>🪖 Land Power</h5>
+        ${mg([['🛡 Main battle tanks', mf.land[0]],['🚙 AFVs / APCs / IFVs', mf.land[1]],['💥 Self-propelled artillery', mf.land[2]],['🎯 Towed artillery', mf.land[3]],['🚀 Rocket projectors (MLRS)', mf.land[4]]])}</div>
+        <div class="msec"><h5>⚓ Naval Power</h5>
+        ${mg([['🛳 Aircraft carriers', mf.navy[0]],['🚢 Helicopter/amphibious', mf.navy[1]],['🏴‍☠ Submarines', mf.navy[2]],['⚔ Destroyers & cruisers', mf.navy[3]],['🛥 Frigates & corvettes', mf.navy[4]],['🔱 Patrol & mine warfare', mf.navy[5]]])}</div>
+        <div class="msec"><h5>💰 War Finances & Fuel</h5>
+        ${mg([['💵 Defense budget', mf.fin[0]],['⚖ Buying power (PPP)', mf.fin[1]],['🛢 Oil: produce / use / reserves', mf.fin[2]]])}</div>
+        <h4 class="popsub">📜 Last Conflicts — who won</h4>
+        ${(m && m.cf) ? m.cf.slice(0,4).map(cf=>{
+          const badge = cf[2]==='W'?['✔ WON','good']:cf[2]==='L'?['✘ LOST','bad']:['= DRAW','warn'];
+          return `<div class="conf"><span class="cbadge ${badge[1]}">${badge[0]}</span>
+            <div class="cmain"><b>${esc(cf[0])}</b><div class="muted tiny">${esc(cf[1])}${cf[3]?' — '+esc(cf[3]):''}</div></div></div>`;
+        }).join('') : `<div class="noteline">${m?esc(m.x):'No recorded conflicts.'}</div>`}
+        <div class="note">🧭 ${esc(m?m.j:'Assessment limited.')}</div>
+        ${milCompare(s, iso)}`;
+    } else {
+      body = `
       <div class="mtiles">
-        <div class="mtile"><span>👥 Troops</span><b>${fmtMen(c.troops)}</b><div class="muted tiny">${m?esc((m.r||'').split('·')[0].trim()):'active duty'}</div></div>
+        <div class="mtile"><span>👥 Active troops</span><b>${fmtMen(c.troops)}</b><div class="muted tiny">${m?esc((m.r||'').split('·')[0].trim()):'active duty'}</div></div>
         <div class="mtile"><span>🛡 Tanks</span><b>${c.tanks.toLocaleString()}</b><div class="muted tiny">${m?esc((m.a||'—').split('·')[0].trim()):'armored units'}</div></div>
         <div class="mtile"><span>✈ Fighter Jets</span><b>${c.aircraft.toLocaleString()}</b><div class="muted tiny">${m?esc((m.f||'—').split('·')[0].trim()):'combat aircraft'}</div></div>
         <div class="mtile"><span>🚢 Warships</span><b>${(c.ships||0).toLocaleString()}</b><div class="muted tiny">${m?esc((m.n||'—').split('·')[0].trim()):'vessels'}</div></div>
       </div>
-      <h4 class="popsub">📜 Last Conflicts — who won</h4>
-      ${(m && m.cf) ? m.cf.slice(0,4).map(cf=>{
-        const badge = cf[2]==='W'?['✔ WON','good']:cf[2]==='L'?['✘ LOST','bad']:['= DRAW','warn'];
-        return `<div class="conf"><span class="cbadge ${badge[1]}">${badge[0]}</span>
-          <div class="cmain"><b>${esc(cf[0])}</b><div class="muted tiny">${esc(cf[1])}${cf[3]?' — '+esc(cf[3]):''}</div></div></div>`;
-      }).join('') : `<div class="noteline">${m?esc(m.x):'No recorded conflicts.'}</div>`}
-      ${m?`<div class="pgrid" style="margin-top:10px">
+      <div class="note">Detailed personnel/air/land/navy breakdown limited for this country — judge by the numbers, conflicts and assessment.</div>
+      ${m?`<div class="pgrid">
         ${tile('🎖 Reserves / SF', m.r)}
         ${tile('🌍 Foreign bases', m.b)}
       </div>
-      <div class="note">🧭 ${esc(m.j)}</div>`:`<div class="note">Limited open-source detail — judge by the numbers.</div>`}
+      <div class="note">🧭 ${esc(m.j)}</div>`:''}
       ${milCompare(s, iso)}`;
+    }
   }
   if (kind==='econ'){
     head = popHead('econ', c.flag||'🏳', c.name+' — Economy', `${c.currency||'—'} currency · ${esc(c.gov||'—')}`);
