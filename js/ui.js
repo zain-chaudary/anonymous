@@ -187,11 +187,13 @@ function renderRankList(s){
     box.innerHTML = list.map(([k,a])=>{
       const mem = a.members.filter(x=>s.countries[x]);
       const youIn = a.members.includes('PAK');
+      const strip = mem.slice(0,6).map(x=>s.countries[x].flag||'🏳').join('');
       return `<div class="rankitem" onclick="openPopup('${k}','alliance')">
         <div class="rflag">${a.icon}</div>
         <div class="rmain">
           <div class="rname">${esc(a.name)} ${youIn?'<span class="youbadge">MEMBER</span>':''}</div>
           <div class="rmeta tiny">${mem.length} members · ${esc(a.type)}</div>
+          <div class="flagstrip small">${strip}${mem.length>6?` +${mem.length-6}`:''}</div>
         </div>
         <div class="rdot" style="background:#f0b429"></div>
       </div>`;}).join('') || '<div class="muted small" style="padding:10px">No alliance found.</div>';
@@ -281,6 +283,9 @@ function showCountryCard(iso){
       <button class="act trade" onclick="openPopup('${iso}','trade')">📦 Trade</button>
       <button class="act rule" onclick="openPopup('${iso}','rule')">👑 Ruling</button>
     </div>
+    <div class="actions one">
+      <button class="act res" onclick="openPopup('${iso}','res')">⛏ Resources — Minerals, Oil, Uranium</button>
+    </div>
     <div class="frow small" style="margin-top:10px"><b>Inner condition</b><span class="${(c.st||55)<40?'bad':(c.st||55)>=70?'good':'warn'}"><b>${G.stabLabel(c.st||55)} (${(c.st||55)}/100)</b></span></div>
     <div class="bar"><i class="${(c.st||55)<40?'red':(c.st||55)>=70?'green':'orange'}" style="width:${c.st||55}%"></i></div>
     ${isPAK?'<button class="btn primary" style="width:100%;margin-top:12px" onclick="goHome()">🎖 Open My Government →</button>':''}`;
@@ -328,7 +333,7 @@ function popHead(kind, flag, name, subtitle){
 }
 function openPopup(iso, kind){
   const s = G.getState();
-  const countryKinds = ['mil','econ','trade','rule','ops','alli'];
+  const countryKinds = ['mil','econ','trade','rule','ops','alli','res'];
   let c = null, rank = 0, rel = 50;
   if (countryKinds.includes(kind)){
     c = s.countries[iso];
@@ -340,37 +345,33 @@ function openPopup(iso, kind){
   const tile = (k,v,cls='') => `<div class="tile ${cls}"><span>${k}</span><b>${v}</b></div>`;
   let head='', body='';
   if (kind==='mil'){
-    head = popHead('mil', c.flag||'🏳', c.name+' — Military', `World power rank #${rank} · ${c.nu? c.nu+' nuclear warheads ☢':'No nuclear weapons'} · Agency: ${esc(c.agency||'—')}`);
-    const per1000 = (c.troops*1000/(c.pop*1000000)).toFixed(1);
+    head = popHead('mil', c.flag||'🏳', c.name+' — Military', `Power rank #${rank} · ${c.nu? c.nu+' warheads ☢':'No nukes'} · Agency: ${esc(c.agency||'—')}`);
     const m = c.mil || null;
+    const short = t => (t||'—').split('·')[0].trim();
+    const rest = t => { const p=(t||'').split('·'); return p.length>1 ? p.slice(1).join(' · ').trim() : ''; };
     body = `
-      <div class="pgrid">
-        ${tile('👥 Active troops', c.troops.toLocaleString()+'k')}
-        ${tile('🛡 Tanks', c.tanks.toLocaleString())}
-        ${tile('✈ Combat aircraft', c.aircraft.toLocaleString())}
-        ${tile('🚢 Naval ships', (c.ships||0).toLocaleString())}
-        ${tile('💥 Artillery', (c.artillery?Math.round(c.artillery).toLocaleString():'—'))}
-        ${tile('💵 Defense budget', '$'+(c.defense||0).toFixed(1)+'B/yr')}
-        ${tile('☢ Warheads', c.nu? c.nu+' ☢':'None')}
-        ${tile('🧍 Soldiers per 1,000 people', per1000)}
+      <div class="mtiles">
+        <div class="mtile"><span>👥 Troops</span><b>${c.troops.toLocaleString()}k</b><div class="muted tiny">${m?esc(short(m.r)):'active'}</div></div>
+        <div class="mtile"><span>🛡 Tanks</span><b>${c.tanks.toLocaleString()}</b><div class="muted tiny">${m?esc(short(m.a)):' armored units'}</div></div>
+        <div class="mtile"><span>✈ Fighter Jets</span><b>${c.aircraft.toLocaleString()}</b><div class="muted tiny">${m?esc(short(m.f)):' combat aircraft'}</div></div>
+        <div class="mtile"><span>🚢 Warships</span><b>${(c.ships||0).toLocaleString()}</b><div class="muted tiny">${m?esc(short(m.n)):' vessels'}</div></div>
       </div>
       ${m ? `
-      <h4 class="popsub">🪖 Army equipment</h4><div class="noteline">${esc(m.a)}</div>
-      <h4 class="popsub">✈ Air Force</h4><div class="noteline">${esc(m.f)}</div>
-      <h4 class="popsub">🚢 Navy</h4><div class="noteline">${esc(m.n)}</div>
-      <h4 class="popsub">🚀 Missiles & Strategic</h4><div class="noteline">${esc(m.m)}</div>
-      <div class="pgrid" style="margin-top:10px">
+      <div class="mdetail">
+        <div class="mrow"><span>🪖 Armor & vehicles</span><p>${esc(m.a)}</p></div>
+        <div class="mrow"><span>✈ Air fleet</span><p>${esc(m.f)}</p></div>
+        <div class="mrow"><span>🚢 Navy</span><p>${esc(m.n)}</p></div>
+        <div class="mrow"><span>🚀 Missiles & strategic</span><p>${esc(m.m)}</p></div>
+      </div>
+      <div class="pgrid">
         ${tile('🎖 Reserves / SF', m.r)}
-        ${tile('🛒 Main suppliers', m.s)}
-        ${tile('🔥 Combat experience', m.x)}
+        ${tile('🛒 Suppliers', m.s)}
+        ${tile('🔥 Combat record', m.x)}
         ${tile('🌍 Foreign bases', m.b)}
       </div>
       <div class="note">🧭 ${esc(m.j)}</div>
-      ` : `<div class="note">Open-source detail limited for this country — judge by the numbers above.</div>`}
-      ${milCompare(s, iso)}
-      <div class="frow small" style="margin-top:4px"><b>Power score vs world #1 (USA)</b><span><b>${Math.round(G.powerScore(c)).toLocaleString()} / ${Math.round(G.powerScore(s.countries.USA)).toLocaleString()}</b></span></div>
-      <div class="bar"><i style="width:${clamp(G.powerScore(c)/G.powerScore(s.countries.USA)*100,2,100)}%;background:linear-gradient(90deg,#b8860b,#f0b429)"></i></div>
-      ${c.milNote?`<div class="muted tiny" style="margin-top:6px">${esc(c.milNote)}</div>`:''}`;
+      ` : `<div class="note">Limited open-source detail — judge by the numbers.</div>`}
+      ${milCompare(s, iso)}`;
   }
   if (kind==='econ'){
     head = popHead('econ', c.flag||'🏳', c.name+' — Economy', `${c.currency||'—'} currency · ${esc(c.gov||'—')}`);
@@ -418,54 +419,53 @@ function openPopup(iso, kind){
       }).join('')}`;
   }
   if (kind==='ops'){
-    const m = c.mil;
-    head = popHead('ops', c.flag||'🏳', (iso==='PAK'?'Pakistan — Ops On Your Soil':c.name+' — ISI Operations'), iso==='PAK' ? 'Foreign intelligence activity inside your country' : `Our covert presence & control in ${c.name}`);
+    head = popHead('ops', c.flag||'🏳', (iso==='PAK'?'Foreign Ops On Your Soil':c.name+' — Our Covert Presence'), iso==='PAK' ? 'Who is operating inside Pakistan' : `ISI station: ${c.name}`);
     if (iso === 'PAK'){
-      const foes = ['IND','AFG','USA','GBR','IRN','ISR','CHN','SAU'];
-      body = `
-        <div class="pgrid">
-          ${foes.map(f=>{ const act = (OPS_AGAINST_US[f]||OPS_AGAINST_US.DEFAULT).split('(')[1]?.replace(')','') || 'ACTIVE';
-            return tile(s.countries[f].flag+' '+s.countries[f].agency, act.toLowerCase(), act==='ALLIED'?'good':act==='HOSTILE'?'bad':act==='ACTIVE'?'warn':''); }).join('')}
-        </div>
-        ${foes.map(f=>`<div class="noteline" style="margin-bottom:6px"><b>${s.countries[f].flag} ${s.countries[f].agency}:</b> ${esc((OPS_AGAINST_US[f]||OPS_AGAINST_US.DEFAULT))}</div>`).join('')}
-        <div class="note">🛡 Your shield: Counter-Espionage Sweep (Orders → Intel). Every month, RAW funding seizures happen on their own — or don't.</div>`;
+      const groups = { HOSTILE:['IND','AFG'], WATCHED:['USA','IRN','GBR','ISR','BGD'], ALLIED:['CHN','SAU'] };
+      body = Object.entries(groups).map(([g, list])=>`
+        <h4 class="popsub"><span class="pill ${g==='HOSTILE'?'red':g==='ALLIED'?'green':'amber'}">${g}</span></h4>
+        ${list.filter(f=>s.countries[f]).map(f=>`<div class="opline"><b>${s.countries[f].flag} ${s.countries[f].agency}</b><p>${esc((OPS_AGAINST_US[f]||OPS_AGAINST_US.DEFAULT).replace(/\s*\([^)]*\)\s*$/,''))}</p></div>`).join('')}
+      `).join('') + `
+        <div class="note">🛡 Your shield: Orders → Intel → Counter-Espionage Sweep. Heat cools with time; ops raise it.</div>`;
     } else {
       const n = s.intel.networks[iso];
       const lvl = n ? n.lvl : 0, heat = n ? n.heat : 0;
-      const status = lvl===0?'No presence':lvl>=6?'DEEP PENETRATION':lvl>=4?'ESTABLISHED NETWORK':lvl>=2?'ACTIVE NETWORK':'INITIAL ASSETS';
+      const status = lvl===0?['NO PRESENCE','bad']:lvl>=6?['DEEP PENETRATION','good']:lvl>=4?['ESTABLISHED NETWORK','good']:lvl>=2?['ACTIVE NETWORK','warn']:['INITIAL ASSETS','warn'];
       const ctrl = Math.round(lvl/8*100);
       const assets = lvl*7 + (lvl>0?3:0);
-      const recent = s.news.filter(x=>x.t.toLowerCase().includes(c.name.toLowerCase())).slice(0,5);
+      const recent = s.news.filter(x=>x.t.toLowerCase().includes(c.name.toLowerCase())).slice(0,3);
       body = `
+        <div class="opstatus ${status[1]}"><span class="dot"></span> ${status[0]}</div>
         <div class="pgrid">
-          ${tile('📡 Network status', status, lvl>=4?'good':lvl>=2?'warn':'bad')}
           ${tile('🎛 Control of turf', ctrl+'%', ctrl>=50?'good':ctrl>=25?'warn':'bad')}
-          ${tile('🕶 Assets in country', lvl? '~'+assets : '0')}
-          ${tile('🔥 Exposure risk (heat)', heat.toFixed(1)+'/10', heat>6?'bad':heat>3?'warn':'good')}
+          ${tile('🕶 Our assets', lvl? '~'+assets : '0')}
         </div>
-        <div class="frow small"><b>Penetration depth</b><span>level ${lvl}/8</span></div>
-        <div class="bar"><i style="width:${Math.max(2,ctrl)}%;background:linear-gradient(90deg,#0f766e,#2dd4bf)"></i></div>
-        <div class="frow small"><b>Getting burned?</b><span class="${heat>6?'bad':heat>3?'warn':'good'}">${heat>6?'HIGH — network roll-up imminent':heat>3?'Elevated':'Under control'}</span></div>
-        <div class="bar"><i class="${heat>6?'red':heat>3?'orange':'green'}" style="width:${heat*10}%"></i></div>
+        <div class="gauge"><div class="glabel"><span>Penetration</span><span>${lvl}/8</span></div><div class="bar"><i style="width:${Math.max(2,ctrl)}%;background:linear-gradient(90deg,#0f766e,#2dd4bf)"></i></div></div>
+        <div class="gauge"><div class="glabel"><span>Exposure (burn risk)</span><span class="${heat>6?'bad':heat>3?'warn':'good'}">${heat>6?'HIGH':heat>3?'Elevated':'Calm'}</span></div><div class="bar"><i class="${heat>6?'red':heat>3?'orange':'green'}" style="width:${clamp(heat*10,2,100)}%"></i></div></div>
         <h4 class="popsub">🕶 Their ops against us</h4>
-        <div class="noteline">${esc(OPS_AGAINST_US[iso]||OPS_AGAINST_US.DEFAULT)}</div>
-        ${recent.length?`<h4 class="popsub">📰 Recent signals</h4>`+recent.map(x=>`<div class="muted tiny" style="margin:3px 0">• ${x.d} — ${esc(x.t)}</div>`).join(''):''}
-        <div class="note tiny">💡 Grow this network: Orders → Intel → Expand Network (${fmtB(0.3)}B + PC). Covert ops raise heat — time lowers it.</div>`;
+        <div class="opline"><p>${esc(OPS_AGAINST_US[iso]||OPS_AGAINST_US.DEFAULT)}</p></div>
+        ${recent.length?`<h4 class="popsub">📰 Latest signals</h4>`+recent.map(x=>`<div class="sigchip">${x.d} · ${esc(x.t.length>70?x.t.slice(0,70)+'…':x.t)}</div>`).join(''):''}
+        <div class="note tiny">💡 Grow: Orders → Intel → Expand Network. Covert ops raise heat; waiting cools it.</div>`;
     }
   }
   if (kind==='alli'){
-    head = popHead('alli', c.flag||'🏳', c.name+' — Alliances', 'Memberships in world blocs (Nov 2026)');
+    head = popHead('alli', c.flag||'🏳', c.name+' — Alliances', 'Bloc memberships (Nov 2026)');
     const inB = Object.entries(ALLIANCES).filter(([k,a])=>a.members.includes(iso));
+    const strip = a => a.members.filter(x=>s.countries[x]).slice(0,8).map(x=>s.countries[x].flag||'🏳').join('') ;
     body = inB.length ? `
       ${inB.map(([k,a])=>`
         <div class="allrow" onclick="openPopup('${k}','alliance')">
           <span class="aicon">${a.icon}</span>
-          <div class="amain"><b>${esc(a.name)}</b><div class="muted tiny">${a.type} · ${a.members.length} members · lead: ${esc(a.lead.split('—')[0].trim())}</div></div>
+          <div class="amain">
+            <b>${esc(a.name)}</b>
+            <div class="muted tiny">${a.type} · ${a.members.length} members · lead ${esc(a.lead.split('—')[0].trim())}</div>
+            <div class="flagstrip">${strip(a)}</div>
+          </div>
           <span class="aopen">expand ›</span>
         </div>`).join('')}
-      ${iso==='PAK'?'<div class="note">Your seats at the table. SCO gives you a room with India; OIC gives you the Muslim world\'s mic.</div>'
-        :'<div class="muted tiny" style="margin-top:8px">Click any alliance to expand its full membership, leader & power shares.</div>'}`
-    : `<div class="note">❌ ${esc(c.name)} belongs to no major alliance — a lonely flag. Non-aligned or ignored.</div>`;
+      ${iso==='PAK'?'<div class="note">🕋 The Makkah Defense Pact is your crown jewel: Saudi money + your army. SCO puts you in a room with India; OIC gives you the Muslim world\'s mic.</div>'
+        :'<div class="muted tiny" style="margin-top:8px">Click any alliance to expand members, leader & economic shares.</div>'}`
+    : `<div class="note">❌ ${esc(c.name)} belongs to no major bloc — non-aligned or simply ignored.</div>`;
   }
   if (kind==='alliance'){
     const a = ALLIANCES[iso];
@@ -477,11 +477,12 @@ function openPopup(iso, kind){
     const standing = rels.length ? Math.round(rels.reduce((t,x)=>t+s.countries[x].rel.PAK,0)/rels.length) : null;
     head = popHead('alliance', a.icon, a.name, `${a.type} · est. ${a.founded} · HQ: ${esc(a.hq)}`);
     body = `
+      <div class="bigstrip">${mem.map(x=>`<span title="${esc(s.countries[x].name)}">${s.countries[x].flag||'🏳'}</span>`).join('')}</div>
       <div class="pgrid">
-        ${tile('🚩 Members', mem.length + (a.members.length!==mem.length?'':''))}
+        ${tile('🚩 Members', mem.length)}
         ${tile('🎯 De facto lead', a.lead.split('—')[0].trim())}
-        ${tile('🤝 Your standing', standing===null?'(you are member)':standing, standing===null?'good':standing>=40?'good':standing>=0?'warn':'bad')}
-        ${tile('⚖ Biggest economy', sorted[0] ? s.countries[sorted[0]].flag+' '+s.countries[sorted[0]].name : '—')}
+        ${tile('🤝 Your standing', standing===null?'Member state':standing, standing===null?'good':standing>=40?'good':standing>=0?'warn':'bad')}
+        ${tile('⚖ Top economy', sorted[0] ? s.countries[sorted[0]].flag+' '+s.countries[sorted[0]].name : '—')}
       </div>
       <div class="noteline">${esc(a.note)}</div>
       <h4 class="popsub">🌍 Members by economic weight (share of bloc)</h4>
@@ -502,19 +503,40 @@ function openPopup(iso, kind){
   if (kind==='company'){
     const co = COMPANIES[iso];
     if (!co){ closePopup(); return; }
-    head = popHead('company', co.flag, co.name, `${co.sector} · HQ ${co.flag}`);
+    head = popHead('company', co.flag, co.name, `${co.sector} · worth $${co.worth.toLocaleString()}B`);
     body = `
       <div class="pgrid">
         ${tile('💼 Sector', co.sector)}
-        ${tile('💵 Worth', co.worth?'$'+co.worth.toLocaleString()+'B':'—')}
+        ${tile('💵 Worth', '$'+co.worth.toLocaleString()+'B')}
         ${tile('🇵🇰 Your relationship', co.rel, co.rel>=60?'good':co.rel>=30?'warn':'bad')}
-        ${tile('📶 Standing', G.relLabel(co.rel))}
+        ${tile('🧾 OUR SHARES / STAKE', (co.stake||'0% — none').split('—')[0].trim(), (co.stake||'').startsWith('0%')?'':'good')}
       </div>
       <div class="frow small"><b>Relationship with Pakistan</b><span style="color:${relColor(co.rel)}"><b>${co.rel}/100</b></span></div>
       <div class="bar"><i style="width:${co.rel}%;background:${relColor(co.rel)}"></i></div>
-      <h4 class="popsub">📋 In-country footprint</h4>
-      <div class="noteline">${esc(co.note)}</div>
-      <div class="muted tiny" style="margin-top:8px">💡 Deeper ties (Orders → Foreign) bring investment, tech transfer — and strings attached.</div>`;
+      <h4 class="popsub">🧾 Our stake in them</h4>
+      <div class="noteline">${esc(co.stake||'No Pakistani sovereign stake.')}</div>
+      <h4 class="popsub">📋 Footprint in Pakistan</h4>
+      <div class="noteline">${esc(co.note)}</div>`;
+  }
+  if (kind==='res'){
+    head = popHead('res', c.flag||'🏳', c.name+' — Resources', 'What they mine · hold · import (Nov 2026)');
+    const r = c.res;
+    body = r ? `
+      <div class="resgrid">
+        ${tile('🛢 Oil', r.oil)}
+        ${tile('🔥 Gas', r.gas)}
+        ${tile('⚫ Coal', r.coal)}
+        ${tile('☢ Uranium', r.ur)}
+        ${tile('🪙 Gold', r.gold)}
+        ${tile('🔋 Lithium', r.li)}
+        ${tile('🧲 Rare earths', r.rare)}
+        ${tile('⛏ Other minerals', r.other)}
+      </div>
+      <h4 class="popsub">🚚 Must import</h4>
+      <div class="noteline">${esc(r.imp)}</div>
+      <div class="note">🧭 ${esc(r.note)}</div>
+      ${iso==='PAK'?'<div class="muted tiny" style="margin-top:6px">💡 Reko Diq + Thar coal are your ticket out of the oil-bill trap. Guard them.</div>':''}`
+    : `<div class="note">No detailed resource data — estimate from economy size: ${fmtB(c.gdp)} GDP, mostly agrarian/service.</div>`;
   }
   if (kind==='rule'){
     head = popHead('rule', c.flag||'🏳', c.name+' — Ruling', 'Leadership & governance');

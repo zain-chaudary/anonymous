@@ -49,11 +49,11 @@ window.addEventListener('error', function(e){
         <button id="closemap" class="btn">✕ Close</button>
         <h3>🌍 World Powers</h3>
       </div>
-      <select id="rankmode" onchange="setRankMode(this.value)">
-        <option value="countries">🏛 Countries by Power</option>
-        <option value="alliances">🤝 World Alliances</option>
-        <option value="companies">🏢 Giant Companies</option>
-      </select>
+      <div id="ranktabs" class="seg">
+        <button class="segbtn on" data-mode="countries">🏛 Countries</button>
+        <button class="segbtn" data-mode="alliances">🤝 Alliances</button>
+        <button class="segbtn" data-mode="companies">🏢 Companies</button>
+      </div>
       <input id="ranksearch" type="text" placeholder="Search…">
       <div id="ranklist"></div>
     </aside>

@@ -22,6 +22,13 @@ window.addEventListener('DOMContentLoaded', ()=>{
   document.getElementById('ranksearch').addEventListener('input', function(){
     window._rankq = this.value; renderRankList(G.getState());
   });
+  document.querySelectorAll('#ranktabs .segbtn').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      document.querySelectorAll('#ranktabs .segbtn').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on');
+      setRankMode(b.dataset.mode);
+    });
+  });
   document.getElementById('save').addEventListener('click', ()=>{ localStorage.setItem('wl2026', JSON.stringify(G.getState())); toast('Game saved'); });
   document.getElementById('reset').addEventListener('click', ()=>{
     if (confirm('Start a NEW GAME? Current campaign will be deleted.')){
