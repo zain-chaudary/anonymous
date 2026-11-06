@@ -184,7 +184,7 @@ function tabGov(s){
       ${glanceTile('Stability', s.stability.toFixed(0)+'/100', s.stability>=60?'good':s.stability>=40?'warn':'bad', G.stabLabel(s.stability))}
       ${glanceTile('FX reserves', fmtB(P.reserves), P.reserves>=8?'good':P.reserves>=5?'warn':'bad', `~${(P.reserves/(P.imports/12)).toFixed(1)} months of imports`)}
       ${glanceTile('Budget / month', signedMoney(G.monthlyGovernmentRevenue(s)-G.monthlySpend(s)), (G.monthlyGovernmentRevenue(s)-G.monthlySpend(s))>=0?'good':'bad', 'income minus spending')}
-      ${glanceTile('Inner backing', backingScore, backingScore>=80?'good':backingScore>=55?'warn':'bad', 'average in-game standing')}
+      ${glanceTile('Inner backing', backingScore, backingScore>=65?'good':backingScore>=45?'warn':'bad', 'average in-game standing')}
     </div>
     <div class="glance-bar">
       <div class="glance-bar-label"><span>People supporting your government</span><b>~${supportedPeople.toFixed(1)}M of ${P.pop.toFixed(1)}M</b></div>
