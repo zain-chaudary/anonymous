@@ -595,15 +595,23 @@ const PAK_INFLUENCE = {
 const PAK_DIGITAL_SUITE = {
   id:'pak-digital-suite-2026', name:'Pakistan Sovereign Digital Suite', setupCostB:5, buildMonths:1, completion:100, secrecy:100, scenarioOnly:true,
   products:[
-    {id:'pakgram',name:'PAKgram',icon:'📸',category:'Photos, stories & creator profiles',monthlyCostM:35,monthlyRevenueM:20,accent:'gram'},
-    {id:'pakcircle',name:'PAKcircle',icon:'👥',category:'Community pages, groups & social feed',monthlyCostM:40,monthlyRevenueM:22,accent:'circle'},
-    {id:'pakchat',name:'PAKchat',icon:'💬',category:'Private messaging, voice & video calls',monthlyCostM:30,monthlyRevenueM:14,accent:'chat'},
-    {id:'paktube',name:'PAKtube',icon:'▶️',category:'Long-form video & creator channels',monthlyCostM:95,monthlyRevenueM:48,accent:'tube'},
-    {id:'paktok',name:'PAKtok',icon:'🎵',category:'Short videos & creator tools',monthlyCostM:65,monthlyRevenueM:35,accent:'tok'},
-    {id:'paksearch',name:'PAKsearch',icon:'🔎',category:'Web search & local discovery',monthlyCostM:20,monthlyRevenueM:16,accent:'search'},
-    {id:'pakbrowse',name:'PAKbrowse',icon:'🌐',category:'Pakistan-operated web browser',monthlyCostM:15,monthlyRevenueM:10,accent:'browse'}
+    {id:'pakgram',name:'PAKgram',icon:'📸',category:'Photos, stories & creator profiles',monthlyCostM:35,monthlyRevenueM:20,accent:'gram',users:0},
+    {id:'pakcircle',name:'PAKcircle',icon:'👥',category:'Community pages, groups & social feed',monthlyCostM:40,monthlyRevenueM:22,accent:'circle',users:0},
+    {id:'pakchat',name:'PAKchat',icon:'💬',category:'Private messaging, voice & video calls',monthlyCostM:30,monthlyRevenueM:14,accent:'chat',users:0},
+    {id:'paktube',name:'PAKtube',icon:'▶️',category:'Long-form video & creator channels',monthlyCostM:95,monthlyRevenueM:48,accent:'tube',users:0},
+    {id:'paktok',name:'PAKtok',icon:'🎵',category:'Short videos & creator tools',monthlyCostM:65,monthlyRevenueM:35,accent:'tok',users:0},
+    {id:'paksearch',name:'PAKsearch',icon:'🔎',category:'Web search & local discovery',monthlyCostM:20,monthlyRevenueM:16,accent:'search',users:0},
+    {id:'pakbrowse',name:'PAKbrowse',icon:'🌐',category:'Pakistan-operated web browser',monthlyCostM:15,monthlyRevenueM:10,accent:'browse',users:0}
   ]
 };
+
+/* Fictional audience-messaging presets for the digital suite (game simulation only). */
+const AUDIENCE_MESSAGES = [
+  {id:'update', label:'National update', icon:'📣', blurb:'Share progress and priorities with app users.', lean:2, reachRate:0.30, approvalWeight:0.8, tone:'neutral'},
+  {id:'expose', label:'Expose wrongdoing', icon:'🔎', blurb:'Publish evidence against corrupt officials and networks.', lean:-7, reachRate:0.45, approvalWeight:1.1, tone:'pillar'},
+  {id:'policy', label:'Explain a policy', icon:'🧾', blurb:'Walk users through what a decision means for them.', lean:6, reachRate:0.25, approvalWeight:0.9, tone:'calm'},
+  {id:'unity', label:'Call for national unity', icon:'🤝', blurb:'Ask the country to stand together.', lean:10, reachRate:0.35, approvalWeight:1.0, tone:'warm'}
+];
 
 /* Domestic schemes whose future approval effects are only game-model estimates. */
 const PAK_PROJECT_BLUEPRINTS = {

@@ -122,6 +122,18 @@ function refreshMoneyBoard(s){
   });
 }
 
+/* ---------- shared dashboard helpers ---------- */
+function fmtUsers(value){
+  const n=Number(value)||0;
+  if(n>=1e9) return (n/1e9).toFixed(2)+'B';
+  if(n>=1e6) return (n/1e6).toFixed(1)+'M';
+  if(n>=1e3) return (n/1e3).toFixed(0)+'K';
+  return String(Math.round(n));
+}
+function glanceTile(label,value,tone,note){
+  return `<div class="glance-tile ${tone}"><span>${esc(label)}</span><b>${value}</b><small>${esc(note)}</small><i class="glance-dot"></i></div>`;
+}
+
 /* ============ TAB: GOVERNMENT DASHBOARD ============ */
 function tabGov(s){
   const P = s.countries.PAK;
@@ -131,6 +143,8 @@ function tabGov(s){
   const relations = s.innerInfluence.relationships;
   const acceptedIds = s.leadershipMeeting?.accepted || [];
   const agreedRoles = [{id:'army',label:'Army chief'},{id:'air',label:'Air chief'},{id:'navy',label:'Navy chief'},{id:'punjab',label:'Punjab chief minister'}].filter(item=>acceptedIds.includes(item.id)).map(item=>item.label);
+  const officeScores=[...PAK_INFLUENCE.institutions,...PAK_INFLUENCE.regions].map(item=>clamp(Number(relations[item.id])||0,0,100));
+  const backingScore=officeScores.length?Math.round(officeScores.reduce((sum,v)=>sum+v,0)/officeScores.length):0;
   const leaderCard = leader => {
     const rawScore = Number(relations[leader.id]);
     const score = clamp(Number.isFinite(rawScore)?rawScore:50,0,100);
@@ -159,21 +173,30 @@ function tabGov(s){
     <div class="dashboard-heading-actions"><button class="btn" onclick="switchTab('projects')">🗂 View projects</button><button class="btn primary" onclick="switchTab('orders')">🧭 Situation brief</button></div>
   </section>
 
-  <section class="government-hero">
-    <div class="government-identity"><div class="dashboard-flag">🇵🇰</div><div><span class="eyebrow">PRESIDENT</span><h2>Zain Chaudary</h2><p>Islamic Republic of Pakistan · ${dateStr(s)}</p></div></div>
-    <div class="government-kpis">
-      <div class="government-kpi"><span>Public support</span><b>${support.toFixed(0)}%</b><small>~${supportedPeople.toFixed(1)}M people</small></div>
-      <div class="government-kpi"><span>Stability</span><b>${s.stability.toFixed(0)}<small>/100</small></b><small>${esc(G.stabLabel(s.stability))}</small></div>
-      <div class="government-kpi"><span>FX reserves</span><b>${fmtB(P.reserves)}</b><small>foreign-currency buffer</small></div>
-      <div class="government-kpi"><span>Economy</span><b>${fmtB(P.gdp)}</b><small>${P.growth.toFixed(1)}% modeled growth</small></div>
+  <section class="glance">
+    <div class="glance-head">
+      <span class="glance-flag">🇵🇰</span>
+      <div class="glance-id"><span class="eyebrow">PRESIDENT · ISLAMIC REPUBLIC OF PAKISTAN</span><h2>Zain Chaudary</h2><p>${dateStr(s)} · all figures are game-model estimates</p></div>
+      <div class="glance-users"><span>App users</span><b>${fmtUsers(G.totalAppUsers(s))}</b><small>${s.audience?.launched?'seven apps live':'not launched yet'}</small></div>
     </div>
-    <div class="government-support"><div class="frow"><b>People currently supporting your government</b><span>~${supportedPeople.toFixed(1)}M / ${P.pop.toFixed(1)}M</span></div><div class="bar bigbar"><i class="green" style="width:${support}%"></i></div><small>Approval is a game estimate, not a poll or measured population count.</small></div>
+    <div class="glance-grid">
+      ${glanceTile('Public support', support.toFixed(0)+'%', support>=55?'good':support>=35?'warn':'bad', `~${supportedPeople.toFixed(1)}M people`)}
+      ${glanceTile('Stability', s.stability.toFixed(0)+'/100', s.stability>=60?'good':s.stability>=40?'warn':'bad', G.stabLabel(s.stability))}
+      ${glanceTile('FX reserves', fmtB(P.reserves), P.reserves>=8?'good':P.reserves>=5?'warn':'bad', `~${(P.reserves/(P.imports/12)).toFixed(1)} months of imports`)}
+      ${glanceTile('Budget / month', signedMoney(G.monthlyGovernmentRevenue(s)-G.monthlySpend(s)), (G.monthlyGovernmentRevenue(s)-G.monthlySpend(s))>=0?'good':'bad', 'income minus spending')}
+      ${glanceTile('Inner backing', backingScore, backingScore>=80?'good':backingScore>=55?'warn':'bad', 'average in-game standing')}
+    </div>
+    <div class="glance-bar">
+      <div class="glance-bar-label"><span>People supporting your government</span><b>~${supportedPeople.toFixed(1)}M of ${P.pop.toFixed(1)}M</b></div>
+      <div class="bar bigbar"><i class="${support>=55?'green':support>=35?'orange':'red'}" style="width:${support}%"></i></div>
+      <small>Approval is a modelled game value, not a poll or a measured population count.</small>
+    </div>
   </section>
 
   <section class="quick-links" aria-label="Government shortcuts">
-    <button class="quick-link" onclick="switchTab('projects')"><span>🗂</span><b>Projects</b><small>Launched schemes & support outlook</small></button>
-    <button class="quick-link" onclick="switchTab('orders')"><span>🧭</span><b>Situation</b><small>What is happening right now</small></button>
-    <button class="quick-link" onclick="copySituation()"><span>📋</span><b>Copy briefing</b><small>Paste the current state into Arena AI chat</small></button>
+    <button class="quick-link" onclick="switchTab('projects')"><span>🗂</span><b>Projects</b><small>Schemes, apps & audience</small></button>
+    <button class="quick-link" onclick="switchTab('orders')"><span>🧭</span><b>Situation</b><small>What is happening now</small></button>
+    <button class="quick-link" onclick="copySituation()"><span>📋</span><b>Copy briefing</b><small>Paste the state into Arena AI</small></button>
   </section>
 
   ${renderMoneyBoard(s)}
@@ -747,17 +770,65 @@ function renderDigitalSuiteProject(s){
   }).join('');
   return `<section class="digital-suite-project">
     <div class="digital-suite-heading"><div><span class="eyebrow">CONFIDENTIAL GAME SCENARIO · ${esc(project.date||'')}</span><h2>${esc(project.name)}</h2><p>${esc(project.team||'Elite development team')} · built in one month · held for a coordinated launch</p></div><div class="digital-project-badges"><span class="digital-secrecy-pill">🔒 SECRET · ${Number(project.secrecy)||100}%</span><div class="digital-complete-badge"><b>${Number(project.completion)||100}%</b><span>COMPLETE</span></div></div></div>
-    <div class="digital-suite-stats"><article><span>One-time funding</span><b>${fmtB(project.setupCostB)}</b><small>Deducted from national reserves</small></article><article><span>Monthly running cost</span><b>${fmtUSDmillions(cost)}</b><small>All seven services</small></article><article><span>Projected monthly revenue</span><b>${fmtUSDmillions(revenue)}</b><small>Initial scenario estimate</small></article><article class="digital-net-stat"><span>Monthly operating balance</span><b>${signedUSDmillions(revenue-cost)}</b><small>Revenue minus running costs</small></article></div>
+    <div class="digital-suite-stats"><article><span>One-time funding</span><b>${fmtB(project.setupCostB)}</b><small>Deducted from national reserves</small></article><article><span>Monthly running cost</span><b>${fmtUSDmillions(cost)}</b><small>All seven services</small></article><article><span>Projected monthly revenue</span><b>${fmtUSDmillions(revenue)}</b><small>Initial scenario estimate</small></article><article class="digital-net-stat"><span>Monthly operating balance</span><b>${signedUSDmillions(revenue-cost)}</b><small>Revenue minus running costs</small></article><article><span>App users</span><b>${fmtUsers(G.totalAppUsers(s))}</b><small>${s.audience?.launched?'seven apps live':'not launched · 0 users'}</small></article></div>
     <div class="digital-chart">
       <b>Monthly revenue vs running cost · per app</b>
       <div class="digital-chart-bars">${chart}</div>
       <div class="digital-chart-legend"><span><i style="background:#34d399"></i>Revenue / month</span><span><i style="background:#f59e0b"></i>Running cost / month</span><span>Total: ${fmtUSDmillions(revenue)} revenue · ${fmtUSDmillions(cost)} cost · ${signedUSDmillions(revenue-cost)} net</span></div>
     </div>
     ${backing}
-    <div class="digital-app-grid">${apps.map(app=>`<article class="digital-app-card accent-${esc(app.accent)}"><div class="digital-app-head"><span class="digital-app-icon">${app.icon}</span><span class="digital-app-ready">✓ Ready · 100%</span></div><h3>${esc(app.name)}</h3><p>${esc(app.category)}</p><div class="digital-app-finance"><div><span>Cost / month</span><b>${fmtUSDmillions(app.monthlyCostM)}</b></div><div><span>Revenue / month</span><b>${fmtUSDmillions(app.monthlyRevenueM)}</b></div></div></article>`).join('')}</div>
+    <div class="digital-app-grid">${apps.map(app=>`<article class="digital-app-card accent-${esc(app.accent)}"><div class="digital-app-head"><span class="digital-app-icon">${app.icon}</span><span class="digital-app-ready">✓ Ready · 100%</span></div><h3>${esc(app.name)}</h3><p>${esc(app.category)}</p><div class="digital-app-users"><b>${fmtUsers(app.users)}</b><span>users</span></div><div class="digital-app-finance"><div><span>Cost / month</span><b>${fmtUSDmillions(app.monthlyCostM)}</b></div><div><span>Revenue / month</span><b>${fmtUSDmillions(app.monthlyRevenueM)}</b></div></div></article>`).join('')}</div>
     <div class="digital-suite-footnote">Fictional game record only: no real developers were hired and no applications were deployed. Product revenue and operating costs are estimates. The $5B scenario build cost is a one-time spend; monthly operations now flow into the national budget.</div>
   </section>`;
 }
+function splitBar(agree,disagree){
+  const a=clamp(Number(agree)||0,0,100), d=clamp(Number(disagree)||0,0,100);
+  return `<div class="split-bar" role="img" aria-label="${a}% agree, ${d}% disagree"><i class="split-agree" style="width:${a}%"></i><i class="split-disagree" style="width:${d}%"></i></div>`;
+}
+function renderAudiencePanel(s){
+  const apps=G.appAudience(s);
+  const total=G.totalAppUsers(s);
+  const launched=s.audience?.launched===true;
+  const posts=s.audience?.posts||[];
+  const live=apps.filter(app=>app.users>0).length;
+  const mood=posts.length?{agree:Math.round(posts.reduce((n,p)=>n+p.agree,0)/posts.length),disagree:Math.round(posts.reduce((n,p)=>n+p.disagree,0)/posts.length)}:null;
+  const messageCards=(typeof AUDIENCE_MESSAGES!=='undefined'?AUDIENCE_MESSAGES:[]).map(message=>{
+    const split=G.messageSplit(s,message.id);
+    const reach=G.audienceReach(s,message.id);
+    return `<article class="message-option tone-${esc(message.tone||'neutral')}">
+      <div class="message-option-head"><span>${message.icon} ${esc(message.label)}</span><b>${split.agree}<small>% agree</small></b></div>
+      <p>${esc(message.blurb)}</p>
+      ${splitBar(split.agree,split.disagree)}
+      <div class="message-option-foot"><small>${split.disagree}% would disagree · reach ${fmtUsers(reach)}</small><button class="btn ${launched?'primary':''}" ${launched?'':'disabled'} onclick="publishPost('${esc(message.id)}')">${launched?'Publish':'No audience'}</button></div>
+    </article>`;
+  }).join('');
+  return `<section class="card audience-panel">
+    <div class="section-title"><div><span class="eyebrow">AUDIENCE · GAME SIMULATION</span><h2>Our apps & their users</h2><p>Post to the people using your apps and see how many agree or disagree. All user counts are simulated.</p></div><span class="status-pill ${launched?'pill-good':'pill-muted'}">${launched?'● Apps live':'● Not launched'}</span></div>
+    <div class="audience-stats">
+      <div class="audience-stat"><span>Total app users</span><b>${fmtUsers(total)}</b><small>${apps.length} apps tracked</small></div>
+      <div class="audience-stat"><span>Apps with users</span><b>${live}/${apps.length}</b><small>${launched?'registration open':'nobody registered yet'}</small></div>
+      <div class="audience-stat"><span>Posts published</span><b>${posts.length}</b><small>${posts.length?'latest first':'none yet'}</small></div>
+      <div class="audience-stat"><span>Audience mood</span><b>${mood?mood.agree+'% agree':'—'}</b><small>${mood?mood.disagree+'% disagree':total?'no posts yet':'waiting for an audience'}</small></div>
+    </div>
+    <div class="audience-apps">${apps.map(app=>`<div class="audience-app accent-${esc(app.accent)}"><span>${app.icon}</span><b>${esc(app.name)}</b><strong>${fmtUsers(app.users)}</strong><small>users</small></div>`).join('')}</div>
+    ${launched?'':`<div class="audience-launch"><div><b>Nobody is using the apps yet</b><p>The suite is built and secret. Opening it to the public starts simulated sign-ups, which then unlock posting and monthly growth.</p></div><button class="btn primary" onclick="launchSuite()">🚀 Open apps to the public</button></div>`}
+    <div class="section-title audience-sub"><div><h3>Compose a post</h3><p>Agreement is modelled from approval, stability and the type of message.</p></div></div>
+    <div class="message-grid">${messageCards}</div>
+    <div class="section-title audience-sub"><div><h3>Published posts</h3><p>Each post records its simulated reach and the modelled agree/disagree split.</p></div></div>
+    ${posts.length?`<div class="audience-feed">${posts.map(post=>`<article class="post-row"><div class="post-row-head"><b>${post.icon||'📣'} ${esc(post.label)}</b><time>${esc(post.date)}</time></div><div class="post-row-body">${splitBar(post.agree,post.disagree)}<div class="post-row-legend"><span class="agree">${post.agree}% agree</span><span class="disagree">${post.disagree}% disagree</span><span class="reach">reached ${fmtUsers(post.reach)}</span></div></div></article>`).join('')}</div>`:`<div class="audience-empty">No posts yet. ${total?'Publish a message above to see the reaction.':'Open the apps to the public first, then post to its users.'}</div>`}
+    <p class="audience-note">Fictional game model. These are simulated users and simulated reactions — not real accounts, posts, polling or outreach.</p>
+  </section>`;
+}
+function launchSuite(){
+  const s=G.getState();
+  if(G.launchDigitalSuite(s)){ G.saveGame(); render(); }
+}
+function publishPost(typeId){
+  const s=G.getState();
+  if(!G.totalAppUsers(s)){ toast('No app users yet — open the apps to the public first'); return; }
+  if(G.publishAudiencePost(s,typeId)){ G.saveGame(); render(); }
+}
+
 function renderProjectPreview(s){
   const projects=(s.projects||[]).filter(p=>p.type==='scheme').slice(0,3);
   return `<section class="card project-preview">
@@ -818,6 +889,7 @@ function tabProjects(s){
       <div class="dashboard-heading-actions"><button class="btn" onclick="scrollToGameOperations()">🌐 Game operations</button><button class="btn primary" onclick="copySituation()">📋 Copy situation</button></div>
     </section>
     ${renderDigitalSuiteProject(s)}
+    ${renderAudiencePanel(s)}
     <section class="project-overview">
       <div class="project-overview-stat"><span>Launched schemes</span><b>${schemes.length}</b><small>Pakistan domestic projects</small></div>
       <div class="project-overview-stat"><span>International initiatives</span><b>${initiatives.length}</b><small>Diplomacy & cooperation</small></div>

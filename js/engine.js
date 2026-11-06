@@ -89,6 +89,76 @@ function ensureDigitalSuiteProject(s){
   }
   return s.projects.find(project=>project.id===PAK_DIGITAL_SUITE.id);
 }
+/* ---------- digital suite audience (game simulation only) ---------- */
+const SUITE_LAUNCH_USERS = {pakgram:6e6,pakcircle:4.5e6,pakchat:5.2e6,paktube:2.4e6,paktok:3.6e6,paksearch:1.8e6,pakbrowse:1.1e6};
+function ensureAudience(s){
+  if(!s.audience||typeof s.audience!=='object') s.audience={launched:false,posts:[],mood:null};
+  if(!Array.isArray(s.audience.posts)) s.audience.posts=[];
+  if(typeof s.audience.launched!=='boolean') s.audience.launched=false;
+  const project=(s.projects||[]).find(item=>item.id===PAK_DIGITAL_SUITE.id);
+  if(project&&Array.isArray(project.products)){
+    for(const app of project.products) if(!Number.isFinite(Number(app.users))) app.users=0;
+  }
+  return s.audience;
+}
+function appAudience(s){
+  const project=(s.projects||[]).find(item=>item.id===PAK_DIGITAL_SUITE.id);
+  return (project&&project.products?project.products:[]).map(app=>({id:app.id,name:app.name,icon:app.icon,accent:app.accent,users:Number(app.users)||0}));
+}
+function totalAppUsers(s){return appAudience(s).reduce((sum,app)=>sum+app.users,0);}
+function audienceMessage(typeId){return AUDIENCE_MESSAGES.find(item=>item.id===typeId)||AUDIENCE_MESSAGES[0];}
+function messageSplit(s,typeId){
+  const type=audienceMessage(typeId);
+  const stabilityEffect=((Number(s.stability)||50)-50)*0.12;
+  const agree=Math.round(clamp((Number(s.approval)||0)+type.lean+stabilityEffect,5,95));
+  return {type,agree,disagree:100-agree};
+}
+function audienceReach(s,typeId){
+  const type=audienceMessage(typeId);
+  return Math.round(totalAppUsers(s)*(Number(type.reachRate)||0.3));
+}
+function launchDigitalSuite(s){
+  const audience=ensureAudience(s);
+  const project=(s.projects||[]).find(item=>item.id===PAK_DIGITAL_SUITE.id);
+  if(!project||audience.launched) return false;
+  project.products.forEach(app=>{app.users=Math.round(SUITE_LAUNCH_USERS[app.id]||0);});
+  audience.launched=true;
+  audience.launchedDate=dateStr(s);
+  audience.mood={agree:Math.round(clamp(s.approval,0,100)),disagree:Math.round(100-clamp(s.approval,0,100))};
+  news(s,'The confidential suite goes public: all seven Pakistani apps open registration. Sign-up numbers are simulated game values, not real users.','info');
+  return true;
+}
+function publishAudiencePost(s,typeId){
+  const audience=ensureAudience(s);
+  const type=audienceMessage(typeId);
+  if(!(s.projects||[]).some(item=>item.id===PAK_DIGITAL_SUITE.id)) return null;
+  const split=messageSplit(s,typeId), reach=audienceReach(s,typeId);
+  const post={id:'post-'+Date.now()+'-'+Math.random().toString(36).slice(2,6),date:dateStr(s),typeId:type.id,label:type.label,icon:type.icon,reach,agree:split.agree,disagree:split.disagree};
+  audience.posts.unshift(post);
+  audience.posts=audience.posts.slice(0,10);
+  audience.mood={agree:split.agree,disagree:split.disagree};
+  if(reach>0){
+    const share=clamp(reach/Math.max(1,(Number(s.countries.PAK.pop)||240)*1e6),0,1);
+    const delta=(split.agree-50)/100*Number(type.approvalWeight||1)*share*6;
+    s.approval=clamp(s.approval+delta,0,100);
+    news(s,`Audience post published: “${type.label}”. Simulated reach ${Math.round(reach/1e6)}M users; ${split.agree}% agree, ${split.disagree}% disagree.`,'info');
+  } else {
+    news(s,`“${type.label}” was recorded as a draft for the app audience. Nobody is using the apps yet, so it reached no one.`,'info');
+  }
+  return post;
+}
+function audienceTick(s){
+  const audience=ensureAudience(s);
+  if(!audience.launched) return;
+  const project=(s.projects||[]).find(item=>item.id===PAK_DIGITAL_SUITE.id);
+  if(!project||!Array.isArray(project.products)) return;
+  const growth=0.025+clamp(Number(s.approval)||0,0,100)/100*0.035;
+  const ceiling=(Number(s.countries.PAK.pop)||240)*1e6*0.35;
+  project.products.forEach(app=>{
+    app.users=Math.round(Math.min(ceiling,Math.max(0,Number(app.users)||0)*(1+growth)));
+  });
+}
+
 function normalizeState(s){
   if (!s.innerInfluence || typeof s.innerInfluence !== 'object') s.innerInfluence = {relationships:{}};
   if (!s.innerInfluence.relationships || typeof s.innerInfluence.relationships !== 'object') s.innerInfluence.relationships = {};
@@ -99,6 +169,7 @@ function normalizeState(s){
   if (!Array.isArray(s.ops)) s.ops = [];
   ensureLeadershipMeeting(s);
   ensureDigitalSuiteProject(s);
+  ensureAudience(s);
   return s;
 }
 
@@ -135,6 +206,7 @@ function newGame(){
   };
   ensureLeadershipMeeting(s);
   ensureDigitalSuiteProject(s);
+  ensureAudience(s);
   news(s,'November 2026. You assume supreme authority over the Islamic Republic of Pakistan — 241 million people, a $415B economy, 170 nuclear warheads, and more problems than solutions.','big');
   news(s,'IMF EFF review passed in October. Rupee 281/USD. Ceasefire with India holding since May 2025 — barely.','info');
   news(s,'Game scenario note: relations with military institutions are modeled and will shift with policy choices; this is not a statement from any real officeholder.','warn');
@@ -193,6 +265,8 @@ function econTick(s){
   // FDI flavor: China/GB investments when relations high
   if ((s.countries.CHN.rel.PAK||0) > 70 && chance(0.25)) { P.reserves += rnd(0.2,0.8); }
   if ((s.countries.SAU.rel.PAK||0) > 70 && chance(0.12)) { P.reserves += rnd(0.3,0.7); }
+
+  audienceTick(s);
 
   // budget: revenue vs ministry spending → reserves/debt
   const revenue = monthlyGovernmentRevenue(s);
@@ -939,4 +1013,5 @@ function endMonth(s){
 window.G = { newGame, saveGame, loadGame, endMonth, doAction, actionAvailable,
   getState:()=>state, setSelected:v=>selectedISO=v, ACTIONS, EVENTS, news, combatPower, powerScore,
   monthlyRevenue, monthlyGovernmentRevenue, monthlyDigitalSuiteRevenue, monthlyDigitalSuiteCost, monthlySpend, monthlyDebtService, relLabel, stabLabel,
+  appAudience, totalAppUsers, launchDigitalSuite, publishAudiencePost, messageSplit, audienceReach, ensureAudience,
   getPending:()=>pendingEvents, shiftPending:()=>pendingEvents.shift() };
